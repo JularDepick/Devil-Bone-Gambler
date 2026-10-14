@@ -1,0 +1,16 @@
+# Agent Runtime
+AGENTS.md
+.agent/
+.agents/
+
+# Versions' docs
+
+# Developing Runtime (build/dist/cache)
+build/
+dist/
+temp/
+tmp/
+
+# other
+release/
+releases/
