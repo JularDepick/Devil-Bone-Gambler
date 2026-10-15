@@ -8,7 +8,6 @@
 ## Java 源码
 
 ```
-src/main/java/com/devilbonegambler/
 ├── DevilBoneGambler.java            # 模组入口, 注册延迟注册器与网络通道
 ├── altar/                           # 祭坛范围服务
 │   └── AltarService.java            # 定位玩家最近的祭坛并驱动周期范围效果
@@ -18,11 +17,15 @@ src/main/java/com/devilbonegambler/
 ├── client/                          # 客户端专属代码, 仅经 DistExecutor 触达
 │   ├── ClientActions.java           # 客户端动作入口, 发包与打开界面
 │   ├── ClientPacketHandler.java     # 客户端侧网络包分发
+│   ├── ClientSetup.java             # 客户端注册入口, 注册实体渲染器
 │   ├── gui/                         # 客户端界面
 │   │   ├── AdminConfigScreen.java   # 管理员配置面板
-│   │   └── AltarScreen.java         # 献祭界面
+│   │   ├── AltarScreen.java         # 献祭界面
+│   │   ├── DealerBetScreen.java     # 荷官赌注箱界面
+│   │   └── DealerScreen.java        # 荷官九宫格界面
 │   └── render/                      # 客户端渲染
-│       └── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
+│       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
+│       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与村民贴图
 ├── commands/                        # 命令注册
 │   ├── CommandRunner.java           # 奖池条目指令执行与语法校验
 │   └── ModCommands.java             # 管理员命令入口
@@ -36,7 +39,13 @@ src/main/java/com/devilbonegambler/
 │   ├── PrizeRegion.java             # 奖池区域模型
 │   └── ServerConfigManager.java     # 配置加载, 写盘, 扫描兜底与乐观锁
 ├── data/                            # 存档持久化
+│   ├── DealerUsageData.java         # 玩家骰子使用计数存档
 │   └── LuckData.java                # 玩家运气值存档数据
+├── dealer/                          # 荷官赌局与奖励
+│   ├── DealerBetBox.java            # 单名成员的赌注箱
+│   ├── DealerRewardService.java     # 骰子使用计数与生物蛋发放
+│   ├── DealerWagerService.java      # 服务端荷官赌局主流程
+│   └── DealerWagerSession.java      # 单场荷官赌局的会话状态
 ├── draw/                            # 抽取机制
 │   ├── DiceRoll.java                # 一次掷骰, 点数与红黑颜色
 │   ├── DrawEngine.java              # 服务端抽取主流程
@@ -55,6 +64,10 @@ src/main/java/com/devilbonegambler/
 │   ├── GamblersDiceItem.java        # 赌徒的骰子
 │   └── OfferingValueTableItem.java  # 祭品价值表
 ├── mixin/                           # 混入类目录, 当前为空
+├── mob/                             # 赌徒的荷官
+│   ├── DealerSpawnService.java      # 日出日落静默生成
+│   ├── DealerWanderGoal.java        # 光照优先与远离液体的寻路偏好与停留
+│   └── GamblersDealer.java          # 荷官实体, 进食与主持消耗
 ├── network/                         # 网络通道, 协议与消息包
 │   ├── AltarStatusBroadcaster.java  # 周期向客户端广播祭坛状态
 │   ├── ModNetwork.java              # 通道注册与发送封装
@@ -67,6 +80,9 @@ src/main/java/com/devilbonegambler/
 │       ├── ConfigSyncPacket.java
 │       ├── ConfigWriteRequestPacket.java
 │       ├── ConfigWriteResponsePacket.java
+│       ├── DealerBetMovePacket.java
+│       ├── DealerInteractPacket.java
+│       ├── DealerPanelPacket.java
 │       ├── DevilsDiceRequestPacket.java
 │       ├── DrawResultPacket.java
 │       ├── GamblersDiceRequestPacket.java
@@ -80,6 +96,8 @@ src/main/java/com/devilbonegambler/
 │   ├── ModBlocks.java               # 方块注册
 │   ├── ModCreativeTabs.java         # 模组专属物品页
 │   ├── ModEffects.java              # 状态效果注册
+│   ├── ModEntities.java             # 实体类型注册
+│   ├── ModEntityAttributes.java     # 实体属性注册
 │   └── ModItems.java                # 物品注册
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
@@ -114,6 +132,7 @@ src/main/resources/
 │   │   └── item/
 │   │       ├── devils_altar.json      # 祭坛物品模型, 复用方块模型
 │   │       ├── devils_dice.json
+│   │       ├── gamblers_dealer_spawn_egg.json # 荷官生物蛋, 沿用原版生成式生物蛋模型
 │   │       ├── gamblers_dice.json
 │   │       └── offering_value_table.json
 │   ├── shaders/
@@ -162,6 +181,7 @@ src/main/resources/
 - 自定义方块模型需要在 `textures` 中声明 `particle` 贴图, 否则破坏粒子会回退到原版缺失贴图
 - 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
 - 赌局机制集中在 `wager/`; 祭坛的方块, 方块实体与范围服务集中在 `block/` 与 `altar/`
+- 荷官的实体, 寻路与静默生成集中在 `mob/`, 荷官赌局与奖励集中在 `dealer/`; 荷官渲染复用原版村民模型与村民贴图, 静默生成规则只在服务端执行且不下发到客户端
 - 祭坛遮罩的着色器程序与后处理链位于 `assets/devil_bone_gambler/shaders/`
 - 方块的挖掘工具要求同时由 `data/minecraft/tags/blocks/` 下的标签与代码中的破坏进度判定承担, 两者缺一不可
 - 配置项清单与运行期文件位置见 [开发者文档](../docs/developer/README.md)

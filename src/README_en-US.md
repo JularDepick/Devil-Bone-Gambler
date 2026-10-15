@@ -18,11 +18,15 @@ src/main/java/com/devilbonegambler/
 ├── client/                          # Client-only code, reached only through DistExecutor
 │   ├── ClientActions.java           # Client action entry, packet sending and screen opening
 │   ├── ClientPacketHandler.java     # Client side packet dispatch
+│   ├── ClientSetup.java             # Client registration entry, registers the entity renderer
 │   ├── gui/                         # Client screens
 │   │   ├── AdminConfigScreen.java   # Admin config panel
-│   │   └── AltarScreen.java         # Offering screen
+│   │   ├── AltarScreen.java         # Offering screen
+│   │   ├── DealerBetScreen.java     # Dealer bet box screen
+│   │   └── DealerScreen.java        # Dealer nine grid screen
 │   └── render/                      # Client rendering
-│       └── AltarTintHandler.java    # Screen space red tint over the altar range
+│       ├── AltarTintHandler.java    # Screen space red tint over the altar range
+│       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and texture
 ├── commands/                        # Command registration
 │   ├── CommandRunner.java           # Prize entry command execution and syntax validation
 │   └── ModCommands.java             # Admin command entry
@@ -36,7 +40,13 @@ src/main/java/com/devilbonegambler/
 │   ├── PrizeRegion.java             # Prize region model
 │   └── ServerConfigManager.java     # Loading, writing, value scan and optimistic lock
 ├── data/                            # Save persistence
+│   ├── DealerUsageData.java         # Per player consumed dice counter
 │   └── LuckData.java                # Per player luck value
+├── dealer/                          # Dealer wager and reward
+│   ├── DealerBetBox.java            # Bet box of one member
+│   ├── DealerRewardService.java     # Dice usage counter and spawn egg reward
+│   ├── DealerWagerService.java      # Server side dealer wager pipeline
+│   └── DealerWagerSession.java      # Session state of one dealer wager
 ├── draw/                            # Draw mechanic
 │   ├── DiceRoll.java                # One dice roll, a point plus a red or black colour
 │   ├── DrawEngine.java              # Server side draw pipeline
@@ -55,6 +65,10 @@ src/main/java/com/devilbonegambler/
 │   ├── GamblersDiceItem.java        # Gambler's Dice
 │   └── OfferingValueTableItem.java  # Offering Value Table
 ├── mixin/                           # Mixin package, currently empty
+├── mob/                             # Gambler's Dealer
+│   ├── DealerSpawnService.java      # Silent sunrise and sunset spawn
+│   ├── DealerWanderGoal.java        # Light first, liquid second pathing and the stay
+│   └── GamblersDealer.java          # Dealer entity, feeding and hosting cost
 ├── network/                         # Network channel, protocol and messages
 │   ├── AltarStatusBroadcaster.java  # Periodically broadcasts the altar status to clients
 │   ├── ModNetwork.java              # Channel registration and send helpers
@@ -67,6 +81,9 @@ src/main/java/com/devilbonegambler/
 │       ├── ConfigSyncPacket.java
 │       ├── ConfigWriteRequestPacket.java
 │       ├── ConfigWriteResponsePacket.java
+│       ├── DealerBetMovePacket.java
+│       ├── DealerInteractPacket.java
+│       ├── DealerPanelPacket.java
 │       ├── DevilsDiceRequestPacket.java
 │       ├── DrawResultPacket.java
 │       ├── GamblersDiceRequestPacket.java
@@ -80,6 +97,8 @@ src/main/java/com/devilbonegambler/
 │   ├── ModBlocks.java               # Block registration
 │   ├── ModCreativeTabs.java         # The dedicated mod tab
 │   ├── ModEffects.java              # Mob effect registration
+│   ├── ModEntities.java             # Entity type registration
+│   ├── ModEntityAttributes.java     # Entity attribute registration
 │   └── ModItems.java                # Item registration
 ├── util/                            # Shared helpers
 │   ├── AuthorInfo.java              # Author credit constants
@@ -114,6 +133,7 @@ src/main/resources/
 │   │   └── item/
 │   │       ├── devils_altar.json      # Altar item model, reusing the block model
 │   │       ├── devils_dice.json
+│   │       ├── gamblers_dealer_spawn_egg.json # Dealer spawn egg, using the vanilla generated spawn egg model
 │   │       ├── gamblers_dice.json
 │   │       └── offering_value_table.json
 │   ├── shaders/
@@ -162,6 +182,7 @@ src/main/resources/
 - A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`
 - The wager mechanic lives in `wager/`; the altar block, its block entity and the range service live in `block/` and `altar/`
+- The dealer entity, its pathing and the silent spawn live in `mob/`, the dealer wager and its reward live in `dealer/`; the dealer renderer reuses the vanilla villager model and texture, and the silent spawn rule runs on the server only and never reaches a client
 - The shader programs and the post chain of the altar tint live in `assets/devil_bone_gambler/shaders/`
 - The mining tool requirement of a block is carried both by the tags under `data/minecraft/tags/blocks/` and by the destroy progress check in code, one without the other is not enough
 - The config entry list and the runtime file layout are described in the [developer documentation](../docs/developer/README_en-US.md)
