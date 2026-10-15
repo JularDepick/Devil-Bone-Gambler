@@ -13,6 +13,9 @@ import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
+import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.DealerInteractPacket;
+import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
@@ -81,6 +84,12 @@ public final class ModNetwork
                 AltarStatusPacket::encode, AltarStatusPacket::decode, AltarStatusPacket::handle);
         CHANNEL.registerMessage(index++, ValueTableSyncPacket.class,
                 ValueTableSyncPacket::encode, ValueTableSyncPacket::decode, ValueTableSyncPacket::handle);
+        CHANNEL.registerMessage(index++, DealerInteractPacket.class,
+                DealerInteractPacket::encode, DealerInteractPacket::decode, DealerInteractPacket::handle);
+        CHANNEL.registerMessage(index++, DealerBetMovePacket.class,
+                DealerBetMovePacket::encode, DealerBetMovePacket::decode, DealerBetMovePacket::handle);
+        CHANNEL.registerMessage(index++, DealerPanelPacket.class,
+                DealerPanelPacket::encode, DealerPanelPacket::decode, DealerPanelPacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

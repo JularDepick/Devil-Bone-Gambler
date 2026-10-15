@@ -8,9 +8,14 @@ package com.devilbonegambler.client;
 
 import com.devilbonegambler.client.gui.AdminConfigScreen;
 import com.devilbonegambler.client.gui.AltarScreen;
+import com.devilbonegambler.client.gui.DealerBetScreen;
+import com.devilbonegambler.client.gui.DealerScreen;
 import com.devilbonegambler.draw.OfferingBundle;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
+import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.DealerInteractPacket;
+import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
@@ -64,6 +69,29 @@ public final class ClientActions
     public static void openAltarScreen()
     {
         Minecraft.getInstance().setScreen(new AltarScreen());
+    }
+
+    /**
+     * Dealer panel intents. The panel data itself is always pushed by the server, the client only asks for an action.
+     */
+    public static void sendDealerInteract(int dealerEntityId, int action)
+    {
+        ModNetwork.sendToServer(new DealerInteractPacket(dealerEntityId, action));
+    }
+
+    public static void sendDealerBetMove(int dealerEntityId, int action, int index, boolean wholeStack)
+    {
+        ModNetwork.sendToServer(new DealerBetMovePacket(dealerEntityId, action, index, wholeStack));
+    }
+
+    public static void openDealerScreen(DealerPanelPacket panel)
+    {
+        Minecraft.getInstance().setScreen(new DealerScreen(panel));
+    }
+
+    public static void openDealerBetScreen(DealerPanelPacket panel)
+    {
+        Minecraft.getInstance().setScreen(new DealerBetScreen(panel));
     }
 
     /**

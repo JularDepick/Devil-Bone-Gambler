@@ -8,7 +8,10 @@ package com.devilbonegambler.client;
 
 import com.devilbonegambler.client.gui.AdminConfigScreen;
 import com.devilbonegambler.client.gui.AltarScreen;
+import com.devilbonegambler.client.gui.DealerBetScreen;
+import com.devilbonegambler.client.gui.DealerScreen;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
+import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
@@ -57,6 +60,32 @@ public final class ClientPacketHandler
         if (minecraft.screen instanceof AltarScreen altar)
         {
             altar.onDrawResult(message);
+        }
+    }
+
+    /**
+     * The dealer panel is opened by the server, so the first panel of a new wager opens the screen and every later
+     * one only refreshes it. The bet box screen keeps its own copy of the same data.
+     */
+    public static void handleDealerPanel(DealerPanelPacket message)
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (minecraft.screen instanceof DealerBetScreen betScreen)
+        {
+            betScreen.applyPanel(message);
+            return;
+        }
+
+        if (minecraft.screen instanceof DealerScreen dealerScreen)
+        {
+            dealerScreen.applyPanel(message);
+            return;
+        }
+
+        if (message.openScreen())
+        {
+            ClientActions.openDealerScreen(message);
         }
     }
 

@@ -8,6 +8,8 @@ package com.devilbonegambler.network;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.config.ServerConfigManager;
+import com.devilbonegambler.dealer.DealerRewardService;
+import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.draw.DrawEngine;
 import com.devilbonegambler.draw.DrawResult;
 import com.devilbonegambler.draw.NotifySender;
@@ -18,6 +20,8 @@ import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
+import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
@@ -49,6 +53,46 @@ public final class ServerRequestHandler
     public static void handleDevilsDice(ServerPlayer player, DevilsDiceRequestPacket message)
     {
         handleDraw(player, message.sequence(), message.playerName(), message.itemId(), message.bundle(), false);
+    }
+
+    /**
+     * Dealer panel intents: open or join, create, start and leave. Every intent is validated against the server
+     * owned wager, the client never decides who may join or start.
+     */
+    public static void handleDealerInteract(ServerPlayer player, DealerInteractPacket message)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        if (message.action() == DealerInteractPacket.ACTION_OPEN)
+        {
+            DealerWagerService.open(player, message.dealerEntityId());
+        }
+        else if (message.action() == DealerInteractPacket.ACTION_CREATE)
+        {
+            DealerWagerService.create(player, message.dealerEntityId());
+        }
+        else if (message.action() == DealerInteractPacket.ACTION_START)
+        {
+            DealerWagerService.start(player, message.dealerEntityId());
+        }
+        else if (message.action() == DealerInteractPacket.ACTION_LEAVE)
+        {
+            DealerWagerService.leave(player, message.dealerEntityId());
+        }
+    }
+
+    public static void handleDealerBetMove(ServerPlayer player, DealerBetMovePacket message)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        DealerWagerService.moveBet(player, message.dealerEntityId(), message.action(), message.index(),
+                message.wholeStack());
     }
 
     public static void handleValueTableRefresh(ServerPlayer player, ValueTableRefreshRequestPacket message)
@@ -220,7 +264,10 @@ public final class ServerRequestHandler
         {
             DevilBoneGambler.LOGGER.error("The wager started but the dice could not be consumed, player={}",
                     player.getGameProfile().getName());
+            return;
         }
+
+        DealerRewardService.recordDiceUse(player);
     }
 
     private static void respondDraw(ServerPlayer player, int sequence, String itemId, DrawResult result)
