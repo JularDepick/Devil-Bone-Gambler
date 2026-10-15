@@ -49,6 +49,7 @@ src/main/java/com/devilbonegambler/
 ├── effect/                          # Mob effects
 │   └── BloodlustEffect.java         # Altar range effect, drains food saturation faster
 ├── item/                            # Items
+│   ├── DevilsAltarItem.java         # Devil's Altar, placeable and wearable on the head
 │   ├── DevilsDiceItem.java          # Devil's Dice
 │   ├── GamblersDiceItem.java        # Gambler's Dice
 │   └── OfferingValueTableItem.java  # Offering Value Table
@@ -80,6 +81,7 @@ src/main/java/com/devilbonegambler/
 │   └── ModItems.java                # Item registration
 ├── util/                            # Shared helpers
 │   ├── AuthorInfo.java              # Author credit constants
+│   ├── ItemValuation.java           # Per instance item valuation with enchant bonus and durability
 │   ├── ModConstants.java            # Central design detail constants
 │   ├── Placeholders.java            # Placeholder expansion for commands and texts
 │   ├── ServerScheduler.java         # Delayed server task scheduling

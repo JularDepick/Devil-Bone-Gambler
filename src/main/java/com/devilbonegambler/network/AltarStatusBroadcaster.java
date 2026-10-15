@@ -22,7 +22,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Pushes the nearest altar status to every player, but only when it changes.
+ * Pushes the governing altar status to every player, but only when it changes.
+ * An altar worn in the head slot is a source like a placed altar, so the red range mask follows the wearer.
  * The client only uses it as a branch hint; the server re-checks the range before any sacrifice.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -57,22 +58,7 @@ public final class AltarStatusBroadcaster
 
         for (ServerPlayer player : server.getPlayerList().getPlayers())
         {
-            DevilsAltarBlockEntity altar = AltarService.nearestAltar(player);
-            Status status;
-
-            if (altar == null)
-            {
-                status = new Status(false, BlockPos.ZERO, 0, ModConstants.ALTAR_BASE_RADIUS, false);
-            }
-            else
-            {
-                long value = altar.offeringValue();
-                int radius = ModConstants.altarRadiusFor(value);
-                BlockPos pos = altar.getBlockPos();
-                boolean inRange = player.blockPosition().distSqr(pos) <= (double) radius * radius;
-                status = new Status(true, pos, value, radius, inRange);
-            }
-
+            Status status = statusOf(server, player);
             Status previous = LAST_SENT.get(player.getUUID());
 
             if (previous != null && previous.same(status))
@@ -84,6 +70,67 @@ public final class AltarStatusBroadcaster
             ModNetwork.sendToPlayer(player, new AltarStatusPacket(status.hasAltar, status.pos, status.value,
                     status.radius, status.inRange));
         }
+    }
+
+    /**
+     * The altar that governs the player: the altar they wear, a stronger altar range that covers them, or the
+     * nearest placed altar as a hint when no range covers them.
+     */
+    private static Status statusOf(MinecraftServer server, ServerPlayer player)
+    {
+        long wornValue = AltarService.wornAltarValue(player);
+        long best = wornValue;
+        BlockPos bestPos = wornValue < 0L ? null : player.blockPosition();
+
+        for (ServerPlayer other : server.getPlayerList().getPlayers())
+        {
+            if (other == player)
+            {
+                continue;
+            }
+
+            long value = AltarService.wornAltarValue(other);
+
+            if (value < 0L || value <= best)
+            {
+                continue;
+            }
+
+            int radius = ModConstants.altarRadiusFor(value);
+
+            if (player.distanceToSqr(other) <= (double) radius * (double) radius)
+            {
+                best = value;
+                bestPos = other.blockPosition();
+            }
+        }
+
+        DevilsAltarBlockEntity nearest = AltarService.nearestAltar(player);
+
+        if (nearest != null)
+        {
+            long value = nearest.offeringValue();
+            int radius = ModConstants.altarRadiusFor(value);
+
+            if (value > best && player.blockPosition().distSqr(nearest.getBlockPos()) <= (double) radius * radius)
+            {
+                best = value;
+                bestPos = nearest.getBlockPos();
+            }
+        }
+
+        if (bestPos != null)
+        {
+            return new Status(true, bestPos, best, ModConstants.altarRadiusFor(best), true);
+        }
+
+        if (nearest != null)
+        {
+            long value = nearest.offeringValue();
+            return new Status(true, nearest.getBlockPos(), value, ModConstants.altarRadiusFor(value), false);
+        }
+
+        return new Status(false, BlockPos.ZERO, 0, ModConstants.ALTAR_BASE_RADIUS, false);
     }
 
     @SubscribeEvent

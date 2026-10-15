@@ -8,8 +8,8 @@ package com.devilbonegambler.registry;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.block.DevilsAltarBlock;
+import com.devilbonegambler.item.DevilsAltarItem;
 import com.devilbonegambler.util.ModConstants;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -43,7 +43,7 @@ public final class ModBlocks
                     .lightLevel(state -> ModConstants.ALTAR_LIGHT_LEVEL)));
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",
-            () -> new BlockItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));
+            () -> new DevilsAltarItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));
 
     private ModBlocks()
     {

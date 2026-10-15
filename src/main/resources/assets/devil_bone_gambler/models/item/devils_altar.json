@@ -1,3 +1,8 @@
 {
-  "parent": "devil_bone_gambler:block/devils_altar"
+  "parent": "devil_bone_gambler:block/devils_altar",
+  "display": {
+    "head": {
+      "translation": [0, 14, 0]
+    }
+  }
 }

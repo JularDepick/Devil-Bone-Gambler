@@ -69,6 +69,8 @@ public class DevilsDiceRequestPacket
         {
             buffer.writeUtf(offering.itemId());
             buffer.writeVarInt(offering.count());
+            buffer.writeVarInt(offering.damage());
+            buffer.writeVarInt(offering.enchantLevels());
         }
 
         List<UUID> mobs = message.bundle.mobs();
@@ -95,7 +97,11 @@ public class DevilsDiceRequestPacket
 
         for (int index = 0; index < itemCount; index++)
         {
-            items.add(new Offering(buffer.readUtf(128), buffer.readVarInt()));
+            String offeringId = buffer.readUtf(128);
+            int offeringCount = buffer.readVarInt();
+            int damage = buffer.readVarInt();
+            int enchantLevels = buffer.readVarInt();
+            items.add(new Offering(offeringId, offeringCount, damage, enchantLevels));
         }
 
         int mobCount = Math.min(buffer.readVarInt(), ModConstants.ALTAR_MAX_MOB_ENTRIES);

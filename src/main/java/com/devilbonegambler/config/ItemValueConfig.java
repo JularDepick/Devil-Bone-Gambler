@@ -25,6 +25,7 @@ public class ItemValueConfig
     public Integer revision;
     public Integer defaultItemValue;
     public Integer defaultEntityValue;
+    public Integer enchantValueBase;
     public Map<String, Number> items;
     public Map<String, Number> entities;
 
@@ -42,6 +43,7 @@ public class ItemValueConfig
         result.revision = Integer.valueOf(0);
         result.defaultItemValue = Integer.valueOf(ModConstants.DEFAULT_ITEM_VALUE);
         result.defaultEntityValue = Integer.valueOf(ModConstants.DEFAULT_ENTITY_VALUE);
+        result.enchantValueBase = Integer.valueOf(ModConstants.DEFAULT_ENCHANT_VALUE);
         result.items = new TreeMap<String, Number>();
         result.entities = new TreeMap<String, Number>();
         return result;
@@ -69,6 +71,16 @@ public class ItemValueConfig
         return this.defaultEntityValue == null
                 ? ModConstants.DEFAULT_ENTITY_VALUE
                 : Math.max(0, this.defaultEntityValue.intValue());
+    }
+
+    /**
+     * Value added per enchantment level, adjustable by an administrator.
+     */
+    public int enchantValueBaseOrDefault()
+    {
+        return this.enchantValueBase == null
+                ? ModConstants.DEFAULT_ENCHANT_VALUE
+                : Math.max(0, this.enchantValueBase.intValue());
     }
 
     public Map<String, Number> itemsOrEmpty()
@@ -138,6 +150,7 @@ public class ItemValueConfig
         result.revision = this.revision;
         result.defaultItemValue = this.defaultItemValue;
         result.defaultEntityValue = this.defaultEntityValue;
+        result.enchantValueBase = this.enchantValueBase;
         result.items = new TreeMap<String, Number>(itemsOrEmpty());
         result.entities = new TreeMap<String, Number>(entitiesOrEmpty());
         return result;
@@ -196,6 +209,11 @@ public class ItemValueConfig
         if (this.defaultEntityValue == null)
         {
             this.defaultEntityValue = Integer.valueOf(ModConstants.DEFAULT_ENTITY_VALUE);
+        }
+
+        if (this.enchantValueBase == null)
+        {
+            this.enchantValueBase = Integer.valueOf(ModConstants.DEFAULT_ENCHANT_VALUE);
         }
 
         if (this.revision == null)

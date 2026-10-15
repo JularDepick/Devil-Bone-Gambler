@@ -33,6 +33,7 @@
   "gui.devil_bone_gambler.altar.mob_row": "%s  %s/%s",
   "gui.devil_bone_gambler.altar.mob_limit": "生物列表已达上限",
   "gui.devil_bone_gambler.altar.current": "当前 %s",
+  "gui.devil_bone_gambler.altar.intrusion": "你佩戴的祭坛侵入了其他祭坛的范围, 立刻离开",
 
   "gui.devil_bone_gambler.value.line": "祭品价值: %s",
   "gui.devil_bone_gambler.value.line_default": "祭品价值: %s (默认值)",
@@ -148,6 +149,7 @@
   "gui.devil_bone_gambler.reason.no_player_nearby": "附近无玩家",
   "gui.devil_bone_gambler.reason.wager_failed": "赌局发起失败",
   "gui.devil_bone_gambler.reason.wager_locked": "你已加入赌局, 赌局期间无法使用赌徒的骰子",
+  "gui.devil_bone_gambler.reason.altar_range_overlap": "祭坛范围不可重叠, 该祭坛已被破坏并掉落",
   "gui.devil_bone_gambler.reason.target_missing": "找不到该玩家",
   "gui.devil_bone_gambler.reason.unknown": "未知原因"
 }

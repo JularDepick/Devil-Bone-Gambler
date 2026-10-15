@@ -14,6 +14,7 @@ import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ValueTableBook;
 import com.devilbonegambler.util.ValueTableSnapshot;
 import java.util.ArrayList;
@@ -449,7 +450,7 @@ public class AltarScreen extends Screen
 
     private List<Offering> collectOfferings()
     {
-        Map<String, Integer> totals = new LinkedHashMap<String, Integer>();
+        List<Offering> result = new ArrayList<Offering>();
 
         for (ItemStack stack : this.altar)
         {
@@ -465,16 +466,12 @@ public class AltarScreen extends Screen
                 continue;
             }
 
-            String id = key.toString();
-            Integer previous = totals.get(id);
-            totals.put(id, Integer.valueOf((previous == null ? 0 : previous.intValue()) + stack.getCount()));
-        }
-
-        List<Offering> result = new ArrayList<Offering>();
-
-        for (Map.Entry<String, Integer> entry : totals.entrySet())
-        {
-            result.add(new Offering(entry.getKey(), entry.getValue().intValue()));
+            /*
+             * One entry per stack, so the damage and the enchantment levels travel to the server and the
+             * value can depend on the instance rather than on the registry name alone.
+             */
+            result.add(new Offering(key.toString(), stack.getCount(), stack.getDamageValue(),
+                    ItemValuation.enchantLevelSum(stack)));
         }
 
         return result;
@@ -847,7 +844,7 @@ public class AltarScreen extends Screen
         }
 
         String itemId = key.toString();
-        int unit = snapshot.valueOf(itemId);
+        int unit = ItemValuation.stackValue(stack, snapshot.valueOf(itemId), snapshot.enchantValueBase());
         boolean registered = snapshot.isRegistered(itemId);
 
         if (insideAltar)

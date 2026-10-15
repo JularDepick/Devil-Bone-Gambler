@@ -47,6 +47,7 @@ public final class ModConstants
      */
     public static final int DEFAULT_ITEM_VALUE = 10;
     public static final int DEFAULT_ENTITY_VALUE = 10;
+    public static final int DEFAULT_ENCHANT_VALUE = 100;
     public static final long MAX_TOTAL_VALUE = 100000000L;
 
     /*
@@ -105,6 +106,14 @@ public final class ModConstants
      * Minecraft version cannot carry an emission, so the level is declared on the block itself.
      */
     public static final int ALTAR_LIGHT_LEVEL = 14;
+
+    /*
+     * Range exclusivity of the altar. An altar worn in the head slot counts as a placed altar, so two altar
+     * ranges may never overlap: a placement inside a range is destroyed and dropped, and a wearer inside
+     * another range takes damage and gets a chat warning on the same interval.
+     */
+    public static final float ALTAR_INTRUSION_DAMAGE = 1.0F;
+    public static final int ALTAR_INTRUSION_INTERVAL_TICKS = 20;
 
     /*
      * Wager

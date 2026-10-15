@@ -6,11 +6,15 @@
 
 package com.devilbonegambler.block;
 
+import com.devilbonegambler.altar.AltarService;
+import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.util.ModConstants;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
@@ -113,16 +117,41 @@ public class DevilsAltarBlock extends Block implements EntityBlock
 
         CompoundTag tag = stack.getTag();
 
-        if (tag == null || !tag.contains(ModConstants.ALTAR_VALUE_TAG))
+        if (tag != null && tag.contains(ModConstants.ALTAR_VALUE_TAG))
+        {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+
+            if (blockEntity instanceof DevilsAltarBlockEntity altar)
+            {
+                altar.setOfferingValue(tag.getLong(ModConstants.ALTAR_VALUE_TAG));
+            }
+        }
+
+        /*
+         * Two altar ranges may never overlap, so an altar placed inside another range is destroyed right away
+         * and lands on the ground as an item, which carries the accumulated offering value back out.
+         * The altar at this position is excluded because its own range always covers itself.
+         */
+        if (!(level instanceof ServerLevel serverLevel))
         {
             return;
         }
 
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-
-        if (blockEntity instanceof DevilsAltarBlockEntity altar)
+        if (!AltarService.rangeCovers(serverLevel, pos, pos))
         {
-            altar.setOfferingValue(tag.getLong(ModConstants.ALTAR_VALUE_TAG));
+            return;
+        }
+
+        level.removeBlock(pos, false);
+
+        if (placer instanceof ServerPlayer player)
+        {
+            if (!player.getAbilities().instabuild)
+            {
+                Block.popResource(level, pos, stack.copy());
+            }
+
+            NotifySender.sendFailure(player, "altar_range_overlap");
         }
     }
 }

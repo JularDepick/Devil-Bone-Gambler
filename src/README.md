@@ -49,6 +49,7 @@ src/main/java/com/devilbonegambler/
 ├── effect/                          # 状态效果
 │   └── BloodlustEffect.java         # 祭坛范围效果, 加速饱食度消耗
 ├── item/                            # 物品
+│   ├── DevilsAltarItem.java         # 恶魔的祭坛, 可放置也可佩戴在头部
 │   ├── DevilsDiceItem.java          # 恶魔的骰子
 │   ├── GamblersDiceItem.java        # 赌徒的骰子
 │   └── OfferingValueTableItem.java  # 祭品价值表
@@ -80,6 +81,7 @@ src/main/java/com/devilbonegambler/
 │   └── ModItems.java                # 物品注册
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
+│   ├── ItemValuation.java           # 物品实例估值, 含附魔加成与耐久折算
 │   ├── ModConstants.java            # 设计细节常量集中定义
 │   ├── Placeholders.java            # 指令与文本占位符展开
 │   ├── ServerScheduler.java         # 服务端延迟任务调度

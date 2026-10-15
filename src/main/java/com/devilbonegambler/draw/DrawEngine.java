@@ -8,7 +8,6 @@ package com.devilbonegambler.draw;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.altar.AltarService;
-import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.config.ItemValueConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.config.PrizePoolConfig;
@@ -19,6 +18,7 @@ import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
+import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.Placeholders;
 import com.devilbonegambler.util.ServerScheduler;
@@ -204,6 +204,31 @@ public final class DrawEngine
         return AltarService.altarValueFor(player);
     }
 
+    /**
+     * Value of one unit of an offering, including its enchantment bonus and its remaining durability.
+     */
+    private static int offeringValue(ItemValueConfig values, Offering offering)
+    {
+        return ItemValuation.value(values.itemValueOf(offering.itemId()), offering.damage(),
+                maxDamageOf(offering.itemId()), offering.enchantLevels(), values.enchantValueBaseOrDefault());
+    }
+
+    /**
+     * Maximum durability of the item behind a registry name, zero when the item has none.
+     */
+    private static int maxDamageOf(String itemId)
+    {
+        ResourceLocation key = ResourceLocation.tryParse(itemId);
+
+        if (key == null)
+        {
+            return 0;
+        }
+
+        Item item = ForgeRegistries.ITEMS.getValue(key);
+        return item == null ? 0 : new ItemStack(item).getMaxDamage();
+    }
+
     private static long totalValue(ServerPlayer player, OfferingBundle bundle)
     {
         ItemValueConfig values = ServerConfigManager.itemValues();
@@ -211,7 +236,7 @@ public final class DrawEngine
 
         for (Offering offering : bundle.items())
         {
-            total += (long) values.itemValueOf(offering.itemId()) * (long) offering.count();
+            total += (long) offeringValue(values, offering) * (long) offering.count();
         }
 
         total += (long) bundle.health() * 2L;
@@ -383,19 +408,15 @@ public final class DrawEngine
 
                 if (key != null)
                 {
-                    total += (long) values.itemValueOf(key.toString()) * (long) drop.getCount();
+                    total += (long) ItemValuation.stackValue(drop, values.itemValueOf(key.toString()),
+                            values.enchantValueBaseOrDefault()) * (long) drop.getCount();
                 }
             }
         }
 
         if (total > 0L)
         {
-            DevilsAltarBlockEntity altar = AltarService.nearestAltar(player);
-
-            if (altar != null)
-            {
-                altar.addValue(total);
-            }
+            AltarService.accumulateOfferingValue(player, total);
         }
 
         return total;
