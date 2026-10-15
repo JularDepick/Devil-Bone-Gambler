@@ -14,7 +14,6 @@ import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.draw.DiceRoll;
 import com.devilbonegambler.draw.NotifySender;
-import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.draw.RegionSelector;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.Placeholders;
@@ -114,8 +113,9 @@ public final class WagerService
     }
 
     /**
-     * Validates the surroundings, creates the zone and the wager, shuffles the other members, broadcasts the creation
-     * notice and remembers the start tick. Returns false without any side effect when the validation fails.
+     * Validates the surroundings, creates the zone and the wager, shuffles the other members, makes the initiator a
+     * member right away, broadcasts the creation notice and remembers the start tick. Returns false without any side
+     * effect when the validation fails.
      */
     public static boolean startWager(ServerPlayer player)
     {
@@ -164,6 +164,12 @@ public final class WagerService
 
         WagerSession created = new WagerSession(player.getUUID(), area, areaPlayers, server.getTickCount(),
                 ModConstants.WAGER_COUNTDOWN_SECONDS);
+
+        /*
+         * The initiator is a member from the start, so the countdown sync and the gambler's dice lock cover the
+         * initiator without a second crouch confirmation. No join announcement is emitted for this implicit join.
+         */
+        created.join(player.getUUID());
         created.markNotified(player.getUUID());
 
         Component notice = Component.translatable(KEY_CREATED, player.getGameProfile().getName(),
@@ -199,6 +205,23 @@ public final class WagerService
     public static boolean isInWager(ServerPlayer player)
     {
         return sessionOf(player) != null;
+    }
+
+    /**
+     * True when the player may not use the gambler's dice right now, which is exactly the joined membership of the
+     * running wager and therefore includes the initiator.
+     * Leaving the wager and the wager ending both drop the membership, so both release the lock.
+     */
+    public static boolean isGamblersDiceLocked(ServerPlayer player)
+    {
+        WagerSession active = session;
+
+        if (active == null || player == null)
+        {
+            return false;
+        }
+
+        return active.isJoined(player.getUUID());
     }
 
     /**

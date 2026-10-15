@@ -20,6 +20,8 @@ import net.minecraftforge.registries.RegistryObject;
 /**
  * Block registration.
  * The altar requires an iron pickaxe and stacks to one item because it carries a block entity value.
+ * Its model is a custom multi part shape that does not fill the cube, so the block must not occlude the
+ * neighbouring faces, otherwise the faces that touch the altar are culled and the gaps become see through.
  */
 public final class ModBlocks
 {
@@ -33,7 +35,8 @@ public final class ModBlocks
             () -> new DevilsAltarBlock(BlockBehaviour.Properties.of()
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops()
-                    .sound(SoundType.STONE)));
+                    .sound(SoundType.STONE)
+                    .noOcclusion()));
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",
             () -> new BlockItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));

@@ -147,6 +147,7 @@
   "gui.devil_bone_gambler.reason.not_ready": "服务端配置尚未就绪",
   "gui.devil_bone_gambler.reason.no_player_nearby": "附近无玩家",
   "gui.devil_bone_gambler.reason.wager_failed": "赌局发起失败",
+  "gui.devil_bone_gambler.reason.wager_locked": "你已加入赌局, 赌局期间无法使用赌徒的骰子",
   "gui.devil_bone_gambler.reason.target_missing": "找不到该玩家",
   "gui.devil_bone_gambler.reason.unknown": "未知原因"
 }

@@ -179,6 +179,16 @@ public final class ServerRequestHandler
             return;
         }
 
+        /*
+         * The gambler's dice is locked for the joined members of a running wager, the initiator included.
+         * The check sits before the sneak branch so that both the single draw and the wager start are refused.
+         */
+        if (wagerAllowed && WagerService.isGamblersDiceLocked(player))
+        {
+            respondDraw(player, sequence, itemId, DrawResult.failure("wager_locked"));
+            return;
+        }
+
         if (wagerAllowed && player.isShiftKeyDown())
         {
             handleWager(player, sequence, itemId);

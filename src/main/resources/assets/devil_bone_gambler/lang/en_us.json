@@ -147,6 +147,7 @@
   "gui.devil_bone_gambler.reason.not_ready": "The server config is not ready yet",
   "gui.devil_bone_gambler.reason.no_player_nearby": "No player nearby",
   "gui.devil_bone_gambler.reason.wager_failed": "The wager could not be started",
+  "gui.devil_bone_gambler.reason.wager_locked": "You have joined a wager and cannot use the Gambler's Dice while it runs",
   "gui.devil_bone_gambler.reason.target_missing": "That player was not found",
   "gui.devil_bone_gambler.reason.unknown": "Unknown reason"
 }

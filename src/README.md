@@ -9,61 +9,86 @@
 
 ```
 src/main/java/com/devilbonegambler/
-├── DevilBoneGambler.java        # 模组入口, 注册延迟注册器与网络通道
-├── client/                      # 客户端专属代码, 仅经 DistExecutor 触达
-│   ├── ClientActions.java       # 客户端动作入口, 发包与打开界面
-│   ├── ClientPacketHandler.java # 客户端侧网络包分发
-│   └── gui/                     # 客户端界面
-│       ├── AdminConfigScreen.java # 管理员配置面板
-│       └── AltarScreen.java       # 献祭界面
-├── commands/                    # 命令注册
-│   └── ModCommands.java         # 管理员命令入口
-├── config/                      # 服务端配置模型与读写
-│   ├── DefaultPrizePool.java    # 首次生成奖池配置时使用的预设
-│   ├── ItemValueConfig.java     # 物品价值配置模型
-│   ├── ItemValuePresets.java    # 内置原版物品价值基准表
-│   ├── NotifyConfig.java        # 条目结果展示配置模型
-│   ├── PrizeEntry.java          # 奖池条目模型
-│   ├── PrizePoolConfig.java     # 奖池配置模型与校验
-│   ├── PrizeRegion.java         # 奖池区域模型
-│   └── ServerConfigManager.java # 配置加载, 写盘, 扫描兜底与乐观锁
-├── data/                        # 存档持久化
-│   └── LuckData.java            # 玩家运气值存档数据
-├── draw/                        # 抽取机制
-│   ├── DrawEngine.java          # 服务端抽取主流程
-│   ├── DrawResult.java          # 抽取结果
-│   ├── DrawSeed.java            # 随机种子构造
-│   ├── NotifySender.java        # 结果文本发送
-│   └── Offering.java            # 祭品条目
-├── item/                        # 物品
-│   ├── DevilsDiceItem.java      # 恶魔的骰子
-│   ├── GamblersDiceItem.java    # 赌徒的骰子
-│   └── OfferingValueTableItem.java # 祭品价值表
-├── mixin/                       # 混入类目录, 当前为空
-├── network/                     # 网络通道, 协议与消息包
-│   ├── ModNetwork.java          # 通道注册与发送封装
-│   ├── RequestGuard.java        # 请求序号去重与频率限制
-│   ├── ServerRequestHandler.java # 服务端请求处理
-│   └── packet/                  # 消息包
+├── DevilBoneGambler.java            # 模组入口, 注册延迟注册器与网络通道
+├── altar/                           # 祭坛范围服务
+│   └── AltarService.java            # 定位玩家最近的祭坛并驱动周期范围效果
+├── block/                           # 祭坛方块
+│   ├── DevilsAltarBlock.java        # 祭坛方块, 承载献祭价值且不打开界面
+│   └── DevilsAltarBlockEntity.java  # 祭坛方块实体, 持有献祭价值并与客户端同步
+├── client/                          # 客户端专属代码, 仅经 DistExecutor 触达
+│   ├── ClientActions.java           # 客户端动作入口, 发包与打开界面
+│   ├── ClientPacketHandler.java     # 客户端侧网络包分发
+│   ├── gui/                         # 客户端界面
+│   │   ├── AdminConfigScreen.java   # 管理员配置面板
+│   │   └── AltarScreen.java         # 献祭界面
+│   └── render/                      # 客户端渲染
+│       └── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
+├── commands/                        # 命令注册
+│   └── ModCommands.java             # 管理员命令入口
+├── config/                          # 服务端配置模型与读写
+│   ├── DefaultPrizePool.java        # 首次生成奖池配置时使用的预设
+│   ├── ItemValueConfig.java         # 物品价值配置模型
+│   ├── ItemValuePresets.java        # 内置原版物品价值基准表
+│   ├── NotifyConfig.java            # 条目结果展示配置模型
+│   ├── PrizeEntry.java              # 奖池条目模型
+│   ├── PrizePoolConfig.java         # 奖池配置模型与校验
+│   ├── PrizeRegion.java             # 奖池区域模型
+│   └── ServerConfigManager.java     # 配置加载, 写盘, 扫描兜底与乐观锁
+├── data/                            # 存档持久化
+│   └── LuckData.java                # 玩家运气值存档数据
+├── draw/                            # 抽取机制
+│   ├── DiceRoll.java                # 一次掷骰, 点数与红黑颜色
+│   ├── DrawEngine.java              # 服务端抽取主流程
+│   ├── DrawResult.java              # 抽取结果
+│   ├── DrawSeed.java                # 随机种子构造
+│   ├── DropCollector.java           # 捕获作为祭品被杀生物的掉落物
+│   ├── NotifySender.java            # 结果文本发送
+│   ├── Offering.java                # 祭品条目
+│   ├── OfferingBundle.java          # 献祭包, 物品与生物与数值献祭项
+│   └── RegionSelector.java          # 由点数命中区域并计算溢出值
+├── effect/                          # 状态效果
+│   └── BloodlustEffect.java         # 祭坛范围效果, 加速饱食度消耗
+├── item/                            # 物品
+│   ├── DevilsDiceItem.java          # 恶魔的骰子
+│   ├── GamblersDiceItem.java        # 赌徒的骰子
+│   └── OfferingValueTableItem.java  # 祭品价值表
+├── mixin/                           # 混入类目录, 当前为空
+├── network/                         # 网络通道, 协议与消息包
+│   ├── AltarStatusBroadcaster.java  # 周期向客户端广播祭坛状态
+│   ├── ModNetwork.java              # 通道注册与发送封装
+│   ├── RequestGuard.java            # 请求序号去重与频率限制
+│   ├── ServerRequestHandler.java    # 服务端请求处理
+│   └── packet/                      # 消息包
 │       ├── AdminPanelDataPacket.java
 │       ├── AdminPanelRequestPacket.java
+│       ├── AltarStatusPacket.java
 │       ├── ConfigSyncPacket.java
 │       ├── ConfigWriteRequestPacket.java
 │       ├── ConfigWriteResponsePacket.java
 │       ├── DevilsDiceRequestPacket.java
 │       ├── DrawResultPacket.java
 │       ├── GamblersDiceRequestPacket.java
+│       ├── MobListPacket.java
 │       ├── OpenValueTablePacket.java
+│       ├── PointDisplayPacket.java
 │       └── ValueTableRefreshRequestPacket.java
-├── registry/                    # 物品与物品页注册
-│   ├── ModCreativeTabs.java     # 模组专属物品页
-│   └── ModItems.java            # 物品注册
-└── util/                        # 通用工具
-    ├── AuthorInfo.java          # 作者信息常量
-    ├── ModConstants.java        # 设计细节常量集中定义
-    ├── Placeholders.java        # 指令与文本占位符展开
-    ├── ValueTableBook.java      # 价值表快照读写
-    └── ValueTableSnapshot.java  # 客户端侧价值表只读视图
+├── registry/                        # 注册项
+│   ├── ModBlockEntities.java        # 方块实体注册
+│   ├── ModBlocks.java               # 方块注册
+│   ├── ModCreativeTabs.java         # 模组专属物品页
+│   ├── ModEffects.java              # 状态效果注册
+│   └── ModItems.java                # 物品注册
+├── util/                            # 通用工具
+│   ├── AuthorInfo.java              # 作者信息常量
+│   ├── ModConstants.java            # 设计细节常量集中定义
+│   ├── Placeholders.java            # 指令与文本占位符展开
+│   ├── ServerScheduler.java         # 服务端延迟任务调度
+│   ├── ValueTableBook.java          # 价值表快照读写
+│   └── ValueTableSnapshot.java      # 客户端侧价值表只读视图
+└── wager/                           # 赌局机制
+    ├── WagerArea.java               # 赌区球体定义与范围判定
+    ├── WagerService.java            # 服务端赌局主流程
+    └── WagerSession.java            # 单场赌局的会话状态
 ```
 
 ## 资源
@@ -73,24 +98,45 @@ src/main/resources/
 ├── META-INF/
 │   └── mods.toml                      # 模组元数据, 版本号由构建占位符注入
 ├── assets/devil_bone_gambler/
-│   ├── blockstates/                   # 方块状态, 当前为空
+│   ├── blockstates/
+│   │   └── devils_altar.json          # 祭坛方块状态
 │   ├── lang/
 │   │   ├── en_us.json                 # 英文文本
 │   │   └── zh_cn.json                 # 简体中文文本
 │   ├── models/
-│   │   ├── block/                     # 方块模型, 当前为空
+│   │   ├── block/
+│   │   │   └── devils_altar.json      # 祭坛方块模型, 24 个长方体与 64x64 图集
 │   │   └── item/
+│   │       ├── devils_altar.json      # 祭坛物品模型, 复用方块模型
 │   │       ├── devils_dice.json
 │   │       ├── gamblers_dice.json
 │   │       └── offering_value_table.json
+│   ├── shaders/
+│   │   ├── post/
+│   │   │   └── altar_tint.json        # 祭坛遮罩后处理链
+│   │   └── program/
+│   │       ├── altar_tint.fsh         # 遮罩片元着色器
+│   │       ├── altar_tint.json        # 遮罩着色器程序声明
+│   │       └── altar_tint.vsh         # 遮罩顶点着色器
 │   └── textures/
-│       ├── block/                     # 方块贴图, 当前为空
+│       ├── block/
+│       │   └── devils_altar.png       # 祭坛方块贴图, 64x64 图集
 │       └── item/
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
 │           └── offering_value_table.png
-├── data/devil_bone_gambler/
-│   └── recipes/                       # 合成配方, 当前为空
+├── data/
+│   ├── devil_bone_gambler/
+│   │   ├── loot_tables/
+│   │   │   └── blocks/
+│   │   │       └── devils_altar.json  # 祭坛掉落表
+│   │   └── recipes/                   # 合成配方, 当前为空
+│   └── minecraft/
+│       └── tags/
+│           └── blocks/
+│               ├── needs_iron_tool.json # 需要铁质工具的方块标签
+│               └── mineable/
+│                   └── pickaxe.json     # 可被镐挖掘的方块标签
 ├── mixins.devil_bone_gambler.json     # 混入配置, 声明混入包与混入类清单
 └── pack.mcmeta                        # 资源包元数据
 ```
@@ -102,6 +148,9 @@ src/main/resources/
 - 客户端代码集中在 `client/` 下, 公共代码只能经 `DistExecutor` 触达, 服务端代码不得直接引用客户端类
 - 设计细节常量集中在 `util/ModConstants.java`, 作者信息集中在 `util/AuthorInfo.java`
 - 语言文件需要同时维护简体中文与英文两份, 两者键名必须完全一致
-- 贴图规格为 16x16 像素, 32 位带透明通道, 不使用抗锯齿与渐变
-- 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`;抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
+- 贴图规格为 16 的整数倍像素, 32 位带透明通道, 不使用抗锯齿与渐变; 物品与单面贴图使用 16x16, 多部件方块模型使用 64x64 图集
+- 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
+- 赌局机制集中在 `wager/`; 祭坛的方块, 方块实体与范围服务集中在 `block/` 与 `altar/`
+- 祭坛遮罩的着色器程序与后处理链位于 `assets/devil_bone_gambler/shaders/`
+- 方块的挖掘工具要求同时由 `data/minecraft/tags/blocks/` 下的标签与代码中的破坏进度判定承担, 两者缺一不可
 - 配置项清单与运行期文件位置见 [开发者文档](../docs/developer/README.md)
