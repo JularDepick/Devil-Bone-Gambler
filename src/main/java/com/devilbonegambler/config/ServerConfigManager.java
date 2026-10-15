@@ -39,8 +39,6 @@ public final class ServerConfigManager
 
     private static PrizePoolConfig prizePool;
     private static ItemValueConfig itemValues;
-    private static ShopConfig shop;
-    private static EconomyConfig economy;
     private static Path configDir;
 
     private ServerConfigManager()
@@ -75,26 +73,6 @@ public final class ServerConfigManager
         return itemValues;
     }
 
-    public static ShopConfig shop()
-    {
-        return shop;
-    }
-
-    public static EconomyConfig economy()
-    {
-        return economy;
-    }
-
-    public static String shopJson()
-    {
-        return shop == null ? "{}" : GSON.toJson(shop);
-    }
-
-    public static String economyJson()
-    {
-        return economy == null ? "{}" : GSON.toJson(economy);
-    }
-
     public static String prizePoolJson()
     {
         return prizePool == null ? "{}" : GSON.toJson(prizePool);
@@ -109,8 +87,6 @@ public final class ServerConfigManager
     {
         prizePool = null;
         itemValues = null;
-        shop = null;
-        economy = null;
         configDir = null;
     }
 
@@ -135,8 +111,6 @@ public final class ServerConfigManager
         configDir = root;
         prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
-        shop = readShop(root.resolve(ModConstants.SHOP_FILE));
-        economy = readEconomy(root.resolve(ModConstants.ECONOMY_FILE));
 
         if (scanValues())
         {
@@ -362,191 +336,8 @@ public final class ServerConfigManager
         }
     }
 
-    /**
-     * Applies a shop write, returning null on success or a reason key on rejection.
-     */
-    public static String applyShopWrite(int clientRevision, String payload)
+    private static String readText(Path path)
     {
-        if (shop == null)
-        {
-            return "not_ready";
-        }
-
-        ShopConfig candidate;
-
-        try
-        {
-            candidate = GSON.fromJson(payload, ShopConfig.class);
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.warn("Rejected an unparsable shop payload", exception);
-            return "invalid_config";
-        }
-
-        if (candidate == null)
-        {
-            return "invalid_config";
-        }
-
-        candidate.normalize();
-        List<String> problems = candidate.validate();
-
-        if (!problems.isEmpty())
-        {
-            DevilBoneGambler.LOGGER.warn("Rejected the shop write: {}", problems);
-            return "invalid_config";
-        }
-
-        if (clientRevision != shop.revisionOrZero())
-        {
-            return "revision_conflict";
-        }
-
-        candidate.schemaVersion = Integer.valueOf(ShopConfig.CURRENT_SCHEMA);
-        candidate.revision = Integer.valueOf(shop.revisionOrZero() + 1);
-        shop = candidate;
-        writeShop();
-        return null;
-    }
-
-    /**
-     * Applies an economy write, returning null on success or a reason key on rejection.
-     */
-    public static String applyEconomyWrite(int clientRevision, String payload)
-    {
-        if (economy == null)
-        {
-            return "not_ready";
-        }
-
-        EconomyConfig candidate;
-
-        try
-        {
-            candidate = GSON.fromJson(payload, EconomyConfig.class);
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.warn("Rejected an unparsable economy payload", exception);
-            return "invalid_config";
-        }
-
-        if (candidate == null)
-        {
-            return "invalid_config";
-        }
-
-        candidate.normalize();
-        List<String> problems = candidate.validate();
-
-        if (!problems.isEmpty())
-        {
-            DevilBoneGambler.LOGGER.warn("Rejected the economy write: {}", problems);
-            return "invalid_config";
-        }
-
-        if (clientRevision != economy.revisionOrZero())
-        {
-            return "revision_conflict";
-        }
-
-        candidate.schemaVersion = Integer.valueOf(EconomyConfig.CURRENT_SCHEMA);
-        candidate.revision = Integer.valueOf(economy.revisionOrZero() + 1);
-        economy = candidate;
-        writeEconomy();
-        return null;
-    }
-
-    private static ShopConfig readShop(Path path)
-    {
-        if (!Files.isRegularFile(path))
-        {
-            ShopConfig created = ShopConfig.create();
-            created.normalize();
-            writeJson(path, created);
-            return created;
-        }
-
-        try
-        {
-            ShopConfig loaded = GSON.fromJson(readText(path), ShopConfig.class);
-
-            if (loaded == null)
-            {
-                throw new IllegalStateException("empty shop file");
-            }
-
-            loaded.normalize();
-            return loaded;
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.error("Failed to read {}, the preset shop is used instead", path, exception);
-            backup(path);
-            ShopConfig created = ShopConfig.create();
-            created.normalize();
-            writeJson(path, created);
-            return created;
-        }
-    }
-
-    private static EconomyConfig readEconomy(Path path)
-    {
-        if (!Files.isRegularFile(path))
-        {
-            EconomyConfig created = EconomyConfig.empty();
-            created.normalize();
-            writeJson(path, created);
-            return created;
-        }
-
-        try
-        {
-            EconomyConfig loaded = GSON.fromJson(readText(path), EconomyConfig.class);
-
-            if (loaded == null)
-            {
-                throw new IllegalStateException("empty economy file");
-            }
-
-            loaded.normalize();
-            return loaded;
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.error("Failed to read {}, the built in rates are used instead", path, exception);
-            backup(path);
-            EconomyConfig created = EconomyConfig.empty();
-            created.normalize();
-            writeJson(path, created);
-            return created;
-        }
-    }
-
-    private static void writeShop()
-    {
-        if (configDir == null || shop == null)
-        {
-            return;
-        }
-
-        shop.normalize();
-        writeJson(configDir.resolve(ModConstants.SHOP_FILE), shop);
-    }
-
-    private static void writeEconomy()
-    {
-        if (configDir == null || economy == null)
-        {
-            return;
-        }
-
-        economy.normalize();
-        writeJson(configDir.resolve(ModConstants.ECONOMY_FILE), economy);
-    }
-
-    private static String readText(Path path)    {
         try
         {
             return Files.readString(path, StandardCharsets.UTF_8);

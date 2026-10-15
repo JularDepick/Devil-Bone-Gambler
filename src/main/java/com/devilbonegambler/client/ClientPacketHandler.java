@@ -13,8 +13,6 @@ import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
-import com.devilbonegambler.network.packet.EconomyDataPacket;
-import com.devilbonegambler.network.packet.EconomyResponsePacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
@@ -45,11 +43,11 @@ public final class ClientPacketHandler
 
         if (minecraft.screen instanceof AdminConfigScreen panel)
         {
-            panel.applyServerData(message.prizePoolJson(), message.itemValuesJson(), message.shopJson());
+            panel.applyServerData(message.prizePoolJson(), message.itemValuesJson());
             return;
         }
 
-        ClientActions.openAdminPanel(message.prizePoolJson(), message.itemValuesJson(), message.shopJson());
+        ClientActions.openAdminPanel(message.prizePoolJson(), message.itemValuesJson());
     }
 
     public static void handleConfigWriteResponse(ConfigWriteResponsePacket message)
@@ -96,17 +94,5 @@ public final class ClientPacketHandler
     {
         ClientActions.setAltarStatus(message.hasAltar(), message.pos(), message.value(), message.radius(),
                 message.inRange());
-    }
-
-    public static void handleEconomyData(EconomyDataPacket message)
-    {
-        ClientActions.setEconomyData(message.coin(), message.tear(), message.counterCoin(), message.counterTear(),
-                message.vipUntil(), message.pendingCount(), message.tickCount(), message.shopJson(),
-                message.economyJson());
-    }
-
-    public static void handleEconomyResponse(EconomyResponsePacket message)
-    {
-        ClientActions.onEconomyResponse(message.sequence(), message.success(), message.reasonKey());
     }
 }

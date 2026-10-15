@@ -101,8 +101,7 @@ public final class ServerRequestHandler
         }
 
         ModNetwork.sendToPlayer(player, new AdminPanelDataPacket(
-                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson(),
-                ServerConfigManager.shopJson()));
+                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson()));
     }
 
     public static void handleConfigWrite(ServerPlayer player, ConfigWriteRequestPacket message)
@@ -138,16 +137,6 @@ public final class ServerRequestHandler
         {
             failure = ServerConfigManager.applyItemValuesWrite(message.revision(), message.payload());
             revision = ServerConfigManager.itemValues() == null ? 0 : ServerConfigManager.itemValues().revisionOrZero();
-        }
-        else if (ModConstants.CONFIG_DOMAIN_SHOP.equals(message.domain()))
-        {
-            failure = ServerConfigManager.applyShopWrite(message.revision(), message.payload());
-            revision = ServerConfigManager.shop() == null ? 0 : ServerConfigManager.shop().revisionOrZero();
-        }
-        else if (ModConstants.CONFIG_DOMAIN_ECONOMY.equals(message.domain()))
-        {
-            failure = ServerConfigManager.applyEconomyWrite(message.revision(), message.payload());
-            revision = ServerConfigManager.economy() == null ? 0 : ServerConfigManager.economy().revisionOrZero();
         }
         else
         {
@@ -277,16 +266,6 @@ public final class ServerRequestHandler
         {
             ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
                     ServerConfigManager.itemValues().revisionOrZero(), ServerConfigManager.itemValuesJson()));
-        }
-        else if (ModConstants.CONFIG_DOMAIN_SHOP.equals(domain))
-        {
-            ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
-                    ServerConfigManager.shop().revisionOrZero(), ServerConfigManager.shopJson()));
-        }
-        else if (ModConstants.CONFIG_DOMAIN_ECONOMY.equals(domain))
-        {
-            ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
-                    ServerConfigManager.economy().revisionOrZero(), ServerConfigManager.economyJson()));
         }
     }
 }

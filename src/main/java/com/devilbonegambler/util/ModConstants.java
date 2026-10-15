@@ -10,7 +10,7 @@ import com.devilbonegambler.DevilBoneGambler;
 
 /**
  * Design detail constants that a developer may tune without touching core logic.
- * Every value here is a documented design detail of v0.1.0.
+ * Every value here is a documented design detail of v0.2.0.
  */
 public final class ModConstants
 {
@@ -27,19 +27,13 @@ public final class ModConstants
     public static final String CONFIG_DIR_NAME = "devil_bone_gambler";
     public static final String PRIZE_POOL_FILE = "prize_pool.json";
     public static final String ITEM_VALUES_FILE = "item_values.json";
-    public static final String SHOP_FILE = "shop.json";
-    public static final String ECONOMY_FILE = "economy.json";
     public static final String CONFIG_DOMAIN_PRIZE_POOL = "prize_pool";
     public static final String CONFIG_DOMAIN_ITEM_VALUES = "item_values";
-    public static final String CONFIG_DOMAIN_SHOP = "shop";
-    public static final String CONFIG_DOMAIN_ECONOMY = "economy";
 
     /*
      * Save data names
      */
     public static final String LUCK_DATA_NAME = "devil_bone_gambler_luck";
-    public static final String ACCOUNT_DATA_NAME = "devil_bone_gambler_accounts";
-    public static final String EXCHANGE_DATA_NAME = "devil_bone_gambler_exchange";
 
     /*
      * Luck
@@ -108,25 +102,6 @@ public final class ModConstants
     public static final int WAGER_RADIUS = 6;
     public static final int WAGER_SNEAK_WINDOW_TICKS = 20;
     public static final int WAGER_MIN_PLAYERS = 1;
-
-    /*
-     * Economy
-     */
-    public static final long MAX_BALANCE = 1000000000000L;
-    public static final double ASSET_RETENTION_RATE = 0.95D;
-    public static final double EXCHANGE_FEE_RATE = 0.01D;
-    public static final int EXCHANGE_ORDER_TIMEOUT_TICKS = 72000;
-    public static final int MAX_ORDERS_PER_PLAYER = 16;
-    public static final int MAX_ESCROW_ENTRIES = 64;
-    public static final int MAX_SHOP_OFFERS = 64;
-    public static final int MAX_RECYCLE_SLOTS = 256;
-    public static final int VIP_RETRY_TICKS = 1200;
-    public static final double DEFAULT_RECYCLE_MULTIPLIER = 0.25D;
-    public static final double DEFAULT_RECYCLE_COIN_SHARE = 0.7D;
-    public static final double DEFAULT_RECYCLE_TEAR_SHARE = 0.3D;
-    public static final long DEFAULT_VIP_PRICE_COIN = 500L;
-    public static final long DEFAULT_VIP_PRICE_TEAR = 0L;
-    public static final int DEFAULT_VIP_DURATION_TICKS = 72000;
 
     /*
      * Requests and permissions

@@ -29,13 +29,7 @@ public final class ModCreativeTabs
             .displayItems((parameters, output) -> {
                 output.accept(ModItems.GAMBLERS_DICE.get());
                 output.accept(ModItems.DEVILS_DICE.get());
-                output.accept(ModItems.GAMBLERS_COIN.get());
-                output.accept(ModItems.DEVILS_TEARS.get());
                 output.accept(ModBlocks.DEVILS_ALTAR_ITEM.get());
-                output.accept(ModBlocks.GAMBLERS_BANK_ITEM.get());
-                output.accept(ModBlocks.GAMBLERS_SHOP_ITEM.get());
-                output.accept(ModBlocks.GAMBLERS_EXCHANGE_ITEM.get());
-                output.accept(ModBlocks.GAMBLERS_RECYCLER_ITEM.get());
                 output.accept(ModItems.OFFERING_VALUE_TABLE.get());
             })
             .build());

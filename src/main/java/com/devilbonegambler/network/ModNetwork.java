@@ -15,9 +15,6 @@ import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
-import com.devilbonegambler.network.packet.EconomyDataPacket;
-import com.devilbonegambler.network.packet.EconomyRequestPacket;
-import com.devilbonegambler.network.packet.EconomyResponsePacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
@@ -81,12 +78,6 @@ public final class ModNetwork
                 MobListPacket::encode, MobListPacket::decode, MobListPacket::handle);
         CHANNEL.registerMessage(index++, AltarStatusPacket.class,
                 AltarStatusPacket::encode, AltarStatusPacket::decode, AltarStatusPacket::handle);
-        CHANNEL.registerMessage(index++, EconomyRequestPacket.class,
-                EconomyRequestPacket::encode, EconomyRequestPacket::decode, EconomyRequestPacket::handle);
-        CHANNEL.registerMessage(index++, EconomyResponsePacket.class,
-                EconomyResponsePacket::encode, EconomyResponsePacket::decode, EconomyResponsePacket::handle);
-        CHANNEL.registerMessage(index++, EconomyDataPacket.class,
-                EconomyDataPacket::encode, EconomyDataPacket::decode, EconomyDataPacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

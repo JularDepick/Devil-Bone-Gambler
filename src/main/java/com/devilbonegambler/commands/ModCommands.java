@@ -59,8 +59,7 @@ public final class ModCommands
         }
 
         ModNetwork.sendToPlayer(player, new AdminPanelDataPacket(
-                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson(),
-                ServerConfigManager.shopJson()));
+                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson()));
         return 1;
     }
 

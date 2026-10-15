@@ -16,7 +16,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 
 /**
  * Server wide luck value per player, keyed by UUID.
- * The value is fixed at the base value in v0.1.0; only the storage contract is implemented here.
+ * The value is fixed at the base value in v0.2.0; only the storage contract is implemented here.
  */
 public class LuckData extends SavedData
 {

@@ -32,12 +32,6 @@ public final class ModItems
     public static final RegistryObject<Item> OFFERING_VALUE_TABLE = ITEMS.register("offering_value_table",
             () -> new OfferingValueTableItem(new Item.Properties().stacksTo(1)));
 
-    public static final RegistryObject<Item> GAMBLERS_COIN = ITEMS.register("gamblers_coin",
-            () -> new Item(new Item.Properties()));
-
-    public static final RegistryObject<Item> DEVILS_TEARS = ITEMS.register("devils_tears",
-            () -> new Item(new Item.Properties()));
-
     private ModItems()
     {
     }

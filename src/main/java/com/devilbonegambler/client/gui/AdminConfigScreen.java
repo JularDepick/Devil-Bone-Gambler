@@ -12,9 +12,6 @@ import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
-import com.devilbonegambler.config.ShopConfig;
-import com.devilbonegambler.config.ShopOffer;
-import com.devilbonegambler.economy.EconomyService;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
@@ -62,13 +59,10 @@ public class AdminConfigScreen extends Screen
 
     private PrizePoolConfig prizePool = PrizePoolConfig.empty();
     private ItemValueConfig itemValues = ItemValueConfig.empty();
-    private ShopConfig shop = ShopConfig.empty();
 
     private int leftPos;
     private int topPos;
     private boolean valueTab;
-    private boolean shopTab;
-    private int selectedShopIndex = -1;
     private int selectedPrizeIndex = -1;
     private int selectedValueIndex = -1;
     private int scroll;
@@ -88,35 +82,26 @@ public class AdminConfigScreen extends Screen
     private EditBox fieldNotifyText;
     private EditBox fieldValue;
     private EditBox fieldFilter;
-    private EditBox fieldOfferId;
-    private EditBox fieldOfferItem;
-    private EditBox fieldOfferCount;
-    private EditBox fieldOfferCoin;
-    private EditBox fieldOfferTear;
-    private Button offerEnabledButton;
     private Button notifyModeButton;
     private Button enabledButton;
     private Button applyBatchButton;
-    private Button addButton;
 
-    public AdminConfigScreen(String prizePoolJson, String itemValuesJson, String shopJson)
+    public AdminConfigScreen(String prizePoolJson, String itemValuesJson)
     {
         super(Component.translatable(key("admin.title")));
-        applyServerData(prizePoolJson, itemValuesJson, shopJson);
+        applyServerData(prizePoolJson, itemValuesJson);
         this.status = Component.translatable(key("admin.status_idle")).getString();
     }
 
     /**
      * Replaces the local copy with the payload pushed by the server.
      */
-    public void applyServerData(String prizePoolJson, String itemValuesJson, String shopJson)
+    public void applyServerData(String prizePoolJson, String itemValuesJson)
     {
         this.prizePool = parsePrizePool(prizePoolJson);
         this.itemValues = parseItemValues(itemValuesJson);
-        this.shop = parseShop(shopJson);
         this.selectedPrizeIndex = -1;
         this.selectedValueIndex = -1;
-        this.selectedShopIndex = -1;
         this.scroll = 0;
         rebuildPrizeRows();
         rebuildValueKeys();
@@ -159,11 +144,6 @@ public class AdminConfigScreen extends Screen
             this.itemValues = parseItemValues(message.payload());
             rebuildValueKeys();
         }
-        else if (ModConstants.CONFIG_DOMAIN_SHOP.equals(message.domain()))
-        {
-            this.shop = parseShop(message.payload());
-            this.selectedShopIndex = -1;
-        }
 
         if (this.widgetsReady)
         {
@@ -182,8 +162,6 @@ public class AdminConfigScreen extends Screen
                 .pos(this.leftPos + 8, this.topPos + 32).size(88, 16).build());
         addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")), button -> switchTab(true))
                 .pos(this.leftPos + 100, this.topPos + 32).size(88, 16).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_shop")), button -> switchShopTab())
-                .pos(this.leftPos + 192, this.topPos + 32).size(88, 16).build());
 
         this.fieldTier = addField(62, Component.translatable(key("admin.label_region")), 6);
         this.colorButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleColor())
@@ -207,15 +185,6 @@ public class AdminConfigScreen extends Screen
         this.chapterButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleChapter())
                 .pos(this.leftPos + EDIT_X, this.topPos + 112).size(EDIT_WIDTH, 16).build());
 
-        this.fieldOfferId = addField(62, Component.translatable(key("admin.label_id")),
-                ModConstants.MAX_ENTRY_ID_LENGTH);
-        this.fieldOfferItem = addField(88, Component.translatable(key("admin.label_item")), 128);
-        this.fieldOfferCount = addField(114, Component.translatable(key("admin.label_count")), 6);
-        this.fieldOfferCoin = addField(140, Component.translatable(key("admin.label_price_coin")), 12);
-        this.fieldOfferTear = addField(166, Component.translatable(key("admin.label_price_tear")), 12);
-        this.offerEnabledButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleOfferEnabled())
-                .pos(this.leftPos + EDIT_X, this.topPos + 192).size(EDIT_WIDTH, 16).build());
-
         this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + 54, LIST_WIDTH, FIELD_HEIGHT,
                 Component.translatable(key("admin.filter")));
         this.fieldFilter.setResponder(value -> {
@@ -225,12 +194,12 @@ public class AdminConfigScreen extends Screen
         addRenderableWidget(this.fieldFilter);
 
         int buttonY = this.topPos + PANEL_HEIGHT - 22;
-        this.addButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")),
-                button -> primaryAdd()).pos(this.leftPos + 8, buttonY).size(68, 18).build());
+        addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")), button -> addRegion())
+                .pos(this.leftPos + 8, buttonY).size(68, 18).build());
         addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")), button -> addEntry())
                 .pos(this.leftPos + 80, buttonY).size(68, 18).build());
         addRenderableWidget(Button.builder(Component.translatable(key("admin.remove")),
-                button -> removeSelectedOrOffer()).pos(this.leftPos + 152, buttonY).size(68, 18).build());
+                button -> removeSelected()).pos(this.leftPos + 152, buttonY).size(68, 18).build());
         addRenderableWidget(Button.builder(Component.translatable(key("admin.refresh")),
                 button -> ClientActions.sendAdminPanelRequest())
                 .pos(this.leftPos + 224, buttonY).size(24, 18).build());
@@ -263,21 +232,6 @@ public class AdminConfigScreen extends Screen
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button)
     {
-        if (this.shopTab)
-        {
-            int shopRow = shopRowAt(mouseX, mouseY);
-
-            if (shopRow >= 0)
-            {
-                applyOfferFields();
-                this.selectedShopIndex = shopRow;
-                refreshFields();
-                return true;
-            }
-
-            return super.mouseClicked(mouseX, mouseY, button);
-        }
-
         int row = listRowAt(mouseX, mouseY);
 
         if (row >= 0)
@@ -293,9 +247,7 @@ public class AdminConfigScreen extends Screen
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta)
     {
-        int total = this.shopTab
-                ? this.shop.offersOrEmpty().size()
-                : (this.valueTab ? this.valueKeys.size() : this.prizeRows.size());
+        int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         int maximum = Math.max(0, total - LIST_VISIBLE_ROWS);
 
         if (delta > 0.0D)
@@ -328,28 +280,12 @@ public class AdminConfigScreen extends Screen
     {
         applyFieldsToSelection();
         this.valueTab = valueTab;
-        this.shopTab = false;
-        this.scroll = 0;
-        refreshFields();
-    }
-
-    private void switchShopTab()
-    {
-        applyFieldsToSelection();
-        this.valueTab = false;
-        this.shopTab = true;
         this.scroll = 0;
         refreshFields();
     }
 
     private void drawList(GuiGraphics graphics)
     {
-        if (this.shopTab)
-        {
-            drawShopList(graphics);
-            return;
-        }
-
         int listY = this.topPos + (this.valueTab ? 72 : 54);
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         int selected = this.valueTab ? this.selectedValueIndex : this.selectedPrizeIndex;
@@ -454,12 +390,6 @@ public class AdminConfigScreen extends Screen
 
     private void refreshFields()
     {
-        if (this.shopTab)
-        {
-            refreshOfferFields();
-            return;
-        }
-
         RegionRow regionRow = selectedRegionRow();
         EntryRow entryRow = selectedEntryRow();
 
@@ -731,25 +661,6 @@ public class AdminConfigScreen extends Screen
         applyFieldsToSelection();
         this.prizePool.normalize();
         this.itemValues.normalize();
-        this.shop.normalize();
-
-        if (this.shopTab)
-        {
-            List<String> shopProblems = this.shop.validate();
-
-            if (!shopProblems.isEmpty())
-            {
-                this.status = Component.translatable(key("admin.status_invalid"), shopProblems.toString()).getString();
-                return;
-            }
-
-            this.waiting = true;
-            this.pendingSequence = ClientActions.nextSequence();
-            this.status = Component.translatable(key("admin.status_waiting")).getString();
-            ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
-                    ModConstants.CONFIG_DOMAIN_SHOP, this.shop.revisionOrZero(), GSON.toJson(this.shop)));
-            return;
-        }
 
         List<String> problems = this.valueTab ? this.itemValues.validate() : this.prizePool.validate();
 
@@ -885,243 +796,7 @@ public class AdminConfigScreen extends Screen
 
     private int revision()
     {
-        if (this.shopTab)
-        {
-            return this.shop.revisionOrZero();
-        }
-
         return this.valueTab ? this.itemValues.revisionOrZero() : this.prizePool.revisionOrZero();
-    }
-
-    /**
-     * Shop tab list. It shares the list geometry of the prize tab but keeps its own selection index.
-     */
-    private void drawShopList(GuiGraphics graphics)
-    {
-        List<ShopOffer> offers = this.shop.offersOrEmpty();
-        int listY = this.topPos + 54;
-
-        for (int line = 0; line < LIST_VISIBLE_ROWS; line++)
-        {
-            int index = this.scroll + line;
-
-            if (index >= offers.size())
-            {
-                break;
-            }
-
-            int y = listY + line * LIST_ROW_HEIGHT;
-            graphics.fill(this.leftPos + LIST_X, y, this.leftPos + LIST_X + LIST_WIDTH, y + LIST_ROW_HEIGHT - 1,
-                    index == this.selectedShopIndex ? ROW_SELECTED_COLOR : ROW_COLOR);
-            graphics.drawString(this.font, clip(offerLabel(offers.get(index)), LIST_WIDTH - 4),
-                    this.leftPos + LIST_X + 2, y + 2, TEXT_COLOR, false);
-        }
-    }
-
-    private String offerLabel(ShopOffer offer)
-    {
-        return Component.translatable(key("admin.offer_row"), offer.id == null ? "" : offer.id, offer.itemOrEmpty(),
-                Integer.valueOf(offer.countOrZero()), EconomyService.format(offer.priceCoinOrZero()),
-                EconomyService.format(offer.priceTearOrZero()),
-                Component.translatable(key(offer.isEnabled() ? "admin.offer_enabled" : "admin.offer_disabled")))
-                .getString();
-    }
-
-    private int shopRowAt(double mouseX, double mouseY)
-    {
-        if (mouseX < this.leftPos + LIST_X || mouseX > this.leftPos + LIST_X + LIST_WIDTH)
-        {
-            return -1;
-        }
-
-        int line = (int) Math.floor((mouseY - (this.topPos + 54)) / LIST_ROW_HEIGHT);
-
-        if (line < 0 || line >= LIST_VISIBLE_ROWS)
-        {
-            return -1;
-        }
-
-        int index = this.scroll + line;
-        return index < this.shop.offersOrEmpty().size() ? index : -1;
-    }
-
-    private ShopOffer selectedOffer()
-    {
-        List<ShopOffer> offers = this.shop.offersOrEmpty();
-        return this.selectedShopIndex >= 0 && this.selectedShopIndex < offers.size()
-                ? offers.get(this.selectedShopIndex)
-                : null;
-    }
-
-    /**
-     * Shows only the shop widgets and fills them from the selected offer.
-     */
-    private void refreshOfferFields()
-    {
-        setVisible(this.fieldTier, false);
-        setVisible(this.colorButton, false);
-        setVisible(this.majorEventButton, false);
-        setVisible(this.fieldId, false);
-        setVisible(this.fieldWeight, false);
-        setVisible(this.fieldCommand, false);
-        setVisible(this.fieldNotifyText, false);
-        setVisible(this.notifyModeButton, false);
-        setVisible(this.enabledButton, false);
-        setVisible(this.fieldValue, false);
-        setVisible(this.applyBatchButton, false);
-        setVisible(this.chapterButton, false);
-        setVisible(this.fieldFilter, false);
-
-        ShopOffer offer = selectedOffer();
-        boolean hasOffer = offer != null;
-        setVisible(this.fieldOfferId, hasOffer);
-        setVisible(this.fieldOfferItem, hasOffer);
-        setVisible(this.fieldOfferCount, hasOffer);
-        setVisible(this.fieldOfferCoin, hasOffer);
-        setVisible(this.fieldOfferTear, hasOffer);
-        setVisible(this.offerEnabledButton, hasOffer);
-
-        if (hasOffer)
-        {
-            this.fieldOfferId.setValue(offer.id == null ? "" : offer.id);
-            this.fieldOfferItem.setValue(offer.itemOrEmpty());
-            this.fieldOfferCount.setValue(Integer.toString(offer.countOrZero()));
-            this.fieldOfferCoin.setValue(Long.toString(offer.priceCoinOrZero()));
-            this.fieldOfferTear.setValue(Long.toString(offer.priceTearOrZero()));
-            updateOfferEnabledButton();
-        }
-
-        if (this.addButton != null)
-        {
-            this.addButton.setMessage(Component.translatable(key("admin.add_offer")));
-        }
-    }
-
-    /**
-     * Writes the shop edit fields back into the selected offer.
-     */
-    private void applyOfferFields()
-    {
-        ShopOffer offer = selectedOffer();
-
-        if (offer == null)
-        {
-            return;
-        }
-
-        offer.id = this.fieldOfferId.getValue().trim();
-        offer.item = this.fieldOfferItem.getValue().trim();
-        offer.count = Integer.valueOf(Math.max(1, parseIntOr(this.fieldOfferCount.getValue(), 1)));
-        offer.priceCoin = Long.valueOf(Math.max(0L, parseLongOr(this.fieldOfferCoin.getValue(), 0L)));
-        offer.priceTear = Long.valueOf(Math.max(0L, parseLongOr(this.fieldOfferTear.getValue(), 0L)));
-    }
-
-    /**
-     * The first bottom button adds whatever the active tab edits.
-     */
-    private void primaryAdd()
-    {
-        if (this.shopTab)
-        {
-            addOffer();
-            return;
-        }
-
-        addRegion();
-    }
-
-    /**
-     * The remove button removes whatever the active tab has selected.
-     */
-    private void removeSelectedOrOffer()
-    {
-        if (this.shopTab)
-        {
-            removeOffer();
-            return;
-        }
-
-        removeSelected();
-    }
-
-    private void addOffer()
-    {
-        applyOfferFields();
-        this.shop.offersOrEmpty().add(new ShopOffer("offer_" + (this.shop.offersOrEmpty().size() + 1), true,
-                "minecraft:bread", 1, 10L, 0L));
-        this.selectedShopIndex = this.shop.offersOrEmpty().size() - 1;
-        refreshFields();
-    }
-
-    private void removeOffer()
-    {
-        List<ShopOffer> offers = this.shop.offersOrEmpty();
-
-        if (this.selectedShopIndex < 0 || this.selectedShopIndex >= offers.size())
-        {
-            return;
-        }
-
-        offers.remove(this.selectedShopIndex);
-        this.selectedShopIndex = Math.min(this.selectedShopIndex, offers.size() - 1);
-        refreshFields();
-    }
-
-    private void toggleOfferEnabled()    {
-        ShopOffer offer = selectedOffer();
-
-        if (offer == null)
-        {
-            return;
-        }
-
-        offer.enabled = Boolean.valueOf(!offer.isEnabled());
-        updateOfferEnabledButton();
-    }
-
-    private void updateOfferEnabledButton()
-    {
-        ShopOffer offer = selectedOffer();
-        boolean enabled = offer == null || offer.isEnabled();
-        this.offerEnabledButton.setMessage(
-                Component.translatable(key(enabled ? "admin.offer_enabled" : "admin.offer_disabled")));
-    }
-
-    private static ShopConfig parseShop(String json)
-    {
-        try
-        {
-            ShopConfig parsed = GSON.fromJson(json, ShopConfig.class);
-            return parsed == null ? ShopConfig.empty() : parsed;
-        }
-        catch (RuntimeException exception)
-        {
-            return ShopConfig.empty();
-        }
-    }
-
-    private static int parseIntOr(String raw, int fallback)
-    {
-        try
-        {
-            return Integer.parseInt(raw.trim());
-        }
-        catch (NumberFormatException exception)
-        {
-            return fallback;
-        }
-    }
-
-    private static long parseLongOr(String raw, long fallback)
-    {
-        try
-        {
-            return Long.parseLong(raw.trim());
-        }
-        catch (NumberFormatException exception)
-        {
-            return fallback;
-        }
     }
 
     private static void setVisible(net.minecraft.client.gui.components.AbstractWidget widget, boolean visible)

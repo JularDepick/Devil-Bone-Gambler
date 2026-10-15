@@ -37,15 +37,6 @@ public final class ClientActions
     private static long altarValue = 0L;
     private static int altarRadius = ModConstants.ALTAR_BASE_RADIUS;
     private static net.minecraft.core.BlockPos altarPos = null;
-    private static long economyCoin = 0L;
-    private static long economyTear = 0L;
-    private static long economyCounterCoin = 0L;
-    private static long economyCounterTear = 0L;
-    private static long economyVipUntil = 0L;
-    private static int economyPending = 0;
-    private static int economyTick = 0;
-    private static String economyShopJson = "{}";
-    private static String economyJson = "{}";
 
     private ClientActions()
     {
@@ -73,16 +64,6 @@ public final class ClientActions
     public static void openAltarScreen()
     {
         Minecraft.getInstance().setScreen(new AltarScreen());
-    }
-
-    /**
-     * Opens one of the four economy screens and asks the server for a fresh snapshot.
-     */
-    public static void openEconomyScreen(com.devilbonegambler.block.EconomyBlock.Kind kind)
-    {
-        sendEconomyRequest(com.devilbonegambler.economy.EconomyOperation.REQUEST_DATA,
-                com.devilbonegambler.economy.CurrencyType.COIN, 0L, 0L, 0, "", "");
-        Minecraft.getInstance().setScreen(new com.devilbonegambler.client.gui.EconomyScreen(kind));
     }
 
     /**
@@ -156,76 +137,6 @@ public final class ClientActions
         ModNetwork.sendToServer(new AdminPanelRequestPacket(nextSequence()));
     }
 
-    /**
-     * Cached economy snapshot pushed by the server. The screens only read it, never write it.
-     */
-    public static void setEconomyData(long coin, long tear, long counterCoin, long counterTear, long vipUntil,
-            int pendingCount, int tickCount, String shopJson, String economyJson)
-    {
-        economyCoin = coin;
-        economyTear = tear;
-        economyCounterCoin = counterCoin;
-        economyCounterTear = counterTear;
-        economyVipUntil = vipUntil;
-        economyPending = pendingCount;
-        economyTick = tickCount;
-        economyShopJson = shopJson == null ? "{}" : shopJson;
-        economyJson = economyJson == null ? "{}" : economyJson;
-    }
-
-    public static long economyCoin() { return economyCoin; }
-
-    public static long economyTear() { return economyTear; }
-
-    public static long economyCounterCoin() { return economyCounterCoin; }
-
-    public static long economyCounterTear() { return economyCounterTear; }
-
-    public static long economyVipUntil() { return economyVipUntil; }
-
-    public static int economyPending() { return economyPending; }
-
-    public static int economyTick() { return economyTick; }
-
-    public static String economyShopJson() { return economyShopJson; }
-
-    public static String economyJson() { return economyJson; }
-
-    public static boolean economyVipActive()
-    {
-        return economyVipUntil > economyTick;
-    }
-
-    /**
-     * Sends one economy operation. Every field is an intent only; the server re-validates all of them.
-     */
-    public static void sendEconomyRequest(com.devilbonegambler.economy.EconomyOperation operation,
-            com.devilbonegambler.economy.CurrencyType currency, long amount, long amountB, int count, String textA,
-            String textB)
-    {
-        ModNetwork.sendToServer(new com.devilbonegambler.network.packet.EconomyRequestPacket(nextSequence(), operation,
-                currency, amount, amountB, count, textA, textB));
-    }
-
-    /**
-     * Shows the outcome of the last economy operation on the action bar.
-     */
-    public static void onEconomyResponse(int sequence, boolean success, String reasonKey)
-    {
-        Minecraft minecraft = Minecraft.getInstance();
-
-        if (minecraft.gui == null)
-        {
-            return;
-        }
-
-        Component text = success
-                ? Component.translatable("gui." + ModConstants.MOD_ID + ".economy.done")
-                : Component.translatable("gui." + ModConstants.MOD_ID + ".reason."
-                        + (reasonKey == null || reasonKey.isEmpty() ? "unknown" : reasonKey));
-        minecraft.gui.setOverlayMessage(text, false);
-    }
-
     public static void openValueTableScreen(String titleJson, String author, List<String> pages)
     {
         ItemStack display = new ItemStack(ModItems.OFFERING_VALUE_TABLE.get());
@@ -247,9 +158,9 @@ public final class ClientActions
                 new net.minecraft.client.gui.screens.inventory.BookViewScreen.WrittenBookAccess(display)));
     }
 
-    public static void openAdminPanel(String prizePoolJson, String itemValuesJson, String shopJson)
+    public static void openAdminPanel(String prizePoolJson, String itemValuesJson)
     {
-        Minecraft.getInstance().setScreen(new AdminConfigScreen(prizePoolJson, itemValuesJson, shopJson));
+        Minecraft.getInstance().setScreen(new AdminConfigScreen(prizePoolJson, itemValuesJson));
     }
 
     /**
