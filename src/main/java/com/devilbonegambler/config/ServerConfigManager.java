@@ -7,18 +7,22 @@
 package com.devilbonegambler.config;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.util.ModConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mojang.brigadier.CommandDispatcher;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
@@ -40,6 +44,7 @@ public final class ServerConfigManager
     private static PrizePoolConfig prizePool;
     private static ItemValueConfig itemValues;
     private static Path configDir;
+    private static MinecraftServer serverRef;
 
     private ServerConfigManager()
     {
@@ -88,6 +93,7 @@ public final class ServerConfigManager
         prizePool = null;
         itemValues = null;
         configDir = null;
+        serverRef = null;
     }
 
     /**
@@ -116,6 +122,9 @@ public final class ServerConfigManager
         {
             writeItemValues();
         }
+
+        serverRef = server;
+        refreshCommandValidity();
 
         DevilBoneGambler.LOGGER.info("Prize pool loaded: {} regions, {} entries, revision {}",
                 Integer.valueOf(prizePool.regionsOrEmpty().size()),
@@ -171,6 +180,7 @@ public final class ServerConfigManager
         candidate.schemaVersion = Integer.valueOf(PrizePoolConfig.CURRENT_SCHEMA);
         candidate.revision = Integer.valueOf(prizePool.revisionOrZero() + 1);
         prizePool = candidate;
+        refreshCommandValidity();
         writePrizePool();
         return null;
     }
@@ -221,6 +231,44 @@ public final class ServerConfigManager
         itemValues = candidate;
         writeItemValues();
         return null;
+    }
+
+    /**
+     * Recomputes the command syntax validity of every prize entry. An invalid entry stays in the file so that an
+     * administrator keeps the written command, but it is never selected.
+     */
+    private static void refreshCommandValidity()
+    {
+        List<PrizeRegion> regions = prizePool == null
+                ? Collections.<PrizeRegion>emptyList()
+                : prizePool.regionsOrEmpty();
+        CommandDispatcher<CommandSourceStack> dispatcher = serverRef == null
+                ? null
+                : serverRef.getCommands().getDispatcher();
+        CommandSourceStack source = serverRef == null ? null : serverRef.createCommandSourceStack();
+        int invalid = 0;
+
+        for (PrizeRegion region : regions)
+        {
+            for (PrizeEntry entry : region.entriesOrEmpty())
+            {
+                String problem = CommandRunner.problem(dispatcher, source, entry.commandOrEmpty());
+                entry.invalidCommand = problem != null;
+
+                if (problem != null)
+                {
+                    invalid++;
+                    DevilBoneGambler.LOGGER.warn(
+                            "Prize entry excluded, its command is not selectable, entry={}, problem={}",
+                            entry.id, problem);
+                }
+            }
+        }
+
+        if (invalid > 0)
+        {
+            DevilBoneGambler.LOGGER.warn("Prize entries excluded by command validation: {}", Integer.valueOf(invalid));
+        }
     }
 
     /**

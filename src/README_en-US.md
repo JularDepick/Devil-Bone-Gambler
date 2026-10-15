@@ -24,6 +24,7 @@ src/main/java/com/devilbonegambler/
 │   └── render/                      # Client rendering
 │       └── AltarTintHandler.java    # Screen space red tint over the altar range
 ├── commands/                        # Command registration
+│   ├── CommandRunner.java           # Prize entry command execution and syntax validation
 │   └── ModCommands.java             # Admin command entry
 ├── config/                          # Server config models and file access
 │   ├── DefaultPrizePool.java        # Preset used when the prize pool file is created
@@ -81,6 +82,7 @@ src/main/java/com/devilbonegambler/
 │   └── ModItems.java                # Item registration
 ├── util/                            # Shared helpers
 │   ├── AuthorInfo.java              # Author credit constants
+│   ├── CommandPlaceholders.java     # Prize command placeholder expansion and ranged random positions
 │   ├── ItemValuation.java           # Per instance item valuation with enchant bonus and durability
 │   ├── ModConstants.java            # Central design detail constants
 │   ├── Placeholders.java            # Placeholder expansion for commands and texts

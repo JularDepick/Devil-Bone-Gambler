@@ -18,6 +18,7 @@ import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
+import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.Placeholders;
@@ -139,8 +140,7 @@ public final class DrawEngine
             return;
         }
 
-        String command = Placeholders.expand(pending.hit.commandOrEmpty(), player);
-        int commandResult = execute(player, command);
+        int commandResult = CommandRunner.run(server, player, pending.hit.commandOrEmpty());
 
         if (commandResult <= 0)
         {
@@ -476,28 +476,6 @@ public final class DrawEngine
     {
         ResourceLocation key = ResourceLocation.tryParse(itemId);
         return key == null ? null : ForgeRegistries.ITEMS.getValue(key);
-    }
-
-    private static int execute(ServerPlayer player, String command)
-    {
-        MinecraftServer server = player.getServer();
-
-        if (server == null)
-        {
-            return 0;
-        }
-
-        try
-        {
-            CommandSourceStack source = player.createCommandSourceStack()
-                    .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL);
-            return server.getCommands().performPrefixedCommand(source, command);
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.error("The prize command threw an exception: {}", command, exception);
-            return 0;
-        }
     }
 
     private static void audit(ServerPlayer player, PendingDraw pending, int commandResult, boolean consumed,

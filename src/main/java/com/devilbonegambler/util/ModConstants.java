@@ -143,6 +143,15 @@ public final class ModConstants
     public static final String PLACEHOLDER_X = "${x}";
     public static final String PLACEHOLDER_Y = "${y}";
     public static final String PLACEHOLDER_Z = "${z}";
+    public static final String PLACEHOLDER_PLAYER_CAPITAL = "$Player";
+
+    /*
+     * Prize command position placeholders
+     */
+    public static final int COMMAND_RANDOM_DEFAULT_MODE = 0;
+    public static final int COMMAND_RANDOM_DEFAULT_RANGE = 6;
+    public static final int COMMAND_RANDOM_MAX_MODE = 3;
+    public static final int COMMAND_RANDOM_MAX_RANGE = 64;
 
     /*
      * Result display modes

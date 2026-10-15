@@ -127,7 +127,7 @@ public final class RegionSelector
 
         for (PrizeEntry entry : region.entriesOrEmpty())
         {
-            if (entry.isEnabled())
+            if (entry.isSelectable())
             {
                 result += effectiveWeight(entry, redPoint, overflow);
             }
@@ -153,7 +153,7 @@ public final class RegionSelector
 
         for (PrizeEntry entry : region.entriesOrEmpty())
         {
-            if (!entry.isEnabled())
+            if (!entry.isSelectable())
             {
                 continue;
             }

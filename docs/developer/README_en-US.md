@@ -39,7 +39,7 @@ Empty directories are kept in git through a `.gitkeep` placeholder
 
 | File | Location | Description |
 |:---:|:---:|:---:|
-| Prize pool | `<world save>/serverconfig/devil_bone_gambler/prize_pool.json` | Layered prize pool, created from the preset on first start |
+| Prize pool | `<world save>/serverconfig/devil_bone_gambler/prize_pool.json` | Layered prize pool, created from the preset on first start; an entry command holds one vanilla command per line with an optional leading slash and supports player name, player position, altar position and ranged random position placeholders |
 | Item values | `<world save>/serverconfig/devil_bone_gambler/item_values.json` | Item value table, created from the built in presets and the registry scan |
 | Luck data | `<world save>/data/devil_bone_gambler_luck.dat` | Per player luck value |
 

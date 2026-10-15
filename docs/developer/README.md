@@ -39,7 +39,7 @@
 
 | 文件 | 位置 | 说明 |
 |:---:|:---:|:---:|
-| 奖池配置 | `<世界存档>/serverconfig/devil_bone_gambler/prize_pool.json` | 分层奖池, 首次启动按预设生成 |
+| 奖池配置 | `<世界存档>/serverconfig/devil_bone_gambler/prize_pool.json` | 分层奖池, 首次启动按预设生成;条目的指令文本支持多行逐行执行, 每行斜杠可选, 并支持玩家名称, 玩家坐标与祭坛位置占位符与范围随机坐标 |
 | 物品价值配置 | `<世界存档>/serverconfig/devil_bone_gambler/item_values.json` | 物品价值表, 首次启动按内置预设与扫描结果生成 |
 | 玩家运气数据 | `<世界存档>/data/devil_bone_gambler_luck.dat` | 按玩家标识索引的运气值 |
 

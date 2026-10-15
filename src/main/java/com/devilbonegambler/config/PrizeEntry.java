@@ -22,6 +22,11 @@ public class PrizeEntry
     public String command;
     public NotifyConfig notify;
 
+    /*
+     * Runtime only. Decided when the configuration is loaded or written, never serialised back to the file.
+     */
+    public transient boolean invalidCommand;
+
     public PrizeEntry()
     {
     }
@@ -79,6 +84,19 @@ public class PrizeEntry
     public String commandOrEmpty()
     {
         return this.command == null ? "" : this.command;
+    }
+
+    public boolean isCommandValid()
+    {
+        return !this.invalidCommand;
+    }
+
+    /**
+     * An entry takes part in selection only when it is enabled and its command passed validation.
+     */
+    public boolean isSelectable()
+    {
+        return isEnabled() && !this.invalidCommand;
     }
 
     public NotifyConfig notifyOrDefault()

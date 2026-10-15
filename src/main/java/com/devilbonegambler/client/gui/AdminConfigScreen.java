@@ -7,6 +7,7 @@
 package com.devilbonegambler.client.gui;
 
 import com.devilbonegambler.client.ClientActions;
+import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.config.ItemValueConfig;
 import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
@@ -24,9 +25,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * The admin config panel.
@@ -49,6 +53,14 @@ public class AdminConfigScreen extends Screen
     private static final int EDIT_X = 226;
     private static final int EDIT_WIDTH = 146;
     private static final int FIELD_HEIGHT = 14;
+    private static final int COMMAND_FIELD_WIDTH = 126;
+    private static final int COMMAND_WINDOW_X = 80;
+    private static final int COMMAND_WINDOW_Y = 89;
+    private static final int COMMAND_WINDOW_WIDTH = 220;
+    private static final int COMMAND_WINDOW_HEIGHT = 96;
+    private static final int COMMAND_EDITOR_HEIGHT = 52;
+    private static final int WINDOW_COLOR = 0xF0101010;
+    private static final int WINDOW_BORDER_COLOR = 0xFF707070;
     private static final int TITLE_COLOR = 0xFFFFFF;
     private static final int LABEL_COLOR = 0xA0A0A0;
     private static final int TEXT_COLOR = 0xE0E0E0;
@@ -85,6 +97,11 @@ public class AdminConfigScreen extends Screen
     private Button notifyModeButton;
     private Button enabledButton;
     private Button applyBatchButton;
+    private Button commandEditButton;
+    private MultiLineEditBox commandEditor;
+    private Button commandApplyButton;
+    private Button commandCancelButton;
+    private boolean commandEditorOpen;
 
     public AdminConfigScreen(String prizePoolJson, String itemValuesJson)
     {
@@ -170,7 +187,26 @@ public class AdminConfigScreen extends Screen
                 .pos(this.leftPos + EDIT_X + 76, this.topPos + 88).size(70, 16).build());
         this.fieldId = addField(114, Component.translatable(key("admin.label_id")), ModConstants.MAX_ENTRY_ID_LENGTH);
         this.fieldWeight = addField(140, Component.translatable(key("admin.label_weight")), 12);
-        this.fieldCommand = addField(166, Component.translatable(key("admin.label_command")), ModConstants.MAX_COMMAND_LENGTH);
+        this.fieldCommand = new EditBox(this.font, this.leftPos + EDIT_X, this.topPos + 166, COMMAND_FIELD_WIDTH,
+                FIELD_HEIGHT, Component.translatable(key("admin.label_command")));
+        this.fieldCommand.setMaxLength(ModConstants.MAX_COMMAND_LENGTH);
+        addRenderableWidget(this.fieldCommand);
+        this.commandEditButton = addRenderableWidget(Button.builder(Component.literal("..."),
+                button -> openCommandEditor()).pos(this.leftPos + EDIT_X + COMMAND_FIELD_WIDTH + 2,
+                        this.topPos + 166).size(18, FIELD_HEIGHT).build());
+
+        this.commandEditor = new MultiLineEditBox(this.font, this.leftPos + COMMAND_WINDOW_X + 6,
+                this.topPos + COMMAND_WINDOW_Y + 18, COMMAND_WINDOW_WIDTH - 12, COMMAND_EDITOR_HEIGHT,
+                Component.translatable(key("admin.label_command")),
+                Component.translatable(key("admin.label_command")));
+        this.commandEditor.setCharacterLimit(ModConstants.MAX_COMMAND_LENGTH);
+        addRenderableWidget(this.commandEditor);
+        this.commandApplyButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.apply")),
+                button -> closeCommandEditor(true)).pos(this.leftPos + COMMAND_WINDOW_X + 6,
+                        this.topPos + COMMAND_WINDOW_Y + 74).size(100, 16).build());
+        this.commandCancelButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.cancel")),
+                button -> closeCommandEditor(false)).pos(this.leftPos + COMMAND_WINDOW_X + 114,
+                        this.topPos + COMMAND_WINDOW_Y + 74).size(100, 16).build());
         this.fieldNotifyText = addField(192, Component.translatable(key("admin.label_notify_text")),
                 ModConstants.MAX_NOTIFY_TEXT_LENGTH);
 
@@ -225,13 +261,51 @@ public class AdminConfigScreen extends Screen
                 this.leftPos + EDIT_X, this.topPos + PANEL_HEIGHT - 36, LABEL_COLOR, false);
 
         drawList(graphics);
+
+        if (this.commandEditorOpen)
+        {
+            int windowX = this.leftPos + COMMAND_WINDOW_X;
+            int windowY = this.topPos + COMMAND_WINDOW_Y;
+            graphics.fill(windowX - 1, windowY - 1, windowX + COMMAND_WINDOW_WIDTH + 1,
+                    windowY + COMMAND_WINDOW_HEIGHT + 1, WINDOW_BORDER_COLOR);
+            graphics.fill(windowX, windowY, windowX + COMMAND_WINDOW_WIDTH, windowY + COMMAND_WINDOW_HEIGHT,
+                    WINDOW_COLOR);
+            graphics.drawString(this.font, Component.translatable(key("admin.label_command")), windowX + 6,
+                    windowY + 6, TITLE_COLOR, false);
+        }
+
         super.render(graphics, mouseX, mouseY, partialTick);
         drawFieldLabels(graphics);
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers)
+    {
+        if (this.commandEditorOpen)
+        {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE)
+            {
+                closeCommandEditor(false);
+                return true;
+            }
+
+            return this.commandEditor.keyPressed(keyCode, scanCode, modifiers);
+        }
+
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button)
     {
+        if (this.commandEditorOpen)
+        {
+            this.commandEditor.mouseClicked(mouseX, mouseY, button);
+            this.commandApplyButton.mouseClicked(mouseX, mouseY, button);
+            this.commandCancelButton.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+
         int row = listRowAt(mouseX, mouseY);
 
         if (row >= 0)
@@ -247,6 +321,11 @@ public class AdminConfigScreen extends Screen
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta)
     {
+        if (this.commandEditorOpen)
+        {
+            return this.commandEditor.mouseScrolled(mouseX, mouseY, delta);
+        }
+
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         int maximum = Math.max(0, total - LIST_VISIBLE_ROWS);
 
@@ -399,6 +478,10 @@ public class AdminConfigScreen extends Screen
         setVisible(this.fieldId, entryRow != null);
         setVisible(this.fieldWeight, entryRow != null);
         setVisible(this.fieldCommand, entryRow != null);
+        setVisible(this.commandEditButton, entryRow != null);
+        setVisible(this.commandEditor, this.commandEditorOpen);
+        setVisible(this.commandApplyButton, this.commandEditorOpen);
+        setVisible(this.commandCancelButton, this.commandEditorOpen);
         setVisible(this.fieldNotifyText, entryRow != null);
         setVisible(this.notifyModeButton, entryRow != null);
         setVisible(this.enabledButton, entryRow != null);
@@ -416,7 +499,7 @@ public class AdminConfigScreen extends Screen
         {
             this.fieldId.setValue(entryRow.entry.id == null ? "" : entryRow.entry.id);
             this.fieldWeight.setValue(formatWeight(entryRow.entry.weightOrZero()));
-            this.fieldCommand.setValue(entryRow.entry.commandOrEmpty());
+            this.fieldCommand.setValue(escapeLines(entryRow.entry.commandOrEmpty()));
             this.fieldNotifyText.setValue(entryRow.entry.notifyOrDefault().textOrEmpty());
             this.notifyModeButton.setMessage(
                     Component.translatable(key("notify.mode." + entryRow.entry.notifyOrDefault().modeOrDefault())));
@@ -434,6 +517,65 @@ public class AdminConfigScreen extends Screen
                     ? "admin.chapter_entity" : "admin.chapter_item")));
             this.fieldValue.setValue(Integer.toString(selectedValue()));
         }
+
+        reportCommandStatus();
+    }
+
+    /**
+     * The single line field shows a literal line break escape so that a multi line command stays inside the compact
+     * form; the floating editor works on the natural text and both helpers keep the two in sync.
+     */
+    private static String escapeLines(String raw)
+    {
+        return raw == null ? "" : raw.replace("\n", "\\n");
+    }
+
+    private static String unescapeLines(String field)
+    {
+        return field == null ? "" : field.replace("\\n", "\n");
+    }
+
+    /**
+     * Opens the floating command editor on the selected entry, with the command in its natural multi line form.
+     */
+    private void openCommandEditor()
+    {
+        EntryRow entryRow = selectedEntryRow();
+
+        if (entryRow == null || this.commandEditor == null)
+        {
+            return;
+        }
+
+        this.commandEditor.setValue(entryRow.entry.commandOrEmpty());
+        this.commandEditorOpen = true;
+        this.commandEditor.setFocused(true);
+        refreshFields();
+    }
+
+    /**
+     * Closes the floating command editor, writing the edited text back when the caller asked to apply it.
+     */
+    private void closeCommandEditor(boolean apply)
+    {
+        EntryRow entryRow = selectedEntryRow();
+
+        if (apply && entryRow != null && this.commandEditor != null)
+        {
+            String raw = this.commandEditor.getValue();
+            entryRow.entry.command = raw;
+            this.fieldCommand.setValue(escapeLines(raw));
+        }
+
+        this.commandEditorOpen = false;
+
+        if (this.commandEditor != null)
+        {
+            this.commandEditor.setFocused(false);
+        }
+
+        refreshFields();
+        reportCommandStatus();
     }
 
     private void applyFieldsToSelection()
@@ -452,7 +594,7 @@ public class AdminConfigScreen extends Screen
             entryRow.entry.id = this.fieldId.getValue();
             entryRow.entry.weight = Double.valueOf(Math.max(0.0D,
                     parseDouble(this.fieldWeight.getValue(), entryRow.entry.weightOrZero())));
-            entryRow.entry.command = this.fieldCommand.getValue();
+            entryRow.entry.command = unescapeLines(this.fieldCommand.getValue());
             entryRow.entry.notify = new NotifyConfig(entryRow.entry.notifyOrDefault().modeOrDefault(),
                     this.fieldNotifyText.getValue());
         }
@@ -461,6 +603,31 @@ public class AdminConfigScreen extends Screen
         {
             setValueOfKey(this.valueKeys.get(this.selectedValueIndex),
                     Math.max(0, parseInt(this.fieldValue.getValue(), 0)));
+        }
+
+        reportCommandStatus();
+    }
+
+    /**
+     * Validates the command in the field against the command tree the server sent, and reports the first problem on
+     * the status line. An entry with a problem stays editable but the server never selects it.
+     */
+    private void reportCommandStatus()
+    {
+        Minecraft minecraft = this.minecraft;
+
+        if (minecraft == null || minecraft.player == null || minecraft.player.connection == null)
+        {
+            return;
+        }
+
+        String raw = this.fieldCommand.getValue().replace("\\n", "\n");
+        String problem = CommandRunner.problem(minecraft.player.connection.getCommands(),
+                minecraft.player.connection.getSuggestionsProvider(), raw);
+
+        if (problem != null)
+        {
+            this.status = Component.translatable(key("admin.status_command_invalid"), problem).getString();
         }
     }
 

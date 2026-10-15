@@ -844,6 +844,7 @@ public final class ItemValuePresets
         */
         putEntity(result, "chicken", 5);
         putEntity(result, "rabbit", 5);
+        putEntity(result, "killer_bunny", 5);
         putEntity(result, "bat", 6);
         putEntity(result, "parrot", 8);
         putEntity(result, "cow", 10);

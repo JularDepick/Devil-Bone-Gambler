@@ -7,6 +7,7 @@
 package com.devilbonegambler.wager;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
@@ -589,23 +590,7 @@ public final class WagerService
 
     private static void executeEntry(MinecraftServer server, ServerPlayer player, PrizeEntry entry)
     {
-        String command = Placeholders.expand(entry.commandOrEmpty(), player);
-
-        if (command.isEmpty())
-        {
-            return;
-        }
-
-        try
-        {
-            CommandSourceStack source = player.createCommandSourceStack()
-                    .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL);
-            server.getCommands().performPrefixedCommand(source, command);
-        }
-        catch (RuntimeException exception)
-        {
-            DevilBoneGambler.LOGGER.error("A wager prize command threw an exception: {}", command, exception);
-        }
+        CommandRunner.run(server, player, entry.commandOrEmpty());
     }
 
     /**

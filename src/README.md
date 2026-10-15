@@ -24,6 +24,7 @@ src/main/java/com/devilbonegambler/
 │   └── render/                      # 客户端渲染
 │       └── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
 ├── commands/                        # 命令注册
+│   ├── CommandRunner.java           # 奖池条目指令执行与语法校验
 │   └── ModCommands.java             # 管理员命令入口
 ├── config/                          # 服务端配置模型与读写
 │   ├── DefaultPrizePool.java        # 首次生成奖池配置时使用的预设
@@ -81,6 +82,7 @@ src/main/java/com/devilbonegambler/
 │   └── ModItems.java                # 物品注册
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
+│   ├── CommandPlaceholders.java     # 条目指令占位符解析与范围随机坐标
 │   ├── ItemValuation.java           # 物品实例估值, 含附魔加成与耐久折算
 │   ├── ModConstants.java            # 设计细节常量集中定义
 │   ├── Placeholders.java            # 指令与文本占位符展开
