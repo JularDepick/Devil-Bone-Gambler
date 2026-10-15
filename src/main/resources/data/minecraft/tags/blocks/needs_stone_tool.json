@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "devil_bone_gambler:gamblers_bank",
+    "devil_bone_gambler:gamblers_shop",
+    "devil_bone_gambler:gamblers_exchange",
+    "devil_bone_gambler:gamblers_recycler"
+  ]
+}
