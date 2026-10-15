@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "devil_bone_gambler:block/gamblers_bank"
+  }
+}
