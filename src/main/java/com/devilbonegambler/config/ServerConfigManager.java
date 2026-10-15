@@ -8,8 +8,11 @@ package com.devilbonegambler.config;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.commands.CommandRunner;
+import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
+import com.devilbonegambler.network.packet.ValueTableSyncPacket;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.ValueTableBook;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.brigadier.CommandDispatcher;
@@ -23,9 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -54,6 +60,41 @@ public final class ServerConfigManager
     public static void onServerStarted(ServerStartedEvent event)
     {
         load(event.getServer());
+    }
+
+    /**
+     * Pushes the current value table to every online player, used when the table changes at runtime.
+     */
+    public static void pushValueTable()
+    {
+        CompoundTag snapshot = ValueTableBook.snapshotTag();
+        MinecraftServer server = serverRef;
+
+        if (snapshot == null || server == null)
+        {
+            return;
+        }
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+        {
+            ModNetwork.sendToPlayer(player, new ValueTableSyncPacket(snapshot));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        CompoundTag snapshot = ValueTableBook.snapshotTag();
+
+        if (snapshot != null)
+        {
+            ModNetwork.sendToPlayer(player, new ValueTableSyncPacket(snapshot));
+        }
     }
 
     @SubscribeEvent
@@ -117,6 +158,7 @@ public final class ServerConfigManager
         configDir = root;
         prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
+        pushValueTable();
 
         if (scanValues())
         {

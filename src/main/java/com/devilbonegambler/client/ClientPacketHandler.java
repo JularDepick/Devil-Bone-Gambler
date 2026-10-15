@@ -16,6 +16,9 @@ import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
+import com.devilbonegambler.network.packet.ValueTableSyncPacket;
+import com.devilbonegambler.util.ValueTableBook;
+import com.devilbonegambler.util.ValueTableSnapshot;
 import net.minecraft.client.Minecraft;
 
 /**
@@ -23,8 +26,28 @@ import net.minecraft.client.Minecraft;
  */
 public final class ClientPacketHandler
 {
+    private static ValueTableSnapshot valueTable;
+
     private ClientPacketHandler()
     {
+    }
+
+    /**
+     * The newest value table snapshot pushed by the server, or null before the first sync.
+     */
+    public static ValueTableSnapshot valueTable()
+    {
+        return valueTable;
+    }
+
+    public static void handleValueTableSync(ValueTableSyncPacket message)
+    {
+        ValueTableSnapshot snapshot = ValueTableBook.fromTag(message.snapshot());
+
+        if (snapshot != null)
+        {
+            valueTable = snapshot;
+        }
     }
 
     public static void handleDrawResult(DrawResultPacket message)

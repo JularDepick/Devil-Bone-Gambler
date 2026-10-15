@@ -103,7 +103,29 @@ public final class ValueTableBook
             return null;
         }
 
-        CompoundTag snapshot = tag.getCompound(ModConstants.VALUE_TABLE_TAG);
+        return fromTag(tag.getCompound(ModConstants.VALUE_TABLE_TAG));
+    }
+
+    /**
+     * Server side: the snapshot tag of the live config, or null when the config is not loaded.
+     */
+    public static CompoundTag snapshotTag()
+    {
+        ItemValueConfig config = ServerConfigManager.itemValues();
+
+        return config == null ? null : buildSnapshotTag(config);
+    }
+
+    /**
+     * Reads a standalone snapshot tag, used by the join time sync that does not go through an item.
+     */
+    public static ValueTableSnapshot fromTag(CompoundTag snapshot)
+    {
+        if (snapshot == null || !snapshot.contains(TAG_ITEMS, Tag.TAG_COMPOUND))
+        {
+            return null;
+        }
+
         CompoundTag stored = snapshot.getCompound(TAG_ITEMS);
         Map<String, Integer> values = new HashMap<String, Integer>();
 

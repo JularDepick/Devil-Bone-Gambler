@@ -16,6 +16,7 @@ import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ValueTableBook;
+import com.devilbonegambler.client.ClientPacketHandler;
 import com.devilbonegambler.util.ValueTableSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -823,6 +824,24 @@ public class AltarScreen extends Screen
     }
 
     /**
+     * The value table known to this client, pushed by the server at join and only refreshed by the carried item.
+     */
+    private ValueTableSnapshot currentSnapshot()
+    {
+        ValueTableSnapshot pushed = ClientPacketHandler.valueTable();
+
+        if (pushed != null)
+        {
+            return pushed;
+        }
+
+        Minecraft minecraft = this.minecraft;
+
+        return minecraft == null || minecraft.player == null
+                ? null : ValueTableBook.findInInventory(minecraft.player);
+    }
+
+    /**
      * Client side estimate of the offering value, computed from the public value table only.
      */
     private long estimatedValue()
@@ -834,7 +853,7 @@ public class AltarScreen extends Screen
             return 0L;
         }
 
-        ValueTableSnapshot snapshot = ValueTableBook.findInInventory(minecraft.player);
+        ValueTableSnapshot snapshot = currentSnapshot();
 
         if (snapshot == null)
         {
@@ -873,7 +892,7 @@ public class AltarScreen extends Screen
             return;
         }
 
-        ValueTableSnapshot snapshot = ValueTableBook.findInInventory(minecraft.player);
+        ValueTableSnapshot snapshot = currentSnapshot();
 
         if (snapshot == null)
         {

@@ -20,6 +20,7 @@ import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
+import com.devilbonegambler.network.packet.ValueTableSyncPacket;
 import com.devilbonegambler.util.ModConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -78,6 +79,8 @@ public final class ModNetwork
                 MobListPacket::encode, MobListPacket::decode, MobListPacket::handle);
         CHANNEL.registerMessage(index++, AltarStatusPacket.class,
                 AltarStatusPacket::encode, AltarStatusPacket::decode, AltarStatusPacket::handle);
+        CHANNEL.registerMessage(index++, ValueTableSyncPacket.class,
+                ValueTableSyncPacket::encode, ValueTableSyncPacket::decode, ValueTableSyncPacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

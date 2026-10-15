@@ -73,7 +73,8 @@ src/main/java/com/devilbonegambler/
 │       ├── MobListPacket.java
 │       ├── OpenValueTablePacket.java
 │       ├── PointDisplayPacket.java
-│       └── ValueTableRefreshRequestPacket.java
+│       ├── ValueTableRefreshRequestPacket.java
+│       └── ValueTableSyncPacket.java
 ├── registry/                        # Registered objects
 │   ├── ModBlockEntities.java        # Block entity registration
 │   ├── ModBlocks.java               # Block registration
