@@ -101,6 +101,12 @@ public final class ModConstants
     public static final int ALTAR_MODEL_HEIGHT = 13;
 
     /*
+     * Light level of the altar, driven by the four lit candles of the model. The model format of this
+     * Minecraft version cannot carry an emission, so the level is declared on the block itself.
+     */
+    public static final int ALTAR_LIGHT_LEVEL = 14;
+
+    /*
      * Wager
      */
     public static final int WAGER_COUNTDOWN_SECONDS = 5;

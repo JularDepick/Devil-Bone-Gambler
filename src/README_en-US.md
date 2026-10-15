@@ -105,7 +105,7 @@ src/main/resources/
 │   │   └── zh_cn.json                 # Simplified Chinese texts
 │   ├── models/
 │   │   ├── block/
-│   │   │   └── devils_altar.json      # Altar block model, 24 cuboids on a 64x64 atlas
+│   │   │   └── devils_altar.json      # Altar block model, 51 cuboids on a 128x256 atlas
 │   │   └── item/
 │   │       ├── devils_altar.json      # Altar item model, reusing the block model
 │   │       ├── devils_dice.json
@@ -120,7 +120,7 @@ src/main/resources/
 │   │       └── altar_tint.vsh         # Tint vertex shader
 │   └── textures/
 │       ├── block/
-│       │   ├── devils_altar.png       # Altar block texture, 64x64 atlas
+│       │   ├── devils_altar.png       # Altar block texture, 128x256 atlas
 │       │   └── devils_altar_particle.png # Altar break particle texture, 16x16
 │       └── item/
 │           ├── devils_dice.png
@@ -153,7 +153,7 @@ src/main/resources/
 - Client code lives under `client/`; common code may only reach it through `DistExecutor`, and server side code must not reference client classes directly
 - Design detail constants live in `util/ModConstants.java`, the author credit lives in `util/AuthorInfo.java`
 - Language files must be maintained in both Simplified Chinese and English with exactly the same key names
-- Textures are a multiple of 16 pixels, 32 bit with an alpha channel, without anti-aliasing or gradients; items and single face textures use 16x16, multi part block models use a 64x64 atlas
+- Textures are a multiple of 16 pixels, 32 bit with an alpha channel, without anti-aliasing or gradients; items and single face textures use 16x16, multi part block models use an atlas that is a multiple of 16
 - A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`
 - The wager mechanic lives in `wager/`; the altar block, its block entity and the range service live in `block/` and `altar/`

@@ -8,6 +8,7 @@ package com.devilbonegambler.registry;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.block.DevilsAltarBlock;
+import com.devilbonegambler.util.ModConstants;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -22,6 +23,8 @@ import net.minecraftforge.registries.RegistryObject;
  * The altar requires an iron pickaxe and stacks to one item because it carries a block entity value.
  * Its model is a custom multi part shape that does not fill the cube, so the block must not occlude the
  * neighbouring faces, otherwise the faces that touch the altar are culled and the gaps become see through.
+ * The four candles of the model are lit, and the model format of this Minecraft version cannot emit light,
+ * so the light level is declared here instead.
  */
 public final class ModBlocks
 {
@@ -36,7 +39,8 @@ public final class ModBlocks
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.STONE)
-                    .noOcclusion()));
+                    .noOcclusion()
+                    .lightLevel(state -> ModConstants.ALTAR_LIGHT_LEVEL)));
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",
             () -> new BlockItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));
