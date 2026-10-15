@@ -77,7 +77,7 @@
   "gui.devil_bone_gambler.wager.joined": "%s joined the wager",
   "gui.devil_bone_gambler.wager.left": "%s left the wager",
   "gui.devil_bone_gambler.wager.you_left": "You have left the wager created by %s",
-  "gui.devil_bone_gambler.wager.out_of_range": "You are outside the 6 block range of %s, you cannot join the wager, please get closer to %s and retry",
+  "gui.devil_bone_gambler.wager.out_of_range": "You are too far from %s, you cannot join the wager, please get closer to %s and retry",
   "gui.devil_bone_gambler.wager.entered": "The nearby player %s started a gambler's wager, get close and sneak twice in a row to join the wager (starts in %s seconds)",
   "gui.devil_bone_gambler.wager.started": "The wager begins, the dice are about to fall",
   "gui.devil_bone_gambler.wager.point": "Dice point %s",

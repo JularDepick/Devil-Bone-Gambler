@@ -36,7 +36,6 @@ public final class ValueTableBook
     private static final String TAG_REVISION = "revision";
     private static final String TAG_DEFAULT_ITEM = "defaultItemValue";
     private static final String TAG_DEFAULT_ENTITY = "defaultEntityValue";
-    private static final String TAG_ENCHANT_VALUE = "enchantValueBase";
     private static final String TAG_ITEMS = "items";
     private static final String TAG_ENTITIES = "entities";
 
@@ -113,8 +112,7 @@ public final class ValueTableBook
             values.put(key, Integer.valueOf(stored.getInt(key)));
         }
 
-        return new ValueTableSnapshot(snapshot.getInt(TAG_REVISION), snapshot.getInt(TAG_DEFAULT_ITEM),
-                snapshot.getInt(TAG_ENCHANT_VALUE), values);
+        return new ValueTableSnapshot(snapshot.getInt(TAG_REVISION), snapshot.getInt(TAG_DEFAULT_ITEM), values);
     }
 
     /**
@@ -149,7 +147,6 @@ public final class ValueTableBook
         snapshot.putInt(TAG_REVISION, config.revisionOrZero());
         snapshot.putInt(TAG_DEFAULT_ITEM, config.defaultItemValueOrDefault());
         snapshot.putInt(TAG_DEFAULT_ENTITY, config.defaultEntityValueOrDefault());
-        snapshot.putInt(TAG_ENCHANT_VALUE, config.enchantValueBaseOrDefault());
         snapshot.put(TAG_ITEMS, writeChapter(config.itemsOrEmpty()));
         snapshot.put(TAG_ENTITIES, writeChapter(config.entitiesOrEmpty()));
         return snapshot;

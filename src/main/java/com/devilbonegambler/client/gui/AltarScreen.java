@@ -844,7 +844,7 @@ public class AltarScreen extends Screen
         }
 
         String itemId = key.toString();
-        int unit = ItemValuation.stackValue(stack, snapshot.valueOf(itemId), snapshot.enchantValueBase());
+        int unit = snapshot.valueOf(itemId);
         boolean registered = snapshot.isRegistered(itemId);
 
         if (insideAltar)

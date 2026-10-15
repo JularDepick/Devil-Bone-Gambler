@@ -16,14 +16,12 @@ public final class ValueTableSnapshot
 {
     private final int revision;
     private final int defaultValue;
-    private final int enchantValueBase;
     private final Map<String, Integer> values;
 
-    public ValueTableSnapshot(int revision, int defaultValue, int enchantValueBase, Map<String, Integer> values)
+    public ValueTableSnapshot(int revision, int defaultValue, Map<String, Integer> values)
     {
         this.revision = revision;
         this.defaultValue = Math.max(0, defaultValue);
-        this.enchantValueBase = Math.max(0, enchantValueBase);
         this.values = values == null ? Collections.<String, Integer>emptyMap() : values;
     }
 
@@ -35,11 +33,6 @@ public final class ValueTableSnapshot
     public int defaultValue()
     {
         return this.defaultValue;
-    }
-
-    public int enchantValueBase()
-    {
-        return this.enchantValueBase;
     }
 
     public boolean isRegistered(String itemId)

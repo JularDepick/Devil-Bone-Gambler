@@ -77,7 +77,7 @@
   "gui.devil_bone_gambler.wager.joined": "%s 加入了赌局",
   "gui.devil_bone_gambler.wager.left": "%s 离开了赌局",
   "gui.devil_bone_gambler.wager.you_left": "你已离开 %s 创建的赌局",
-  "gui.devil_bone_gambler.wager.out_of_range": "你在 %s 的 6 格范围之外, 无法加入赌局, 请靠近 %s 后重试",
+  "gui.devil_bone_gambler.wager.out_of_range": "你离 %s 太远, 无法加入赌局, 请靠近 %s 后重试",
   "gui.devil_bone_gambler.wager.entered": "附近的 %s 玩家发起了赌徒的赌局, 靠近并连续蹲起两次即可加入该赌局(%s 秒后开始)",
   "gui.devil_bone_gambler.wager.started": "赌局开始, 骰子即将落下",
   "gui.devil_bone_gambler.wager.point": "骰子点数 %s",
