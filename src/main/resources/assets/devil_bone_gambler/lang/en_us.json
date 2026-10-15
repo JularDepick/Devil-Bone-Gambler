@@ -34,6 +34,8 @@
   "gui.devil_bone_gambler.altar.mob_limit": "The creature list is full",
   "gui.devil_bone_gambler.altar.current": "Current %s",
   "gui.devil_bone_gambler.altar.intrusion": "The altar you wear has entered another altar's range, leave at once",
+  "gui.devil_bone_gambler.altar.offered_total": "Value sacrificed this draw: %s",
+  "gui.devil_bone_gambler.altar.estimate": "Estimated value %s, the server settles the actual value",
 
   "gui.devil_bone_gambler.value.line": "Offering value: %s",
   "gui.devil_bone_gambler.value.line_default": "Offering value: %s (default)",

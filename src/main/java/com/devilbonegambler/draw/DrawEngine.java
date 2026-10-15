@@ -172,6 +172,17 @@ public final class DrawEngine
 
         NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault());
 
+        if (consumed)
+        {
+            settleOfferingValue(player, pending.totalValue);
+
+            if (pending.totalValue > 0L)
+            {
+                NotifySender.sendChat(player, "gui.devil_bone_gambler.altar.offered_total",
+                        Long.valueOf(pending.totalValue));
+            }
+        }
+
         if (pending.hit.isMajorEvent())
         {
             NotifySender.broadcastMajorEvent(player, pending.hit);
@@ -414,12 +425,18 @@ public final class DrawEngine
             }
         }
 
+        return total;
+    }
+
+    /**
+     * Records the value of the completed sacrifice into the altar the player used.
+     */
+    public static void settleOfferingValue(ServerPlayer player, long total)
+    {
         if (total > 0L)
         {
             AltarService.accumulateOfferingValue(player, total);
         }
-
-        return total;
     }
 
     private static int countItem(ServerPlayer player, Item item)

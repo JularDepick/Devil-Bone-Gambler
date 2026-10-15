@@ -91,6 +91,8 @@ public class AltarScreen extends Screen
     private static final int SUMMARY_X = 190;
     private static final int SUMMARY_Y = 104;
     private static final int SUMMARY_WIDTH = 108;
+    private static final int SUMMARY_LINE_HEIGHT = 11;
+    private static final int ESTIMATE_COLOR = 0xD8B860;
 
     private static final int VALUE_X = 308;
     private static final int VALUE_WIDTH = 84;
@@ -736,6 +738,9 @@ public class AltarScreen extends Screen
         graphics.drawString(this.font, clip(Component.translatable(key("altar.summary"),
                 Integer.valueOf(countEntries()), Integer.valueOf(countItems())).getString(), SUMMARY_WIDTH),
                 this.leftPos + SUMMARY_X, this.topPos + SUMMARY_Y, TEXT_COLOR, false);
+        graphics.drawString(this.font, clip(Component.translatable(key("altar.estimate"),
+                Long.valueOf(estimatedValue())).getString(), SUMMARY_WIDTH),
+                this.leftPos + SUMMARY_X, this.topPos + SUMMARY_Y + SUMMARY_LINE_HEIGHT, ESTIMATE_COLOR, false);
 
         drawWrapped(graphics, Component.translatable(key("altar.hint")), this.leftPos + MOB_X,
                 this.topPos + HINT_Y, MOB_WIDTH, HINT_LINE_HEIGHT, LABEL_COLOR);
@@ -815,6 +820,45 @@ public class AltarScreen extends Screen
         appendValueLine(stack, insideAltar);
         graphics.renderTooltip(this.font, this.tooltipLines, Optional.<net.minecraft.world.inventory.tooltip.TooltipComponent>empty(),
                 stack, mouseX, mouseY);
+    }
+
+    /**
+     * Client side estimate of the offering value, computed from the public value table only.
+     */
+    private long estimatedValue()
+    {
+        Minecraft minecraft = this.minecraft;
+
+        if (minecraft == null || minecraft.player == null)
+        {
+            return 0L;
+        }
+
+        ValueTableSnapshot snapshot = ValueTableBook.findInInventory(minecraft.player);
+
+        if (snapshot == null)
+        {
+            return 0L;
+        }
+
+        long total = 0L;
+
+        for (ItemStack stack : this.altar)
+        {
+            if (stack.isEmpty())
+            {
+                continue;
+            }
+
+            ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
+
+            if (key != null)
+            {
+                total += (long) snapshot.valueOf(key.toString()) * (long) stack.getCount();
+            }
+        }
+
+        return total;
     }
 
     /**
