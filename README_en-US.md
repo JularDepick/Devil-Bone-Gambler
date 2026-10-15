@@ -15,13 +15,16 @@ A Minecraft mod that grants random rewards or penalties upon rolling a dice. All
 
 ---
 
+## Contributing
+
+See [CONTRIBUTING_en-US.md](./CONTRIBUTING_en-US.md) for details.
+
 ## Copyright
 
 Copyright &copy; 2026 JularDepick
 
 See [COPYRIGHT](./COPYRIGHT) for details.
 
-
 ## License
 
-This repository uses the [[Apache-2.0](./LICENSE) license.
+This repository uses the [Apache-2.0 license](./LICENSE).

@@ -15,12 +15,15 @@
 
 ---
 
+## 贡献指南
+
+详见 [CONTRIBUTING.md](./CONTRIBUTING.md) 。
+
 ## 版权信息
 
 Copyright &copy; 2026 JularDepick
 
 详见 [COPYRIGHT](./COPYRIGHT) 。
-
 
 ## 许可证
 
