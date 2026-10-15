@@ -4,13 +4,49 @@ AGENTS.md
 .agents/
 
 # Versions' docs
+v*-*.md
 
 # Developing Runtime (build/dist/cache)
 build/
+out/
+bin/
 dist/
 temp/
 tmp/
+.gradle/
+run/
+logs/
+mcmodsrepo/
+__pycache__/
+*.log
+*.log.gz
+*.class
+*.hprof
+
+# Gradle wrapper: only the wrapper itself is tracked
+gradle/*
+!gradle/wrapper/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.factorypath
+.settings/
+.vscode/
+.vs/
+
+# OS
+Thumbs.db
+*.swp
+*~
 
 # other
+.env
 release/
 releases/
+reference/
+*.mp4

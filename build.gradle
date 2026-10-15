@@ -1,0 +1,135 @@
+plugins {
+    id 'eclipse'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = '0.1.0'
+group = 'com.devilbonegambler'
+archivesBaseName = 'DevilBoneGambler'
+
+// MC 版本单源化：mappings、forge 依赖、产物文件名共用
+def mcVersion = '1.20.1'
+// 编译目标与兼容下界分离：mcVersion 决定 mappings 与 Forge 依赖版本，
+// mcCompatMin 只用于 mods.toml 的 minecraft 依赖下界，
+// 从而支持"用较新版本编译、声明覆盖较旧版本"的多版本合并产物
+def mcCompatMin = mcVersion
+// MC 兼容上界与 Forge 主版本：mods.toml 的 versionRange / loaderVersion 占位符共用
+def mcNextVersion = '1.21'
+def forgeMajor = '47'
+def forgeVersion = '47.4.23'
+
+// 版本号单源化：build.gradle 的 version 为唯一来源，
+// processResources 将 mods.toml 中的 ${version} 等占位替换为实际版本
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') {
+        expand 'version': project.version,
+               'mcVersion': mcVersion,
+               'mcCompatMin': mcCompatMin,
+               'mcNextVersion': mcNextVersion,
+               'forgeMajor': forgeMajor
+    }
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+repositories {
+    maven {
+        url 'https://maven.aliyun.com/repository/public'
+    }
+    maven {
+        url 'https://maven.aliyun.com/repository/central'
+    }
+    maven {
+        url 'https://repo.huaweicloud.com/repository/maven'
+    }
+    maven {
+        url 'https://maven.minecraftforge.net/'
+    }
+    maven {
+        url 'https://libraries.minecraft.net/'
+    }
+    mavenCentral()
+}
+
+minecraft {
+    mappings channel: 'official', version: mcVersion
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'forge.enabledGameTestNamespaces', 'devil_bone_gambler'
+            // dev 环境靠下面的 -mixin.config 加载 mixin；产环境靠 jar 的 MANIFEST MixinConfigs。
+            // 当前 mixin 只有普通方法覆写（不依赖 refmap），故不声明 mixin.env.remapRefMap 与
+            // refMapRemappingFile（原先指向不存在的 output.srg，属误导性配置）。
+            // 若后续引入 @Inject/@Redirect 等注入器，必须先补 refmap：
+            //   1) 加 annotationProcessor 参数 -AoutRefMapFile=...
+            //   2) 在 mixins.devil_bone_gambler.json 中声明 "refmap"
+            //   3) 恢复 mixin.env.remapRefMap=true 与 refMapRemappingFile
+            arg '-mixin.config=mixins.devil_bone_gambler.json'
+            mods {
+                devilbonegambler {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'forge.enabledGameTestNamespaces', 'devil_bone_gambler'
+            arg '-mixin.config=mixins.devil_bone_gambler.json'
+            mods {
+                devilbonegambler {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${mcVersion}-${forgeVersion}"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+jar {
+    // 产物命名：DevilBoneGambler-v<version>-mc-<mcVersion>-forge.jar（v 前缀仅用于文件名，mods.toml 内部版本保持纯 semver）
+    archiveFileName = "DevilBoneGambler-v${project.version}-mc-${mcVersion}-forge.jar"
+    manifest {
+        attributes([
+            "Specification-Title"     : "Devil Bone Gambler",
+            "Specification-Vendor"    : "JularDepick",
+            "Specification-Version"   : "1",
+            "Implementation-Title"    : project.name,
+            "Implementation-Version"  : project.jar.archiveVersion,
+            "Implementation-Vendor"   : "JularDepick",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            // Forge 1.20.1 产环境唯一认可的 mixin 配置加载方式（dev 环境靠 runs 的 arg 参数，
+            // 产环境必须靠 MANIFEST 属性，否则 mixin 静默不加载导致信号注入失效）
+            "MixinConfigs"            : "mixins.devil_bone_gambler.json"
+        ])
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
