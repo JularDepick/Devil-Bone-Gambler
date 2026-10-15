@@ -170,6 +170,48 @@ public final class ModConstants
         NOTIFY_MODE_NONE
     };
 
+    /*
+     * Dealer: entity, feeding, pathing and the sunrise and sunset silent spawn.
+     */
+    public static final int DEALER_MAX_HEALTH = 40;
+    public static final int DEALER_MAX_SATIETY = 40;
+    public static final int DEALER_SATIETY_PER_HEALTH = 2;
+    public static final int DEALER_STAY_SECONDS = 30;
+    public static final int DEALER_FEED_RADIUS = 2;
+    public static final int DEALER_FEED_INTERVAL_TICKS = 20;
+    public static final int DEALER_PATH_RADIUS = 8;
+    public static final int DEALER_PATH_SAMPLES = 16;
+    public static final int DEALER_PATH_TIMEOUT_TICKS = 400;
+    public static final double DEALER_LIGHT_WEIGHT = 4.0D;
+    public static final double DEALER_LIQUID_WEIGHT = 3.0D;
+    public static final double DEALER_DISTANCE_WEIGHT = 0.5D;
+    public static final int DEALER_LIQUID_SCAN_RADIUS = 1;
+    public static final int DEALER_SPAWN_RADIUS = 6;
+    public static final int DEALER_SPAWN_VERTICAL = 3;
+    public static final int DEALER_SUNSET_TICK = 12000;
+    public static final int DEALER_SUNRISE_TICK = 23000;
+    public static final int DEALER_DAY_TICKS = 24000;
+
+    /*
+     * Dealer reward: one spawn egg per this many consumed gambler's dice.
+     */
+    public static final String DEALER_USAGE_DATA_NAME = "devil_bone_gambler_dealer_usage";
+    public static final int DEALER_USAGE_PER_EGG = 64;
+
+    /*
+     * Dealer wager and dealer panel.
+     */
+    public static final int DEALER_WAGER_RECRUIT_SECONDS = 120;
+    public static final int DEALER_WAGER_REMIND_SECONDS = 30;
+    public static final int DEALER_WAGER_PULL_SECONDS = 5;
+    public static final int DEALER_WAGER_PULL_TICKS = 40;
+    public static final int DEALER_WAGER_MAX_PLAYERS = 8;
+    public static final int DEALER_WAGER_MIN_PLAYERS = 2;
+    public static final int DEALER_WAGER_RADIUS = 6;
+    public static final int DEALER_BET_SLOTS = 9;
+    public static final int DEALER_BUSY_TIMEOUT_TICKS = 200;
+    public static final int TICKS_PER_SECOND = 20;
+
     private ModConstants()
     {
     }

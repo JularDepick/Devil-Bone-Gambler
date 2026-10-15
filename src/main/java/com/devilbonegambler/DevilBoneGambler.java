@@ -11,6 +11,7 @@ import com.devilbonegambler.registry.ModBlockEntities;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.registry.ModCreativeTabs;
 import com.devilbonegambler.registry.ModEffects;
+import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -37,6 +38,7 @@ public class DevilBoneGambler
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlocks.BLOCK_ITEMS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
+        ModEntities.ENTITIES.register(modEventBus);
         ModEffects.MOB_EFFECTS.register(modEventBus);
         ModCreativeTabs.TABS.register(modEventBus);
 
