@@ -1,0 +1,68 @@
+{
+  "blend": {
+    "func": "add",
+    "srcrgb": "srcalpha",
+    "dstrgb": "1-srcalpha"
+  },
+  "vertex": "devil_bone_gambler:altar_tint",
+  "fragment": "devil_bone_gambler:altar_tint",
+  "attributes": [
+    "Position",
+    "UV0"
+  ],
+  "samplers": [
+    {
+      "name": "DiffuseSampler"
+    },
+    {
+      "name": "DepthSampler"
+    }
+  ],
+  "uniforms": [
+    {
+      "name": "InvProjMat",
+      "type": "matrix4x4",
+      "count": 16,
+      "values": [
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+      ]
+    },
+    {
+      "name": "SphereCenterView",
+      "type": "float",
+      "count": 3,
+      "values": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Radius",
+      "type": "float",
+      "count": 1,
+      "values": [
+        6.0
+      ]
+    },
+    {
+      "name": "RedGain",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.8
+      ]
+    },
+    {
+      "name": "LumaGain",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0.8
+      ]
+    }
+  ]
+}
