@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[${forgeMajor},)"
+license="Apache-2.0"
+issueTrackerURL="https://github.com/JularDepick/Devil-Bone-Gambler/issues"
+
+[[mods]]
+modId="devil_bone_gambler"
+version="${version}"
+displayName="Devil Bone Gambler"
+authors="JularDepick"
+description='''
+A Minecraft mod that grants random rewards or penalties upon rolling a dice.
+All returns depend on your bet and your luck.
+'''
+
+[[dependencies.devil_bone_gambler]]
+    modId="forge"
+    mandatory=true
+    versionRange="[${forgeMajor},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.devil_bone_gambler]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[${mcCompatMin},${mcNextVersion})"
+    ordering="NONE"
+    side="BOTH"
