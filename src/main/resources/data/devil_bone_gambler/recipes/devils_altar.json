@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "CDC",
+    "DDD"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "B": {
+      "item": "minecraft:redstone"
+    },
+    "C": {
+      "item": "minecraft:netherrack"
+    },
+    "D": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "item": "devil_bone_gambler:devils_altar",
+    "count": 1
+  }
+}

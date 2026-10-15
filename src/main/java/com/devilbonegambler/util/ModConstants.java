@@ -96,6 +96,11 @@ public final class ModConstants
     public static final int ALTAR_MAX_MOB_ENTRIES = 32;
 
     /*
+     * Height of the altar model in pixels, which is also where the collision box stops.
+     */
+    public static final int ALTAR_MODEL_HEIGHT = 13;
+
+    /*
      * Wager
      */
     public static final int WAGER_COUNTDOWN_SECONDS = 5;

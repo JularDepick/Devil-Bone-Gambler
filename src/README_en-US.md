@@ -120,7 +120,8 @@ src/main/resources/
 │   │       └── altar_tint.vsh         # Tint vertex shader
 │   └── textures/
 │       ├── block/
-│       │   └── devils_altar.png       # Altar block texture, 64x64 atlas
+│       │   ├── devils_altar.png       # Altar block texture, 64x64 atlas
+│       │   └── devils_altar_particle.png # Altar break particle texture, 16x16
 │       └── item/
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
@@ -130,7 +131,11 @@ src/main/resources/
 │   │   ├── loot_tables/
 │   │   │   └── blocks/
 │   │   │       └── devils_altar.json  # Altar loot table
-│   │   └── recipes/                   # Crafting recipes, currently empty
+│   │   └── recipes/                   # Crafting recipes
+│   │       ├── devils_altar.json      # Devil's Altar
+│   │       ├── devils_dice.json       # Devil's Dice
+│   │       ├── gamblers_dice.json     # Gambler's Dice
+│   │       └── offering_value_table.json # Offering Value Table
 │   └── minecraft/
 │       └── tags/
 │           └── blocks/
@@ -149,6 +154,7 @@ src/main/resources/
 - Design detail constants live in `util/ModConstants.java`, the author credit lives in `util/AuthorInfo.java`
 - Language files must be maintained in both Simplified Chinese and English with exactly the same key names
 - Textures are a multiple of 16 pixels, 32 bit with an alpha channel, without anti-aliasing or gradients; items and single face textures use 16x16, multi part block models use a 64x64 atlas
+- A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`
 - The wager mechanic lives in `wager/`; the altar block, its block entity and the range service live in `block/` and `altar/`
 - The shader programs and the post chain of the altar tint live in `assets/devil_bone_gambler/shaders/`

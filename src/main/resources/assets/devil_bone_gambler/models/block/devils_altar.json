@@ -4,7 +4,8 @@
 	"parent": "block/block",
 	"texture_size": [64, 64],
 	"textures": {
-		"0": "devil_bone_gambler:block/devils_altar"
+		"0": "devil_bone_gambler:block/devils_altar",
+		"particle": "devil_bone_gambler:block/devils_altar_particle"
 	},
 	"elements": [
 		{

@@ -29,7 +29,7 @@
 | `src/main/java/com/devilbonegambler/util/AuthorInfo.java` | 作者信息常量, 界面与注释头只引用常量 |
 | `src/main/resources/` | 资源目录, 资源命名空间为 `devil_bone_gambler` |
 | `src/main/resources/assets/devil_bone_gambler/` | 模型, 贴图, 方块状态与语言文件 |
-| `src/main/resources/data/devil_bone_gambler/` | 数据包内容, 当前预留合成配方目录 |
+| `src/main/resources/data/devil_bone_gambler/` | 数据包内容, 含祭坛掉落表与四种物品的合成配方 |
 | `src/main/resources/mixins.devil_bone_gambler.json` | 混入配置, 声明混入包与混入类清单 |
 | `src/main/resources/META-INF/mods.toml` | 模组元数据, 版本号由构建占位符注入 |
 

@@ -120,7 +120,8 @@ src/main/resources/
 │   │       └── altar_tint.vsh         # 遮罩顶点着色器
 │   └── textures/
 │       ├── block/
-│       │   └── devils_altar.png       # 祭坛方块贴图, 64x64 图集
+│       │   ├── devils_altar.png       # 祭坛方块贴图, 64x64 图集
+│       │   └── devils_altar_particle.png # 祭坛破坏粒子贴图, 16x16
 │       └── item/
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
@@ -130,7 +131,11 @@ src/main/resources/
 │   │   ├── loot_tables/
 │   │   │   └── blocks/
 │   │   │       └── devils_altar.json  # 祭坛掉落表
-│   │   └── recipes/                   # 合成配方, 当前为空
+│   │   └── recipes/                   # 合成配方
+│   │       ├── devils_altar.json      # 恶魔的祭坛
+│   │       ├── devils_dice.json       # 恶魔的骰子
+│   │       ├── gamblers_dice.json     # 赌徒的骰子
+│   │       └── offering_value_table.json # 祭品价值表
 │   └── minecraft/
 │       └── tags/
 │           └── blocks/
@@ -149,6 +154,7 @@ src/main/resources/
 - 设计细节常量集中在 `util/ModConstants.java`, 作者信息集中在 `util/AuthorInfo.java`
 - 语言文件需要同时维护简体中文与英文两份, 两者键名必须完全一致
 - 贴图规格为 16 的整数倍像素, 32 位带透明通道, 不使用抗锯齿与渐变; 物品与单面贴图使用 16x16, 多部件方块模型使用 64x64 图集
+- 自定义方块模型需要在 `textures` 中声明 `particle` 贴图, 否则破坏粒子会回退到原版缺失贴图
 - 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
 - 赌局机制集中在 `wager/`; 祭坛的方块, 方块实体与范围服务集中在 `block/` 与 `altar/`
 - 祭坛遮罩的着色器程序与后处理链位于 `assets/devil_bone_gambler/shaders/`

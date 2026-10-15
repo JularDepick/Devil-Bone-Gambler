@@ -29,7 +29,7 @@ The first build downloads the Forge and Minecraft dependencies; the dependency c
 | `src/main/java/com/devilbonegambler/util/AuthorInfo.java` | Author credit constants, screens and headers only reference the constants |
 | `src/main/resources/` | Resource root, the resource namespace is `devil_bone_gambler` |
 | `src/main/resources/assets/devil_bone_gambler/` | Models, textures, block states and language files |
-| `src/main/resources/data/devil_bone_gambler/` | Data pack content, currently the reserved recipe directory |
+| `src/main/resources/data/devil_bone_gambler/` | Data pack content, holding the altar loot table and the crafting recipes of the four items |
 | `src/main/resources/mixins.devil_bone_gambler.json` | Mixin configuration, declares the mixin package and mixin class list |
 | `src/main/resources/META-INF/mods.toml` | Mod metadata, the version number is injected by a build placeholder |
 

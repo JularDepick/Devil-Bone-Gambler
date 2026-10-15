@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "A",
+    "B"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:book"
+    },
+    "B": {
+      "item": "minecraft:netherrack"
+    }
+  },
+  "result": {
+    "item": "devil_bone_gambler:offering_value_table",
+    "count": 1
+  }
+}

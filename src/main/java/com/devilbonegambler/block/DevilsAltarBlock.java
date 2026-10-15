@@ -25,6 +25,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.ForgeHooks;
 
 /**
@@ -36,9 +38,22 @@ import net.minecraftforge.common.ForgeHooks;
 @SuppressWarnings("deprecation")
 public class DevilsAltarBlock extends Block implements EntityBlock
 {
+    private static final VoxelShape SHAPE = Block.box(0.0D, 0.0D, 0.0D, 16.0D,
+            ModConstants.ALTAR_MODEL_HEIGHT, 16.0D);
+
     public DevilsAltarBlock(Properties properties)
     {
         super(properties);
+    }
+
+    /**
+     * The model stops at ALTAR_MODEL_HEIGHT pixels, so the collision and the occlusion box stop there too
+     * instead of filling the whole block.
+     */
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
+    {
+        return SHAPE;
     }
 
     @Override
