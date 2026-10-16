@@ -37,6 +37,11 @@ public final class DefaultPrizePool
                 ModConstants.NOTIFY_MODE_TITLE, translatable("hunger_curse"));
         add(first, "lightning_curse", 25.0D, false, false, "summon minecraft:lightning_bolt",
                 ModConstants.NOTIFY_MODE_TITLE, translatable("lightning_curse"));
+        add(first, "random_item_small", 150.0D, true, false, "give ${player} ${random:item} 1",
+                ModConstants.NOTIFY_MODE_ACTIONBAR, translatable("random_item_small"));
+        add(first, "random_effect_short", 90.0D, true, false,
+                "effect give ${player} ${random:effect} 30 0",
+                ModConstants.NOTIFY_MODE_ACTIONBAR, translatable("random_effect_short"));
         config.regions.add(first);
 
         PrizeRegion second = new PrizeRegion(2);
@@ -50,6 +55,14 @@ public final class DefaultPrizePool
                 ModConstants.NOTIFY_MODE_ACTIONBAR, translatable("golden_apple_gift"));
         add(second, "blindness_curse", 12.0D, false, false, "effect give ${player} minecraft:blindness 15 0",
                 ModConstants.NOTIFY_MODE_TITLE, translatable("blindness_curse"));
+        add(second, "random_item_stack", 55.0D, true, false, "give ${player} ${random:item} 8",
+                ModConstants.NOTIFY_MODE_ACTIONBAR, translatable("random_item_stack"));
+        add(second, "random_potion", 30.0D, true, false,
+                "give ${player} minecraft:potion{Potion:\"${random:potion}\"} 1",
+                ModConstants.NOTIFY_MODE_TITLE, translatable("random_potion"));
+        add(second, "random_mob_drop", 20.0D, false, false,
+                "execute at ${player} run summon ${random:entity} ~ ~ ~",
+                ModConstants.NOTIFY_MODE_TITLE, translatable("random_mob_drop"));
         config.regions.add(second);
 
         PrizeRegion third = new PrizeRegion(3);
@@ -64,6 +77,11 @@ public final class DefaultPrizePool
                 ModConstants.NOTIFY_MODE_TITLE, translatable("nausea_curse"));
         add(third, "elytra_gift", 4.0D, true, true, "give ${player} minecraft:elytra 1",
                 ModConstants.NOTIFY_MODE_TITLE, translatable("elytra_gift"));
+        add(third, "random_item_mass", 22.0D, true, false, "give ${player} ${random:item} 32",
+                ModConstants.NOTIFY_MODE_TITLE, translatable("random_item_mass"));
+        add(third, "random_enchant_book", 14.0D, true, true,
+                "give ${player} minecraft:enchanted_book{StoredEnchantments:[{id:\"${random:enchantment}\",lvl:1s}]} 1",
+                ModConstants.NOTIFY_MODE_TITLE, translatable("random_enchant_book"));
         config.regions.add(third);
 
         return config;

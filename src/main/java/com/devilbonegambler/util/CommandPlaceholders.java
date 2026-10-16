@@ -34,6 +34,11 @@ public final class CommandPlaceholders
     private static final Pattern POSITION = Pattern.compile(
             "([@#])([\\[(])([A-Za-z0-9_]*)([\\])])(?:\\[random=(\\d{1,3})&(\\d{1,3})\\])?");
     private static final Pattern DOLLAR = Pattern.compile("\\$[A-Za-z_][A-Za-z0-9_]*");
+    /**
+     * Random prize token, one of the pools that the world load refreshes from the registries.
+     */
+    public static final Pattern RANDOM = Pattern.compile("\\$\\{random:([a-z_]+)\\}");
+
     private static final String SAMPLE_NAME = "DevilBoneGambler";
 
     private CommandPlaceholders()
@@ -129,6 +134,16 @@ public final class CommandPlaceholders
             return "unknown dollar token: " + dollar.group();
         }
 
+        Matcher random = RANDOM.matcher(line);
+
+        while (random.find())
+        {
+            if (ModConstants.randomSampleOf(random.group(1)) == null)
+            {
+                return "unknown random pool: " + random.group(1);
+            }
+        }
+
         return null;
     }
 
@@ -143,6 +158,9 @@ public final class CommandPlaceholders
         }
 
         String result = line.replace(ModConstants.PLACEHOLDER_PLAYER_CAPITAL, SAMPLE_NAME);
+        result = RANDOM.matcher(result).replaceAll(match -> ModConstants.randomSampleOf(match.group(1)) == null
+                ? ""
+                : Matcher.quoteReplacement(ModConstants.randomSampleOf(match.group(1))));
         result = POSITION.matcher(result).replaceAll("0 64 0");
         result = result.replace(ModConstants.PLACEHOLDER_PLAYER, SAMPLE_NAME);
         result = result.replace(ModConstants.PLACEHOLDER_X, "0");

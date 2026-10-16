@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -49,6 +52,7 @@ public final class ServerConfigManager
 
     private static PrizePoolConfig prizePool;
     private static ItemValueConfig itemValues;
+    private static RandomPoolConfig randomPools;
     private static Path configDir;
     private static MinecraftServer serverRef;
 
@@ -129,10 +133,21 @@ public final class ServerConfigManager
         return itemValues == null ? "{}" : GSON.toJson(itemValues);
     }
 
+    public static RandomPoolConfig randomPools()
+    {
+        return randomPools;
+    }
+
+    public static String randomPoolsJson()
+    {
+        return randomPools == null ? "{}" : GSON.toJson(randomPools);
+    }
+
     public static void clear()
     {
         prizePool = null;
         itemValues = null;
+        randomPools = null;
         configDir = null;
         serverRef = null;
     }
@@ -158,11 +173,17 @@ public final class ServerConfigManager
         configDir = root;
         prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
+        randomPools = readRandomPools(root.resolve(ModConstants.RANDOM_POOL_FILE));
         pushValueTable();
 
         if (scanValues())
         {
             writeItemValues();
+        }
+
+        if (refreshRandomPools())
+        {
+            writeRandomPools();
         }
 
         serverRef = server;
@@ -176,6 +197,8 @@ public final class ServerConfigManager
                 Integer.valueOf(itemValues.itemsOrEmpty().size()),
                 Integer.valueOf(itemValues.entitiesOrEmpty().size()),
                 Integer.valueOf(itemValues.revisionOrZero()));
+        DevilBoneGambler.LOGGER.info("Random pools refreshed: {} entries over {} pools",
+                Integer.valueOf(randomPools.totalEntries()), Integer.valueOf(ModConstants.RANDOM_POOLS.length));
     }
 
     /**
@@ -393,6 +416,118 @@ public final class ServerConfigManager
             writeJson(path, created);
             return created;
         }
+    }
+
+    /**
+     * Rebuilds every random pool from the registries. The pools are overwritten rather than merged, so content that
+     * is no longer installed disappears, and the file is only rewritten when the sample space really moved.
+     * The item pool skips air and the entity pool keeps only summonable categories, because both would otherwise
+     * produce a draw without any effect.
+     */
+    private static boolean refreshRandomPools()
+    {
+        if (randomPools == null)
+        {
+            randomPools = RandomPoolConfig.empty();
+        }
+
+        List<String> items = new ArrayList<String>();
+
+        for (ResourceLocation key : ForgeRegistries.ITEMS.getKeys())
+        {
+            if (!ModConstants.RANDOM_AIR_ID.equals(key.toString()))
+            {
+                items.add(key.toString());
+            }
+        }
+
+        boolean changed = randomPools.replacePool(ModConstants.RANDOM_POOL_ITEM, items);
+        List<String> effects = new ArrayList<String>();
+
+        for (ResourceLocation key : ForgeRegistries.MOB_EFFECTS.getKeys())
+        {
+            effects.add(key.toString());
+        }
+
+        changed |= randomPools.replacePool(ModConstants.RANDOM_POOL_EFFECT, effects);
+        List<String> entities = new ArrayList<String>();
+
+        for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues())
+        {
+            if (type.getCategory() == MobCategory.MISC)
+            {
+                continue;
+            }
+
+            ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(type);
+
+            if (key != null)
+            {
+                entities.add(key.toString());
+            }
+        }
+
+        changed |= randomPools.replacePool(ModConstants.RANDOM_POOL_ENTITY, entities);
+        List<String> enchantments = new ArrayList<String>();
+
+        for (ResourceLocation key : ForgeRegistries.ENCHANTMENTS.getKeys())
+        {
+            enchantments.add(key.toString());
+        }
+
+        changed |= randomPools.replacePool(ModConstants.RANDOM_POOL_ENCHANTMENT, enchantments);
+        List<String> potions = new ArrayList<String>();
+
+        for (ResourceLocation key : ForgeRegistries.POTIONS.getKeys())
+        {
+            potions.add(key.toString());
+        }
+
+        changed |= randomPools.replacePool(ModConstants.RANDOM_POOL_POTION, potions);
+        return changed;
+    }
+
+    private static RandomPoolConfig readRandomPools(Path path)
+    {
+        if (!Files.isRegularFile(path))
+        {
+            RandomPoolConfig created = RandomPoolConfig.empty();
+            created.normalize();
+            return created;
+        }
+
+        try
+        {
+            RandomPoolConfig loaded = GSON.fromJson(readText(path), RandomPoolConfig.class);
+
+            if (loaded == null)
+            {
+                throw new IllegalStateException("empty random pool file");
+            }
+
+            loaded.normalize();
+            return loaded;
+        }
+        catch (RuntimeException exception)
+        {
+            DevilBoneGambler.LOGGER.error("Failed to read {}, the pools are rebuilt from the registries instead", path,
+                    exception);
+            backup(path);
+            RandomPoolConfig created = RandomPoolConfig.empty();
+            created.normalize();
+            return created;
+        }
+    }
+
+    private static void writeRandomPools()
+    {
+        if (configDir == null || randomPools == null)
+        {
+            return;
+        }
+
+        randomPools.normalize();
+        writeJson(configDir.resolve(ModConstants.RANDOM_POOL_FILE), randomPools);
     }
 
     private static ItemValueConfig readItemValues(Path path)

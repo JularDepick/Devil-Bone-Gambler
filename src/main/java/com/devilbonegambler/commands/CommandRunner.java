@@ -20,6 +20,7 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 
 /**
  * Runs the command lines of one prize entry: one vanilla command per line, executed in order, with an optional
@@ -71,7 +72,16 @@ public final class CommandRunner
 
         for (String line : lines(raw))
         {
-            String command = CommandPlaceholders.expand(line, trigger, CommandRunner::altarOf, trigger.getRandom());
+            String sampled = RandomPoolSampler.sample(line, server, trigger.getRandom());
+
+            if (sampled == null)
+            {
+                DevilBoneGambler.LOGGER.warn(
+                        "Skipped a prize command line, a random pool is unknown or empty, line={}", line);
+                continue;
+            }
+
+            String command = CommandPlaceholders.expand(sampled, trigger, CommandRunner::altarOf, trigger.getRandom());
 
             if (command == null)
             {
