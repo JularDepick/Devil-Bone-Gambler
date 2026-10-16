@@ -10,6 +10,7 @@ import com.devilbonegambler.client.gui.AdminConfigScreen;
 import com.devilbonegambler.client.gui.AltarScreen;
 import com.devilbonegambler.client.gui.DealerBetScreen;
 import com.devilbonegambler.client.gui.DealerScreen;
+import com.devilbonegambler.client.gui.ValueTableScreen;
 import com.devilbonegambler.draw.OfferingBundle;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
@@ -21,16 +22,9 @@ import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
-import com.devilbonegambler.util.ValueTableBook;
-import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.WrittenBookItem;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
@@ -38,11 +32,6 @@ import net.minecraftforge.registries.ForgeRegistries;
  */
 public final class ClientActions
 {
-    /*
-     * Vanilla rejects a book tag whose title is longer than this, and the same string is used as the item name.
-     */
-    private static final int BOOK_TITLE_MAX_LENGTH = 32;
-
     private static int sequence = 0;
     private static boolean altarInRange = false;
     private static long altarValue = 0L;
@@ -172,28 +161,12 @@ public final class ClientActions
     }
 
     /**
-     * The vanilla book tag takes a plain title of at most 32 characters and that title also becomes the item name, so
-     * it is resolved here in the language of the client instead of being stored on the server side stack.
+     * Opens the searchable value table view. The data comes from the server pushed snapshot, so the rows are always
+     * the live table and every row shows the localised item name.
      */
-    public static void openValueTableScreen(String author, List<String> pages)
+    public static void openValueTableScreen()
     {
-        ItemStack display = new ItemStack(ModItems.OFFERING_VALUE_TABLE.get());
-        CompoundTag tag = display.getOrCreateTag();
-        tag.putString(WrittenBookItem.TAG_TITLE, bookTitle());
-        tag.putString(WrittenBookItem.TAG_AUTHOR, author);
-        ListTag pageTags = new ListTag();
-
-        for (String page : pages)
-        {
-            pageTags.add(StringTag.valueOf(page));
-        }
-
-        tag.put(WrittenBookItem.TAG_PAGES, pageTags);
-        tag.putInt(WrittenBookItem.TAG_GENERATION, 0);
-        tag.putBoolean(WrittenBookItem.TAG_RESOLVED, true);
-
-        Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.inventory.BookViewScreen(
-                new net.minecraft.client.gui.screens.inventory.BookViewScreen.WrittenBookAccess(display)));
+        Minecraft.getInstance().setScreen(new ValueTableScreen(ClientPacketHandler.valueTable()));
     }
 
     public static void openAdminPanel(String prizePoolJson, String itemValuesJson)
@@ -226,12 +199,6 @@ public final class ClientActions
         }
 
         minecraft.gui.setOverlayMessage(text, false);
-    }
-
-    private static String bookTitle()
-    {
-        String title = Component.translatable(ValueTableBook.BOOK_TITLE_KEY).getString();
-        return title.length() <= BOOK_TITLE_MAX_LENGTH ? title : title.substring(0, BOOK_TITLE_MAX_LENGTH);
     }
 
     public static String devilsDiceId()

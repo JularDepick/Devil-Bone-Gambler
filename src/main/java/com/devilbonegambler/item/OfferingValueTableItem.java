@@ -20,8 +20,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
 /**
- * Offering Value Table: a written book carrying a snapshot of the server side value table.
- * Right clicking refreshes the snapshot on the server and then opens the vanilla book screen on the client.
+ * Offering Value Table: an item carrying a snapshot of the server side value table.
+ * Right clicking refreshes the snapshot on the server and then opens the searchable value table view on the client,
+ * which lists the localised names and offers a search box.
  */
 public class OfferingValueTableItem extends WrittenBookItem
 {

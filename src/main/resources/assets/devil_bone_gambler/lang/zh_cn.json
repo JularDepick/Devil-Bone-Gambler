@@ -40,10 +40,15 @@
   "gui.devil_bone_gambler.value.line_default": "祭品价值: %s (默认值)",
   "gui.devil_bone_gambler.value.subtotal": "祭品价值: %s 单价, %s 件, 小计 %s",
   "gui.devil_bone_gambler.value.book_title": "祭品价值表",
-  "gui.devil_bone_gambler.value.book_author": "JularDepick",
-  "gui.devil_bone_gambler.value.page_header": "祭品价值表 修订号 %s",
-  "gui.devil_bone_gambler.value.page_line": "%s = %s",
-  "gui.devil_bone_gambler.value.page_more": "余下条目见后续页",
+  "gui.devil_bone_gambler.value.search": "搜索物品或生物",
+  "gui.devil_bone_gambler.value.search_hint": "搜索同时匹配本地化名称与物品 id",
+  "gui.devil_bone_gambler.value.close": "关闭",
+  "gui.devil_bone_gambler.value.revision": "修订号 %s",
+  "gui.devil_bone_gambler.value.default": "%s (默认值)",
+  "gui.devil_bone_gambler.value.matches": "匹配 %s 条",
+  "gui.devil_bone_gambler.value.chapter_all": "全部",
+  "gui.devil_bone_gambler.value.chapter_item": "物品",
+  "gui.devil_bone_gambler.value.chapter_entity": "生物",
 
   "gui.devil_bone_gambler.admin.title": "恶魔骨赌 配置面板",
   "gui.devil_bone_gambler.admin.tab_prize": "奖池配置",
@@ -89,8 +94,6 @@
   "gui.devil_bone_gambler.wager.finished": "%s 创建的赌局结束了",
   "gui.devil_bone_gambler.wager.aborted": "赌局已中止",
 
-  "gui.devil_bone_gambler.value.page_item_header": "物品价值",
-  "gui.devil_bone_gambler.value.page_entity_header": "生物价值",
   "gui.devil_bone_gambler.admin.entry_row": "  条目 %s | 权重 %s | %s",
   "gui.devil_bone_gambler.admin.value_row": "%s = %s",
   "gui.devil_bone_gambler.admin.value_row_missing": "%s = %s (未注册)",
@@ -113,8 +116,7 @@
   "gui.devil_bone_gambler.admin.label_value": "价值点",
 
   "gui.devil_bone_gambler.notify.default": "命运已定",
-  "gui.devil_bone_gambler.notify.mode.title": "标题",
-  "gui.devil_bone_gambler.notify.mode.subtitle": "副标题",
+
   "gui.devil_bone_gambler.notify.mode.actionbar": "物品栏上方",
   "gui.devil_bone_gambler.notify.mode.tellraw": "聊天栏",
   "gui.devil_bone_gambler.notify.mode.none": "不提示",

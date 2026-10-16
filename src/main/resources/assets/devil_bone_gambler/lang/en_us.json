@@ -40,10 +40,15 @@
   "gui.devil_bone_gambler.value.line_default": "Offering value: %s (default)",
   "gui.devil_bone_gambler.value.subtotal": "Offering value: %s each, %s items, subtotal %s",
   "gui.devil_bone_gambler.value.book_title": "Offering Value Table",
-  "gui.devil_bone_gambler.value.book_author": "JularDepick",
-  "gui.devil_bone_gambler.value.page_header": "Offering Value Table revision %s",
-  "gui.devil_bone_gambler.value.page_line": "%s = %s",
-  "gui.devil_bone_gambler.value.page_more": "Remaining entries are on the following pages",
+  "gui.devil_bone_gambler.value.search": "Search items or creatures",
+  "gui.devil_bone_gambler.value.search_hint": "Search matches the localised name and the id",
+  "gui.devil_bone_gambler.value.close": "Close",
+  "gui.devil_bone_gambler.value.revision": "Revision %s",
+  "gui.devil_bone_gambler.value.default": "%s (default)",
+  "gui.devil_bone_gambler.value.matches": "%s matches",
+  "gui.devil_bone_gambler.value.chapter_all": "All",
+  "gui.devil_bone_gambler.value.chapter_item": "Items",
+  "gui.devil_bone_gambler.value.chapter_entity": "Creatures",
 
   "gui.devil_bone_gambler.admin.title": "Devil Bone Gambler Config",
   "gui.devil_bone_gambler.admin.tab_prize": "Prize Pool",
@@ -89,8 +94,6 @@
   "gui.devil_bone_gambler.wager.finished": "The wager created by %s has ended",
   "gui.devil_bone_gambler.wager.aborted": "The wager was aborted",
 
-  "gui.devil_bone_gambler.value.page_item_header": "Item values",
-  "gui.devil_bone_gambler.value.page_entity_header": "Entity values",
   "gui.devil_bone_gambler.admin.entry_row": "  Entry %s | weight %s | %s",
   "gui.devil_bone_gambler.admin.value_row": "%s = %s",
   "gui.devil_bone_gambler.admin.value_row_missing": "%s = %s (not registered)",
@@ -113,8 +116,7 @@
   "gui.devil_bone_gambler.admin.label_value": "Value points",
 
   "gui.devil_bone_gambler.notify.default": "Fate is sealed",
-  "gui.devil_bone_gambler.notify.mode.title": "Title",
-  "gui.devil_bone_gambler.notify.mode.subtitle": "Subtitle",
+
   "gui.devil_bone_gambler.notify.mode.actionbar": "Action bar",
   "gui.devil_bone_gambler.notify.mode.tellraw": "Chat",
   "gui.devil_bone_gambler.notify.mode.none": "Silent",

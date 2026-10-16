@@ -22,7 +22,8 @@
 │   │   ├── AdminConfigScreen.java   # 管理员配置面板
 │   │   ├── AltarScreen.java         # 献祭界面
 │   │   ├── DealerBetScreen.java     # 荷官赌注箱界面
-│   │   └── DealerScreen.java        # 荷官九宫格界面
+│   │   ├── DealerScreen.java        # 荷官九宫格界面
+│   │   └── ValueTableScreen.java    # 可搜索祭品价值表, 本地化名称与章节切换
 │   └── render/                      # 客户端渲染
 │       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
 │       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与自绘制服贴图

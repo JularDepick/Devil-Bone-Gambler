@@ -23,7 +23,8 @@ src/main/java/com/devilbonegambler/
 │   │   ├── AdminConfigScreen.java   # Admin config panel
 │   │   ├── AltarScreen.java         # Offering screen
 │   │   ├── DealerBetScreen.java     # Dealer bet box screen
-│   │   └── DealerScreen.java        # Dealer nine grid screen
+│   │   ├── DealerScreen.java        # Dealer nine grid screen
+│   │   └── ValueTableScreen.java    # Searchable offering value table with localised names and chapter filter
 │   └── render/                      # Client rendering
 │       ├── AltarTintHandler.java    # Screen space red tint over the altar range
 │       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and the dealer uniform texture

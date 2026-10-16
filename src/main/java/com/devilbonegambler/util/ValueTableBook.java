@@ -7,30 +7,23 @@
 package com.devilbonegambler.util;
 
 import com.devilbonegambler.config.ItemValueConfig;
-import com.devilbonegambler.config.ItemValuePresets;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
-import java.util.ArrayList;
+import com.devilbonegambler.network.packet.ValueTableSyncPacket;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.WrittenBookItem;
 
 /**
  * Reads and writes the value table snapshot carried by the offering value table book.
- * The snapshot lives next to the vanilla written book tags so that the vanilla book screen keeps working.
- * Both chapters are written into the readable pages, while the client hover only needs the item chapter.
+ * The snapshot is the data source of the searchable view and of the client hover estimate, and it is pushed to the
+ * client on join and on every refresh, so the screens never read a config file themselves.
  */
 public final class ValueTableBook
 {
@@ -41,24 +34,18 @@ public final class ValueTableBook
     private static final String TAG_ENTITIES = "entities";
 
     /**
-     * The vanilla book title is a plain string of at most 32 characters and it also overrides the item name, so the
-     * client resolves it from this key and the server never writes a component JSON into the tag.
+     * Title of the searchable view, resolved on the client from this key so the screen text follows the client
+     * language instead of being baked into the item data.
      */
     public static final String BOOK_TITLE_KEY = "gui." + ModConstants.MOD_ID + ".value.book_title";
-    private static final String PAGE_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_header";
-    private static final String PAGE_ITEM_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_item_header";
-    private static final String PAGE_ENTITY_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_entity_header";
-    private static final String PAGE_LINE_KEY = "gui." + ModConstants.MOD_ID + ".value.page_line";
-    private static final String PAGE_MORE_KEY = "gui." + ModConstants.MOD_ID + ".value.page_more";
-
-    private static final int MAX_PAGES = 100;
 
     private ValueTableBook()
     {
     }
 
     /**
-     * Server side: rewrites the snapshot from the live config and asks the client to open the book screen.
+     * Server side: rewrites the snapshot of the held book from the live config and asks the client to open the
+     * searchable view. The searchable view reads the pushed snapshot, so only the stack tag needs a refresh here.
      */
     public static void refreshSnapshot(ItemStack stack, ServerPlayer player)
     {
@@ -69,26 +56,14 @@ public final class ValueTableBook
             return;
         }
 
-        List<String> pages = buildPages(config);
-
-        CompoundTag tag = stack.getOrCreateTag();
-        /* No title tag: a component JSON would break the 32 character limit of the book tag validation. */
-        tag.remove(WrittenBookItem.TAG_TITLE);
-        tag.putString(WrittenBookItem.TAG_AUTHOR, AuthorInfo.AUTHOR_NAME);
-
-        ListTag pageTags = new ListTag();
-
-        for (String page : pages)
-        {
-            pageTags.add(StringTag.valueOf(page));
-        }
-
-        tag.put(WrittenBookItem.TAG_PAGES, pageTags);
-        tag.putInt(WrittenBookItem.TAG_GENERATION, 0);
-        tag.putBoolean(WrittenBookItem.TAG_RESOLVED, true);
-        tag.put(ModConstants.VALUE_TABLE_TAG, buildSnapshotTag(config));
-
-        ModNetwork.sendToPlayer(player, new OpenValueTablePacket(AuthorInfo.AUTHOR_NAME, pages));
+        CompoundTag snapshot = buildSnapshotTag(config);
+        stack.getOrCreateTag().put(ModConstants.VALUE_TABLE_TAG, snapshot);
+        /*
+         * The searchable view reads the pushed snapshot, so the fresh one has to reach the client before the screen
+         * opens, otherwise a right click after an admin edit would show the older table.
+         */
+        ModNetwork.sendToPlayer(player, new ValueTableSyncPacket(snapshot));
+        ModNetwork.sendToPlayer(player, new OpenValueTablePacket());
     }
 
     /**
@@ -123,6 +98,7 @@ public final class ValueTableBook
 
     /**
      * Reads a standalone snapshot tag, used by the join time sync that does not go through an item.
+     * Both chapters are read, because the searchable view lists items and creatures alike.
      */
     public static ValueTableSnapshot fromTag(CompoundTag snapshot)
     {
@@ -131,15 +107,28 @@ public final class ValueTableBook
             return null;
         }
 
-        CompoundTag stored = snapshot.getCompound(TAG_ITEMS);
-        Map<String, Integer> values = new HashMap<String, Integer>();
+        return new ValueTableSnapshot(snapshot.getInt(TAG_REVISION), snapshot.getInt(TAG_DEFAULT_ITEM),
+                snapshot.getInt(TAG_DEFAULT_ENTITY), readChapter(snapshot, TAG_ITEMS),
+                readChapter(snapshot, TAG_ENTITIES));
+    }
 
-        for (String key : stored.getAllKeys())
+    private static Map<String, Integer> readChapter(CompoundTag snapshot, String key)
+    {
+        Map<String, Integer> chapter = new HashMap<String, Integer>();
+
+        if (!snapshot.contains(key, Tag.TAG_COMPOUND))
         {
-            values.put(key, Integer.valueOf(stored.getInt(key)));
+            return chapter;
         }
 
-        return new ValueTableSnapshot(snapshot.getInt(TAG_REVISION), snapshot.getInt(TAG_DEFAULT_ITEM), values);
+        CompoundTag stored = snapshot.getCompound(key);
+
+        for (String entry : stored.getAllKeys())
+        {
+            chapter.put(entry, Integer.valueOf(stored.getInt(entry)));
+        }
+
+        return chapter;
     }
 
     /**
@@ -191,107 +180,4 @@ public final class ValueTableBook
         return result;
     }
 
-    /**
-     * Pages are laid out per chapter because the vanilla book wraps long lines and holds a limited page height.
-     */
-    private static List<String> buildPages(ItemValueConfig config)
-    {
-        List<String> pages = new ArrayList<String>();
-        List<Component> lines = new ArrayList<Component>();
-        int entriesOnPage = 0;
-        boolean truncated = false;
-
-        lines.add(Component.translatable(PAGE_HEADER_KEY, Integer.valueOf(config.revisionOrZero())));
-
-        for (Map.Entry<String, Number> entry : config.itemsOrEmpty().entrySet())
-        {
-            if (entriesOnPage >= ModConstants.VALUE_TABLE_PAGE_ENTRIES)
-            {
-                if (pages.size() >= MAX_PAGES - 1)
-                {
-                    truncated = true;
-                    break;
-                }
-
-                pages.add(buildPage(lines));
-                lines = new ArrayList<Component>();
-                entriesOnPage = 0;
-            }
-
-            lines.add(Component.translatable(PAGE_LINE_KEY, shortId(entry.getKey()),
-                    Integer.valueOf(config.itemValueOf(entry.getKey()))));
-            entriesOnPage++;
-        }
-
-        if (!truncated)
-        {
-            if (entriesOnPage >= ModConstants.VALUE_TABLE_PAGE_ENTRIES)
-            {
-                pages.add(buildPage(lines));
-                lines = new ArrayList<Component>();
-            }
-
-            lines.add(Component.translatable(PAGE_ENTITY_HEADER_KEY));
-
-            for (Map.Entry<String, Number> entry : config.entitiesOrEmpty().entrySet())
-            {
-                if (entriesOnPage >= ModConstants.VALUE_TABLE_PAGE_ENTRIES)
-                {
-                    if (pages.size() >= MAX_PAGES - 1)
-                    {
-                        truncated = true;
-                        break;
-                    }
-
-                    pages.add(buildPage(lines));
-                    lines = new ArrayList<Component>();
-                    entriesOnPage = 0;
-                }
-
-                lines.add(Component.translatable(PAGE_LINE_KEY, shortId(entry.getKey()),
-                        Integer.valueOf(config.entityValueOf(entry.getKey()))));
-                entriesOnPage++;
-            }
-        }
-
-        if (truncated)
-        {
-            lines.add(Component.translatable(PAGE_MORE_KEY));
-        }
-
-        if (!lines.isEmpty())
-        {
-            pages.add(buildPage(lines));
-        }
-
-        return pages;
-    }
-
-    /**
-     * Drops the vanilla namespace of a line, which keeps the line short enough for a higher page density.
-     * Modded ids keep their namespace because that is what makes them unique.
-     */
-    private static String shortId(String id)
-    {
-        return id.startsWith(ItemValuePresets.VANILLA_NAMESPACE + ":")
-                ? id.substring(ItemValuePresets.VANILLA_NAMESPACE.length() + 1)
-                : id;
-    }
-
-    private static String buildPage(List<Component> lines)
-    {
-        MutableComponent page = Component.empty();
-
-        for (int index = 0; index < lines.size(); index++)
-        {
-            if (index > 0)
-            {
-                page.append(Component.literal("\n"));
-            }
-
-            page.append(lines.get(index));
-        }
-
-        return Component.Serializer.toJson(page);
-    }
 }
