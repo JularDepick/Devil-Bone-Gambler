@@ -8,9 +8,11 @@ package com.devilbonegambler.client;
 
 import com.devilbonegambler.client.gui.AltarScreen;
 import com.devilbonegambler.client.gui.DealerBetScreen;
+import com.devilbonegambler.client.model.GamblersDealerModel;
 import com.devilbonegambler.client.render.GamblersDealerRenderer;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModMenus;
+import com.devilbonegambler.registry.ModModelLayers;
 import com.devilbonegambler.util.ModConstants;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
@@ -27,6 +29,15 @@ public final class ClientSetup
 {
     private ClientSetup()
     {
+    }
+
+    /**
+     * The dealer model is built by the mod, so its layer must be registered before any renderer bakes it.
+     */
+    @SubscribeEvent
+    public static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event)
+    {
+        event.registerLayerDefinition(ModModelLayers.GAMBLERS_DEALER, GamblersDealerModel::createBodyLayer);
     }
 
     @SubscribeEvent

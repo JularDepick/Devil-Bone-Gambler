@@ -40,9 +40,11 @@
 │   │   ├── DealerBetScreen.java     # 荷官赌注箱界面, 容器槽位
 │   │   ├── DealerScreen.java        # 荷官九宫格界面
 │   │   └── ValueTableScreen.java    # 可搜索祭品价值表, 表格与本地化名称
+│   ├── model/                       # 自建实体模型
+│   │   └── GamblersDealerModel.java # 荷官人形模型, 9 个长方体与原版肩髋挂点
 │   └── render/                      # 客户端渲染
 │       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
-│       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与自绘制服贴图
+│       └── GamblersDealerRenderer.java # 荷官渲染, 使用自建模型与自绘制服贴图
 ├── commands/                        # 命令注册
 │   ├── CommandRunner.java           # 奖池条目指令执行与语法校验
 │   ├── ModCommands.java             # 管理员命令入口
@@ -127,7 +129,8 @@
 │   ├── ModEntities.java             # 实体类型注册
 │   ├── ModEntityAttributes.java     # 实体属性注册
 │   ├── ModItems.java                # 物品注册
-│   └── ModMenus.java                # 容器菜单类型注册
+│   ├── ModMenus.java                # 容器菜单类型注册
+│   └── ModModelLayers.java          # 客户端模型层键
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
 │   ├── ManualKind.java              # 三本手册的种类, 内容路径与语言映射
@@ -187,7 +190,7 @@ src/main/resources/
 │       │   ├── devils_altar.png       # 祭坛方块贴图, 128x256 图集
 │       │   └── devils_altar_particle.png # 祭坛破坏粒子贴图, 16x16
 │       ├── entity/
-│       │   └── gamblers_dealer.png  # 荷官赌场制服贴图, 沿用村民 UV 布局
+│       │   └── gamblers_dealer.png  # 荷官赌场制服贴图, 64x64 自绘 UV
 │       └── item/
 │           ├── admin_manual.png
 │           ├── creator_manual.png
@@ -227,7 +230,7 @@ src/main/resources/
 - 自定义方块模型需要在 `textures` 中声明 `particle` 贴图, 否则破坏粒子会回退到原版缺失贴图
 - 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
 - 赌局机制集中在 `wager/`; 祭坛的方块, 方块实体与范围服务集中在 `block/` 与 `altar/`
-- 荷官的实体, 寻路与静默生成集中在 `mob/`, 荷官赌局与奖励集中在 `dealer/`; 荷官渲染复用原版村民模型与自绘制服贴图, 静默生成规则只在服务端执行且不下发到客户端
+- 荷官的实体, 寻路与静默生成集中在 `mob/`, 荷官赌局与奖励集中在 `dealer/`; 荷官渲染使用 client/model/ 下自建模型并把四肢挂点保持与原版人形一致, 静默生成规则只在服务端执行且不下发到客户端
 - 随机池的样本空间在每次世界加载成功时由注册表重建并覆盖落盘, 取样集中在 `commands/RandomPoolSampler.java`, 配置模型在 `config/RandomPoolConfig.java`
 - 祭坛遮罩的着色器程序与后处理链位于 `assets/devil_bone_gambler/shaders/`
 - 方块的挖掘工具要求同时由 `data/minecraft/tags/blocks/` 下的标签与代码中的破坏进度判定承担, 两者缺一不可

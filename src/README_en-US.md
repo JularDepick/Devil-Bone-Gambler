@@ -34,9 +34,11 @@ src/main/java/com/devilbonegambler/
 │   │   ├── DealerBetScreen.java     # Dealer bet box screen on real container slots
 │   │   ├── DealerScreen.java        # Dealer nine grid screen
 │   │   └── ValueTableScreen.java    # Searchable offering value table on the shared table rules
+│   ├── model/                       # Mod owned entity model
+│   │   └── GamblersDealerModel.java # Dealer humanoid model, nine cuboids on the vanilla shoulder and hip pivots
 │   └── render/                      # Client rendering
 │       ├── AltarTintHandler.java    # Screen space red tint over the altar range
-│       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and the dealer uniform texture
+│       └── GamblersDealerRenderer.java # Dealer renderer, using the mod owned model and the dealer uniform texture
 ├── commands/                        # Command registration
 │   ├── CommandRunner.java           # Prize entry command execution and syntax validation
 │   ├── ModCommands.java             # Admin command entry
@@ -120,7 +122,8 @@ src/main/java/com/devilbonegambler/
 │   ├── ModEntities.java             # Entity type registration
 │   ├── ModEntityAttributes.java     # Entity attribute registration
 │   ├── ModItems.java                # Item registration
-│   └── ModMenus.java                # Menu type registration
+│   ├── ModMenus.java                # Menu type registration
+│   └── ModModelLayers.java          # Client model layer keys
 ├── util/                            # Shared helpers
 │   ├── AuthorInfo.java              # Author credit constants
 │   ├── CommandPlaceholders.java     # Prize command placeholder expansion and ranged random positions
@@ -179,7 +182,7 @@ src/main/resources/
 │       │   ├── devils_altar.png       # Altar block texture, 128x256 atlas
 │       │   └── devils_altar_particle.png # Altar break particle texture, 16x16
 │       ├── entity/
-│       │   └── gamblers_dealer.png  # Dealer uniform texture, following the villager UV layout
+│       │   └── gamblers_dealer.png  # Dealer uniform texture, a 64x64 self drawn UV layout
 │       └── item/
 │           ├── admin_manual.png
 │           ├── creator_manual.png
@@ -219,7 +222,7 @@ src/main/resources/
 - A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`
 - The wager mechanic lives in `wager/`; the altar block, its block entity and the range service live in `block/` and `altar/`
-- The dealer entity, its pathing and the silent spawn live in `mob/`, the dealer wager and its reward live in `dealer/`; the dealer renderer reuses the vanilla villager model with the dealer uniform texture, and the silent spawn rule runs on the server only and never reaches a client
+- The dealer entity, its pathing and the silent spawn live in `mob/`, the dealer wager and its reward live in `dealer/`; the dealer renderer uses the mod owned model of `client/model/` with the dealer uniform texture and keeps the vanilla shoulder and hip pivots, and the silent spawn rule runs on the server only and never reaches a client
 - The random pool sample space is rebuilt from the registries and overwritten on disk on every world load; sampling lives in `commands/RandomPoolSampler.java` and the model in `config/RandomPoolConfig.java`
 - The shader programs and the post chain of the altar tint live in `assets/devil_bone_gambler/shaders/`
 - The mining tool requirement of a block is carried both by the tags under `data/minecraft/tags/blocks/` and by the destroy progress check in code, one without the other is not enough

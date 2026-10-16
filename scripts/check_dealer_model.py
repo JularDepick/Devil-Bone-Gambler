@@ -1,0 +1,348 @@
+# -*- coding: utf-8 -*-
+"""
+赌徒的荷官模型与贴图自检脚本。
+
+检查项:
+    1. 贴图尺寸, 是否为 16 的整数倍, 位深与是否带透明通道, 是否抗锯齿或渐变
+    2. 全部像素是否只取自固定调色板
+    3. 每个长方体的 UV 区域是否越界或互相重叠
+    4. Java 模型类的几何与 Python 侧的几何清单是否逐项一致
+    5. 用纯 Python 软件光栅化把模型渲染成 ASCII 图, 供无图环境核对形状与分区
+
+用法:
+    python tools/check_dealer_model.py
+"""
+
+import io
+import math
+import re
+import sys
+from pathlib import Path
+
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import build_dealer_texture as B
+
+TEXTURE = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "textures" / "entity" / "gamblers_dealer.png"
+MODEL_JAVA = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "model" / "GamblersDealerModel.java"
+
+FAILURES = []
+CHECKS = []
+
+
+def check(name, ok, detail=""):
+    CHECKS.append((name, ok, detail))
+    if not ok:
+        FAILURES.append(name + ": " + detail)
+    print("[%s] %s%s" % ("通过" if ok else "失败", name, (" -- " + detail) if detail else ""))
+
+
+# ------------------------------------------------------------------ 1. 贴图属性
+def check_texture_properties(img):
+    w, h = img.size
+    check("贴图尺寸为 16 的整数倍", w % 16 == 0 and h % 16 == 0, "%dx%d" % (w, h))
+    check("贴图尺寸与脚本常量一致", (w, h) == (B.TEX_W, B.TEX_H), "%dx%d" % (w, h))
+    check("贴图为 32 位 RGBA", img.mode == "RGBA", img.mode)
+
+    px = img.load()
+    alphas = set()
+    for y in range(h):
+        for x in range(w):
+            alphas.add(px[x, y][3])
+    check("透明通道只有全透明与全不透明两档", alphas <= {0, 255}, "取值 " + repr(sorted(alphas)))
+
+    # 抗锯齿与渐变检测: 同一部件的同一面上不应出现调色板之外的颜色, 该点由调色板检查覆盖;
+    # 这里额外检测是否存在半透明像素与同面对内的孤立插值色
+    palette_set = set(tuple(v) for v in B.PALETTE.values())
+    palette_set.add(tuple(B.CLEAR))
+    bad = []
+    for y in range(h):
+        for x in range(w):
+            if px[x, y] not in palette_set:
+                bad.append((x, y, px[x, y]))
+    check("全部像素取自固定调色板", not bad, ("越界像素 %d 个, 首个 %s" % (len(bad), bad[0])) if bad else "%d 色" % len(palette_set))
+
+
+# ------------------------------------------------------------------ 2. UV 区域
+def check_uv_regions():
+    owner = {}
+    cross_conflicts = []
+    for cub in B.CUBOIDS:
+        name, parent, pos, size, uv = cub
+        rects = B.box_face_rects(uv[0], uv[1], size[0], size[1], size[2])
+        for face, (rx, ry, rw, rh) in rects.items():
+            check("面在贴图内 %s.%s" % (name, face),
+                  rx >= 0 and ry >= 0 and rx + rw <= B.TEX_W and ry + rh <= B.TEX_H,
+                  "(%d,%d)-(%d,%d)" % (rx, ry, rx + rw - 1, ry + rh - 1))
+        for face, (rx, ry, rw, rh) in rects.items():
+            for j in range(rh):
+                for i in range(rw):
+                    key = (rx + i, ry + j)
+                    if key in owner and owner[key] != name:
+                        cross_conflicts.append((key, owner[key], name))
+                    owner[key] = name
+
+    check("不同长方体的贴图像素不冲突", not cross_conflicts,
+          repr(cross_conflicts[:5]) if cross_conflicts else "%d 个像素被占用" % len(owner))
+
+    for cub in B.CUBOIDS:
+        name, parent, pos, size, uv = cub
+        rects = B.box_face_rects(uv[0], uv[1], size[0], size[1], size[2])
+        cells = {}
+        dup = []
+        for face, (rx, ry, rw, rh) in rects.items():
+            for j in range(rh):
+                for i in range(rw):
+                    key = (rx + i, ry + j)
+                    if key in cells:
+                        dup.append((key, cells[key], face))
+                    cells[key] = face
+        check("六个面互不重叠 " + name, not dup, repr(dup[:3]) if dup else "%d 像素" % len(cells))
+
+
+# ------------------------------------------------------------------ 3. Java 与 Python 一致
+JAVA_BOX = re.compile(
+    r'addOrReplaceChild\(\s*"([a-z_]+)"\s*,\s*CubeListBuilder\.create\(\)\.texOffs\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)\s*'
+    r'\.addBox\(\s*(-?\d+(?:\.\d+)?)F\s*,\s*(-?\d+(?:\.\d+)?)F\s*,\s*(-?\d+(?:\.\d+)?)F\s*,'
+    r'\s*(-?\d+(?:\.\d+)?)F\s*,\s*(-?\d+(?:\.\d+)?)F\s*,\s*(-?\d+(?:\.\d+)?)F\s*\)',
+    re.S)
+
+
+def parse_java_model():
+    text = MODEL_JAVA.read_text(encoding="utf-8")
+    found = {}
+    for m in JAVA_BOX.finditer(text):
+        name = m.group(1)
+        uv = (int(m.group(2)), int(m.group(3)))
+        box = tuple(float(m.group(k)) for k in range(4, 10))
+        found[name] = {"uv": uv, "box": box}
+    return found
+
+
+# 设计坐标到方盒局部坐标的偏移: 四肢挂在肩与髋的挂点之下, 刚性部件挂在原点。
+# 设计坐标本身是绘制用的, 与骨架的挂点无关, 因此比较方盒时需要先补上这个偏移。
+DESIGN_TO_BOX = {
+    "right_arm": (5.0, 0.0, 0.0),
+    "left_arm": (-5.0, 0.0, 0.0),
+    "right_leg": (2.0, 0.0, 0.0),
+    "left_leg": (-2.0, 0.0, 0.0),
+}
+
+# 骨架契约: 肩与髋必须落在原版人形的位置, 否则继承来的动画会绕模型原点摆动。
+PIVOT_CONTRACT = {
+    "right_arm": (-5.0, 2.0, 0.0),
+    "left_arm": (5.0, 2.0, 0.0),
+    "right_leg": (-1.9, 12.0, 0.0),
+    "left_leg": (1.9, 12.0, 0.0),
+}
+
+POSE_OFFSET = re.compile(r'PartPose\.offset\(\s*(-?\d+(?:\.\d+)?)F\s*,\s*(-?\d+(?:\.\d+)?)F\s*,'
+                         r'\s*(-?\d+(?:\.\d+)?)F\s*\)')
+POSE_ZERO = re.compile(r'PartPose\.ZERO')
+
+
+def parse_java_poses():
+    text = MODEL_JAVA.read_text(encoding="utf-8")
+    poses = {}
+    for m in re.finditer(r'addOrReplaceChild\(\s*"([a-z_]+)"', text):
+        name = m.group(1)
+        window = text[m.end():m.end() + 400]
+        offset = POSE_OFFSET.search(window)
+        if offset:
+            poses[name] = tuple(float(offset.group(k)) for k in (1, 2, 3))
+        elif POSE_ZERO.search(window):
+            poses[name] = (0.0, 0.0, 0.0)
+    return poses
+
+
+def check_java_matches():
+    if not MODEL_JAVA.is_file():
+        check("Java 模型类存在", False, str(MODEL_JAVA))
+        return
+    java = parse_java_model()
+    poses = parse_java_poses()
+    check("Java 模型解析到全部长方体", len(java) == len(B.CUBOIDS),
+          "Java %d 个, Python %d 个" % (len(java), len(B.CUBOIDS)))
+    check("Java 骨架带 hat 部件", "hat" in poses and poses["hat"] == (0.0, 0.0, 0.0),
+          "HumanoidModel 构造时按名字查找 root 下的 hat, 缺失会在创建渲染器时抛异常")
+    for name, expected in PIVOT_CONTRACT.items():
+        check("挂点符合原版人形 " + name, poses.get(name) == expected,
+              "Java %s 期望 %s" % (poses.get(name), expected))
+    for cub in B.CUBOIDS:
+        name, parent, pos, size, uv = cub
+        if name not in java:
+            check("Java 含长方体 " + name, False, "缺失")
+            continue
+        j = java[name]
+        shift = DESIGN_TO_BOX.get(name, (0.0, 0.0, 0.0))
+        expect_min = tuple(pos[i] + shift[i] for i in range(3))
+        ok_uv = j["uv"] == (uv[0], uv[1])
+        ok_box = all(abs(j["box"][i] - expect_min[i]) < 1e-6 for i in range(3)) and \
+                 all(abs(j["box"][3 + i] - size[i]) < 1e-6 for i in range(3))
+        check("Java 与设计表一致 " + name, ok_uv and ok_box,
+              "UV Java %s 设计 %s, 盒 Java %s 期望 %s" % (j["uv"], uv, j["box"], tuple(list(expect_min) + list(size))))
+
+
+def rig_boxes():
+    """按 Java 骨架的挂点把方盒换算成模型空间的绝对位置, 供轴测图使用。"""
+    java = parse_java_model()
+    poses = parse_java_poses()
+    boxes = []
+    for cub in B.CUBOIDS:
+        name, parent, pos, size, uv = cub
+        if name in java:
+            box = java[name]["box"]
+            pose = poses.get(name, (0.0, 0.0, 0.0))
+            origin = (pose[0] + box[0], pose[1] + box[1], pose[2] + box[2])
+            boxes.append((name, origin[0], origin[1], origin[2], box[3], box[4], box[5], uv[0], uv[1]))
+        else:
+            boxes.append((name, pos[0], pos[1], pos[2], size[0], size[1], size[2], uv[0], uv[1]))
+    return boxes
+
+
+# ------------------------------------------------------------------ 4. 软件光栅化
+def box_face_rects(u, v, w, h, d):
+    return B.box_face_rects(u, v, w, h, d)
+
+
+def cube_quads(x, y, z, w, h, d):
+    """顶点顺序为贴图左上, 右上, 右下, 左下, 与 Minecraft 的盒式展开一致。"""
+    x0, x1 = x, x + w
+    y0, y1 = y, y + h
+    z0, z1 = z, z + d
+    return [
+        ("front", [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0)]),
+        ("back", [(x1, y0, z1), (x0, y0, z1), (x0, y1, z1), (x1, y1, z1)]),
+        ("west", [(x0, y0, z0), (x0, y0, z1), (x0, y1, z1), (x0, y1, z0)]),
+        ("east", [(x1, y0, z1), (x1, y0, z0), (x1, y1, z0), (x1, y1, z1)]),
+        ("top", [(x0, y0, z1), (x1, y0, z1), (x1, y0, z0), (x0, y0, z0)]),
+        ("bottom", [(x1, y1, z0), (x1, y1, z1), (x0, y1, z1), (x0, y1, z0)]),
+    ]
+
+
+def sub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def cross(a, b):
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def render(img, boxes, width, height, scale, yaw, pitch=0.0, focus_y=0.0):
+    px = img.load()
+    zbuf = [[-1e18] * width for _ in range(height)]
+    canvas = [[" "] * width for _ in range(height)]
+    cyaw, syaw = math.cos(yaw), math.sin(yaw)
+    cp, sp = math.cos(pitch), math.sin(pitch)
+    cxs, cys = width / 2.0, height / 2.0
+    view = (syaw * cp, -sp, cyaw * cp)
+
+    def project(p):
+        x, y, z = p
+        y -= focus_y
+        rx = x * cyaw + z * syaw
+        rz = -x * syaw + z * cyaw
+        ry = y * cp - rz * sp
+        rz2 = y * sp + rz * cp
+        return cxs + rx * scale, cys - ry * scale, -rz2
+
+    for name, bx, by, bz, bw, bh, bd, bu, bv in boxes:
+        rects = box_face_rects(bu, bv, int(bw), int(bh), int(bd))
+        for fname, verts in cube_quads(bx, by, bz, bw, bh, bd):
+            n = cross(sub(verts[2], verts[0]), sub(verts[1], verts[0]))
+            ln = math.sqrt(sum(c * c for c in n)) or 1.0
+            n = (n[0] / ln, n[1] / ln, n[2] / ln)
+            if n[0] * view[0] + n[1] * view[1] + n[2] * view[2] >= -0.001:
+                continue
+            rx, ry_, rw, rh = rects[fname]
+            uv = [(rx, ry_), (rx + rw, ry_), (rx + rw, ry_ + rh), (rx, ry_ + rh)]
+            pts = [project(v) for v in verts]
+            minx = max(0, int(math.floor(min(p[0] for p in pts))))
+            maxx = min(width - 1, int(math.ceil(max(p[0] for p in pts))))
+            miny = max(0, int(math.floor(min(p[1] for p in pts))))
+            maxy = min(height - 1, int(math.ceil(max(p[1] for p in pts))))
+            x0s, y0s, _ = pts[0]
+            x1s, y1s, _ = pts[1]
+            x3s, y3s, _ = pts[3]
+            det = (x1s - x0s) * (y3s - y0s) - (x3s - x0s) * (y1s - y0s)
+            if abs(det) < 1e-9:
+                continue
+            for pyy in range(miny, maxy + 1):
+                for pxx in range(minx, maxx + 1):
+                    ux = pxx + 0.5 - x0s
+                    uy = pyy + 0.5 - y0s
+                    a = (ux * (y3s - y0s) - uy * (x3s - x0s)) / det
+                    b = (uy * (x1s - x0s) - ux * (y1s - y0s)) / det
+                    if a < -0.001 or b < -0.001 or a + b > 1.001:
+                        continue
+                    depth = (1 - a - b) * pts[0][2] + a * pts[1][2] + b * pts[3][2]
+                    if depth <= zbuf[pyy][pxx]:
+                        continue
+                    su = (1 - a - b) * uv[0][0] + a * uv[1][0] + b * uv[3][0]
+                    sv = (1 - a - b) * uv[0][1] + a * uv[1][1] + b * uv[3][1]
+                    uu = int(min(max(su, 0), img.size[0] - 0.001))
+                    vv = int(min(max(sv, 0), img.size[1] - 0.001))
+                    r, g, bl, al = px[uu, vv]
+                    zbuf[pyy][pxx] = depth
+                    if al < 32:
+                        continue
+                    lum = (r * 299 + g * 587 + bl * 114) // 1000
+                    canvas[pyy][pxx] = " .:-=+*#%@"[lum * 10 // 256]
+    return [("".join(row)).rstrip() for row in canvas]
+
+
+def render_views(img):
+    # 模型整体范围: y 从 -8.6 到 25, 中心约 8.2
+    boxes = rig_boxes()
+    views = [
+        ("正面 (yaw 0)", 0.0),
+        ("背面 (yaw 180)", math.pi),
+        ("左侧 (yaw -90)", -math.pi / 2),
+        ("右侧 (yaw 90)", math.pi / 2),
+        ("四分之三 (yaw 35)", math.radians(35)),
+    ]
+    for label, yaw in views:
+        print("")
+        print("---- " + label + " ----")
+        for row in render(img, boxes, 44, 52, 1.35, yaw, 0.0, 8.2):
+            if row:
+                print("   " + row)
+
+
+def main():
+    if not TEXTURE.is_file():
+        print("缺少贴图: " + str(TEXTURE))
+        return 2
+
+    with Image.open(TEXTURE) as raw:
+        img = raw.convert("RGBA")
+
+    check_texture_properties(img)
+    check_uv_regions()
+    check_java_matches()
+
+    print("")
+    print("调色板清单:")
+    for key in sorted(B.PALETTE):
+        v = B.PALETTE[key]
+        print("    %-10s #%02X%02X%02X" % (key, v[0], v[1], v[2]))
+
+    print("")
+    print("轴测自检图 (渐变色阶: 空格最暗, @ 最亮):")
+    render_views(img)
+
+    print("")
+    if FAILURES:
+        print("自检失败 %d 项:" % len(FAILURES))
+        for f in FAILURES:
+            print("   " + f)
+        return 1
+    print("自检全部通过, 共 %d 项" % len(CHECKS))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
