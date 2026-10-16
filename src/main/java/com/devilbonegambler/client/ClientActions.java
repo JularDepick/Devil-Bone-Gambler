@@ -7,22 +7,25 @@
 package com.devilbonegambler.client;
 
 import com.devilbonegambler.client.gui.AdminConfigScreen;
-import com.devilbonegambler.client.gui.AltarScreen;
-import com.devilbonegambler.client.gui.DealerBetScreen;
 import com.devilbonegambler.client.gui.DealerScreen;
+import com.devilbonegambler.client.gui.ManualScreen;
 import com.devilbonegambler.client.gui.ValueTableScreen;
 import com.devilbonegambler.draw.OfferingBundle;
+import com.devilbonegambler.manual.ManualKind;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
-import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
+import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
+import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
+import java.util.UUID;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -63,9 +66,13 @@ public final class ClientActions
                 minecraft.player.getGameProfile().getName(), itemId(ModItems.GAMBLERS_DICE.get())));
     }
 
-    public static void openAltarScreen()
+    /**
+     * Asks the server to open the altar container. The offering grid lives in a server side container and the altar
+     * range is re-checked there, so the client only ever asks.
+     */
+    public static void requestAltarScreen()
     {
-        Minecraft.getInstance().setScreen(new AltarScreen());
+        ModNetwork.sendToServer(new AltarOpenRequestPacket(nextSequence()));
     }
 
     /**
@@ -77,21 +84,18 @@ public final class ClientActions
     }
 
     /**
-     * One bet box move described by item and count, so the panel can place exactly what the cursor carries.
+     * Asks the server for the bet box of one member of one dealer. The box is a container menu owned by the server, so
+     * the client only requests it and the server opens it after it checked the membership and marked whether the
+     * requester may change that box.
      */
-    public static void sendDealerBetMove(int dealerEntityId, int action, int index, String itemId, int count)
+    public static void sendDealerBetOpenRequest(int dealerEntityId, UUID targetId)
     {
-        ModNetwork.sendToServer(new DealerBetMovePacket(dealerEntityId, action, index, itemId, count));
+        ModNetwork.sendToServer(new DealerBetOpenRequestPacket(nextSequence(), dealerEntityId, targetId));
     }
 
     public static void openDealerScreen(DealerPanelPacket panel)
     {
         Minecraft.getInstance().setScreen(new DealerScreen(panel));
-    }
-
-    public static void openDealerBetScreen(DealerPanelPacket panel)
-    {
-        Minecraft.getInstance().setScreen(new DealerBetScreen(panel));
     }
 
     /**
@@ -138,7 +142,7 @@ public final class ClientActions
     {
         if (altarInRange)
         {
-            openAltarScreen();
+            requestAltarScreen();
             return;
         }
 
@@ -154,6 +158,14 @@ public final class ClientActions
         /* The hint goes to the chat box, so nothing of the mod ever appears above the hotbar. */
         minecraft.gui.getChat().addMessage(
                 Component.translatable("gui." + ModConstants.MOD_ID + ".altar.place_hint"));
+    }
+
+    /**
+     * Refreshes the creature list of the open altar screen, so the list always describes the current range.
+     */
+    public static void sendMobListRequest()
+    {
+        ModNetwork.sendToServer(new MobListRequestPacket(nextSequence()));
     }
 
     public static void sendValueTableRefreshRequest()
@@ -179,6 +191,14 @@ public final class ClientActions
      * Opens the searchable value table view. The data comes from the server pushed snapshot, so the rows are always
      * the live table and every row shows the localised item name.
      */
+    /**
+     * Opens the generic book screen on one manual. The whole content is client side, so no server round trip happens.
+     */
+    public static void openManualScreen(ManualKind kind)
+    {
+        Minecraft.getInstance().setScreen(new ManualScreen(kind));
+    }
+
     public static void openValueTableScreen()
     {
         Minecraft.getInstance().setScreen(new ValueTableScreen(ClientPacketHandler.valueTable()));

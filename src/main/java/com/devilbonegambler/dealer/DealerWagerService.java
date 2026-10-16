@@ -13,9 +13,9 @@ import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.draw.DiceRoll;
 import com.devilbonegambler.draw.DrawEngine;
 import com.devilbonegambler.draw.NotifySender;
+import com.devilbonegambler.menu.DealerBetMenu;
 import com.devilbonegambler.mob.GamblersDealer;
 import com.devilbonegambler.network.ModNetwork;
-import com.devilbonegambler.network.packet.DealerBetMovePacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
@@ -35,14 +35,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
@@ -70,19 +70,24 @@ public final class DealerWagerService
     private static final String KEY_SELECTED = LANG + "selected";
     private static final String KEY_WIN_RED = LANG + "win_red";
     private static final String KEY_WIN_BLACK = LANG + "win_black";
+    private static final String KEY_BET_TITLE = LANG + "bet_title";
+    private static final String KEY_BET_TITLE_OF = LANG + "bet_title_of";
+    private static final String KEY_OFFLINE_MEMBER = LANG + "offline_member";
 
     /*
      * Design detail: the slot index and the dice point are both reduced modulo six before comparison, the same rule
      * the gambler's wager uses for its candidate list.
      */
     private static final int SELECT_MODULUS = 6;
-    private static final int PHASE_NONE = 0;
-    private static final int PHASE_RECRUIT = 1;
-    private static final int PHASE_RUNNING = 2;
 
     private static final Map<UUID, DealerWagerSession> SESSIONS = new HashMap<UUID, DealerWagerSession>();
     private static final Map<UUID, BusyLock> BUSY = new HashMap<UUID, BusyLock>();
     private static final Map<UUID, PullState> PULLS = new HashMap<UUID, PullState>();
+    /*
+     * Last known name of every member, so a member who is offline is listed under the name the session already knows
+     * instead of a raw identifier.
+     */
+    private static final Map<UUID, String> MEMBER_NAMES = new HashMap<UUID, String>();
 
     private DealerWagerService()
     {
@@ -123,6 +128,8 @@ public final class DealerWagerService
                     NotifySender.sendFailure(player, "dealer_in_other_wager");
                     return;
                 }
+
+                rememberName(player);
 
                 if (!session.addMember(player.getUUID()))
                 {
@@ -185,6 +192,7 @@ public final class DealerWagerService
 
         DealerWagerSession session = new DealerWagerSession(dealer.getUUID(), player.getUUID(), server.getTickCount());
         session.addMember(player.getUUID());
+        rememberName(player);
         SESSIONS.put(dealer.getUUID(), session);
         BUSY.remove(dealer.getUUID());
         dealer.showRecruitText(ModConstants.DEALER_WAGER_RECRUIT_SECONDS);
@@ -252,6 +260,7 @@ public final class DealerWagerService
         }
 
         boolean owner = session.ownerId().equals(player.getUUID());
+        closeBetMenu(player);
         session.removeMember(player.getUUID());
         DealerBetBox box = session.takeBox(player.getUUID());
         PULLS.remove(player.getUUID());
@@ -273,10 +282,11 @@ public final class DealerWagerService
     }
 
     /**
-     * One bet box move. The client states the item and the count, the server resolves it against the real inventory.
+     * Opens the bet box of one member. Only a member of the session of this dealer may see a box, so a box can never
+     * be used as a second inventory by an outsider, and the box of another member is opened read only, which the menu
+     * enforces through its slots.
      */
-    public static void moveBet(ServerPlayer player, int dealerEntityId, int action, int index, String itemId,
-            int count)
+    public static void openBetMenu(ServerPlayer player, int dealerEntityId, UUID boxOwnerId)
     {
         MinecraftServer server = player.getServer();
         GamblersDealer dealer = resolveDealer(server, dealerEntityId);
@@ -287,133 +297,79 @@ public final class DealerWagerService
         }
 
         DealerWagerSession session = SESSIONS.get(dealer.getUUID());
+        UUID targetId = boxOwnerId == null ? player.getUUID() : boxOwnerId;
 
-        if (session == null || session.phase() != DealerWagerSession.Phase.RECRUIT
-                || !session.isMember(player.getUUID()))
+        if (session == null || !session.isMember(player.getUUID()) || !session.isMember(targetId))
         {
             return;
         }
 
-        DealerBetBox box = session.box(player.getUUID());
+        DealerBetBox box = session.box(targetId);
 
         if (box == null)
         {
             return;
         }
 
-        ResourceLocation key = ResourceLocation.tryParse(itemId);
-        Item item = key == null ? null : ForgeRegistries.ITEMS.getValue(key);
-
-        if (item == null)
-        {
-            return;
-        }
-
-        if (action == DealerBetMovePacket.ACTION_TO_BOX)
-        {
-            /*
-             * Take the items out first and hand back whatever the box did not accept, so a full box can never leave a
-             * second copy behind in the inventory.
-             */
-            ItemStack taken = takeFromInventory(player, item, count);
-
-            if (taken.isEmpty())
-            {
-                return;
-            }
-
-            int moved = box.insert(taken, taken.getCount(), index);
-
-            if (moved < taken.getCount())
-            {
-                taken.shrink(moved);
-                NotifySender.sendFailure(player, "dealer_bet_full");
-
-                if (!player.getInventory().add(taken))
-                {
-                    player.drop(taken, false);
-                }
-            }
-
-            player.getInventory().setChanged();
-            player.inventoryMenu.broadcastChanges();
-        }
-        else if (action == DealerBetMovePacket.ACTION_TO_INVENTORY)
-        {
-            if (index < 0 || index >= ModConstants.DEALER_BET_SLOTS)
-            {
-                return;
-            }
-
-            ItemStack source = box.get(index);
-
-            if (source.isEmpty())
-            {
-                return;
-            }
-
-            int amount = Math.min(Math.max(1, count), source.getCount());
-            ItemStack taken = source.copy();
-            taken.setCount(amount);
-            source.shrink(amount);
-
-            if (source.isEmpty())
-            {
-                box.stacks().set(index, ItemStack.EMPTY);
-            }
-
-            if (!player.getInventory().add(taken))
-            {
-                player.drop(taken, false);
-            }
-
-            player.getInventory().setChanged();
-            player.inventoryMenu.broadcastChanges();
-        }
-        else
-        {
-            return;
-        }
-
-        sendPanels(server, session, dealer);
+        rememberName(player);
+        boolean editable = targetId.equals(player.getUUID());
+        NetworkHooks.openScreen(player, DealerBetMenu.provider(dealer.getId(), box, session,
+                betBoxTitle(server, targetId, editable), editable, () -> server.getTickCount()),
+                buffer -> buffer.writeVarInt(dealer.getId()));
     }
 
     /**
-     * Removes up to the given amount of one item from the player inventory, earliest slot first.
-     * The returned stack is what was really removed, so the caller can give back what the box refused.
+     * Title of the bet screen: the own box keeps the plain wording, the box of another member names that member.
      */
-    private static ItemStack takeFromInventory(ServerPlayer player, Item item, int amount)
+    private static Component betBoxTitle(MinecraftServer server, UUID boxOwnerId, boolean editable)
     {
-        int wanted = Math.max(1, amount);
-        ItemStack taken = ItemStack.EMPTY;
-        Inventory inventory = player.getInventory();
-
-        for (int slot = 0; slot < inventory.getContainerSize() && wanted > 0; slot++)
+        if (editable)
         {
-            ItemStack stack = inventory.getItem(slot);
-
-            if (stack.isEmpty() || stack.getItem() != item)
-            {
-                continue;
-            }
-
-            int step = Math.min(wanted, stack.getCount());
-
-            if (taken.isEmpty())
-            {
-                taken = stack.copy();
-                taken.setCount(step);
-            }
-            else
-            {
-                taken.grow(step);
-            }
-
-            stack.shrink(step);
-            wanted -= step;
+            return Component.translatable(KEY_BET_TITLE);
         }
 
-        return taken;
+        String name = memberName(server.getPlayerList().getPlayer(boxOwnerId), boxOwnerId);
+        Component owner = name.isEmpty() ? Component.translatable(KEY_OFFLINE_MEMBER) : Component.literal(name);
+        return Component.translatable(KEY_BET_TITLE_OF, owner);
+    }
+
+    /**
+     * Closes the bet menu of a player who is still looking at the box of a session that just ended, so a box that is
+     * already settled can never be used to move a phantom item.
+     */
+    private static void closeBetMenu(ServerPlayer player)
+    {
+        if (player != null && player.containerMenu instanceof DealerBetMenu)
+        {
+            player.closeContainer();
+        }
+    }
+
+    /**
+     * Remembers the name of a member while it is known, so the panel can keep showing it after the member went offline.
+     */
+    private static void rememberName(ServerPlayer player)
+    {
+        if (player != null)
+        {
+            MEMBER_NAMES.put(player.getUUID(), player.getGameProfile().getName());
+        }
+    }
+
+    /**
+     * Name of one member: the live name while the member is online, the last known name afterwards, and an empty string
+     * when the session never saw the member, which the screen draws as the offline wording.
+     */
+    private static String memberName(ServerPlayer member, UUID memberId)
+    {
+        if (member != null)
+        {
+            rememberName(member);
+            return member.getGameProfile().getName();
+        }
+
+        String known = MEMBER_NAMES.get(memberId);
+        return known == null ? "" : known;
     }
 
     public static boolean isInAnyWager(ServerPlayer player)
@@ -454,6 +410,20 @@ public final class DealerWagerService
         SESSIONS.clear();
         BUSY.clear();
         PULLS.clear();
+        MEMBER_NAMES.clear();
+    }
+
+    /**
+     * A member who leaves the server keeps the bet in the session, so the box stays the only place the bet lives. The
+     * menu is closed here so a client that disconnects in the middle of a move can not leave a phantom stack behind.
+     */
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player)
+        {
+            closeBetMenu(player);
+        }
     }
 
     private static void tickBusy(long now)
@@ -561,10 +531,11 @@ public final class DealerWagerService
                 continue;
             }
 
+            ServerPlayer member = server.getPlayerList().getPlayer(memberId);
             session.removeMember(memberId);
             session.takeBox(memberId);
             PULLS.remove(memberId);
-            ServerPlayer member = server.getPlayerList().getPlayer(memberId);
+            closeBetMenu(member);
 
             if (member != null)
             {
@@ -694,6 +665,7 @@ public final class DealerWagerService
 
         for (UUID memberId : new ArrayList<UUID>(session.members()))
         {
+            closeBetMenu(server.getPlayerList().getPlayer(memberId));
             DealerBetBox box = session.takeBox(memberId);
 
             if (box != null)
@@ -781,6 +753,7 @@ public final class DealerWagerService
             DealerBetBox box = session.takeBox(memberId);
             ServerPlayer member = server.getPlayerList().getPlayer(memberId);
             PULLS.remove(memberId);
+            closeBetMenu(member);
 
             if (box == null)
             {
@@ -914,38 +887,31 @@ public final class DealerWagerService
         boolean hasWager = session != null;
         boolean member = hasWager && session.isMember(player.getUUID());
         boolean owner = hasWager && session.ownerId().equals(player.getUUID());
-        int phase = !hasWager ? PHASE_NONE
-                : (session.phase() == DealerWagerSession.Phase.RECRUIT ? PHASE_RECRUIT : PHASE_RUNNING);
+        int phase = !hasWager ? DealerBetMenu.PHASE_NONE
+                : (session.phase() == DealerWagerSession.Phase.RECRUIT ? DealerBetMenu.PHASE_RECRUIT
+                        : DealerBetMenu.PHASE_RUNNING);
         int remaining = hasWager ? remainingSeconds(session, server.getTickCount()) : 0;
         ItemValueConfig values = ServerConfigManager.itemValues();
         List<DealerPanelPacket.MemberEntry> entries = new ArrayList<DealerPanelPacket.MemberEntry>();
-        List<ItemStack> ownBet = new ArrayList<ItemStack>();
 
         if (hasWager)
         {
             for (UUID memberId : new ArrayList<UUID>(session.members()))
             {
-                ServerPlayer memberPlayer = server.getPlayerList().getPlayer(memberId);
-                String name = memberPlayer != null ? memberPlayer.getGameProfile().getName()
-                        : memberId.toString().substring(0, 8);
                 DealerBetBox box = session.box(memberId);
+                String name = memberName(server.getPlayerList().getPlayer(memberId), memberId);
                 long value = box == null ? 0L : box.totalValue(values);
                 int count = box == null ? 0 : box.itemCount();
                 entries.add(new DealerPanelPacket.MemberEntry(memberId, name, value, count));
             }
 
-            if (member)
-            {
-                DealerBetBox box = session.box(player.getUUID());
-                ownBet = box == null ? new ArrayList<ItemStack>() : box.copyStacks();
-            }
         }
 
         boolean canCreate = !hasWager && !isInAnyWager(player);
         boolean canStart = owner && session.memberCount() >= ModConstants.DEALER_WAGER_MIN_PLAYERS;
         ModNetwork.sendToPlayer(player, new DealerPanelPacket(dealer.getId(), dealer.getHealth(),
                 dealer.getMaxHealth(), dealer.satiety(), ModConstants.DEALER_MAX_SATIETY, hasWager, phase, remaining,
-                hasWager ? session.ownerId() : null, owner, member, canCreate, canStart, openScreen, entries, ownBet));
+                hasWager ? session.ownerId() : null, owner, member, canCreate, canStart, openScreen, entries));
     }
 
     private static void broadcastMembers(MinecraftServer server, DealerWagerSession session, Component text)
@@ -978,7 +944,11 @@ public final class DealerWagerService
         return result;
     }
 
-    private static int remainingSeconds(DealerWagerSession session, long now)
+    /**
+     * Seconds left on the recruit clock. Shared with the bet menu, so the container header and the panel show the same
+     * number on the same tick.
+     */
+    public static int remainingSeconds(DealerWagerSession session, long now)
     {
         long elapsed = Math.max(0L, now - session.startTick());
         return ModConstants.DEALER_WAGER_RECRUIT_SECONDS

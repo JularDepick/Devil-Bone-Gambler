@@ -6,6 +6,7 @@
 
 package com.devilbonegambler.draw;
 
+import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.util.ModConstants;
@@ -91,31 +92,46 @@ public final class NotifySender
     }
 
     /**
-     * The configured text is a vanilla text component in JSON form; anything that does not parse stays a literal.
+     * The configured text is either plain text or a vanilla text component in JSON form.
+     * A text that looks like a component but does not parse falls back to the default wording, so a broken
+     * configuration never prints its raw JSON, with registry names and command syntax, into the chat box.
      */
     public static Component entryText(ServerPlayer player, NotifyConfig notify)
     {
         String raw = Placeholders.expand(notify.textOrEmpty(), player);
 
-        if (raw.isEmpty())
+        if (raw == null || raw.trim().isEmpty())
         {
-            return Component.translatable("gui." + ModConstants.MOD_ID + ".notify.default");
+            return defaultText();
         }
 
-        try
-        {
-            MutableComponent parsed = Component.Serializer.fromJson(raw);
+        String trimmed = raw.trim();
 
-            if (parsed != null)
+        if (trimmed.startsWith("{") || trimmed.startsWith("["))
+        {
+            try
             {
-                return parsed;
+                MutableComponent parsed = Component.Serializer.fromJson(trimmed);
+
+                if (parsed != null)
+                {
+                    return parsed;
+                }
             }
-        }
-        catch (RuntimeException exception)
-        {
-            return Component.literal(raw);
+            catch (RuntimeException exception)
+            {
+                DevilBoneGambler.LOGGER.warn("The result text of a prize entry is not a valid text component, "
+                        + "the default wording is used instead");
+            }
+
+            return defaultText();
         }
 
         return Component.literal(raw);
+    }
+
+    private static Component defaultText()
+    {
+        return Component.translatable("gui." + ModConstants.MOD_ID + ".notify.default");
     }
 }

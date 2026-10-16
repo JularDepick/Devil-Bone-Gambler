@@ -7,7 +7,10 @@
 package com.devilbonegambler.network;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.altar.AltarMobScan;
+import com.devilbonegambler.altar.AltarService;
 import com.devilbonegambler.config.ServerConfigManager;
+import com.devilbonegambler.menu.AltarMenu;
 import com.devilbonegambler.dealer.DealerRewardService;
 import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.draw.DrawEngine;
@@ -18,14 +21,16 @@ import com.devilbonegambler.item.OfferingValueTableItem;
 import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
+import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
-import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
+import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ValueTableBook;
@@ -33,9 +38,13 @@ import com.devilbonegambler.wager.WagerService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.network.NetworkHooks;
 
 /**
  * Handles every client to server request on the server thread.
@@ -54,7 +63,53 @@ public final class ServerRequestHandler
 
     public static void handleDevilsDice(ServerPlayer player, DevilsDiceRequestPacket message)
     {
-        handleDraw(player, message.sequence(), message.playerName(), message.itemId(), message.bundle(), false);
+        OfferingBundle bundle = message.bundle();
+
+        /*
+         * The altar container is the authority of the item part: only what really sits in it is offered, and a refused
+         * sacrifice is handed straight back instead of being swallowed.
+         */
+        if (player != null && player.containerMenu instanceof AltarMenu altarMenu)
+        {
+            bundle = altarMenu.takeOfferings(bundle);
+        }
+
+        DrawResult result = handleDraw(player, message.sequence(), message.playerName(), message.itemId(), bundle,
+                false);
+
+        if (!result.isAccepted())
+        {
+            DrawEngine.returnTaken(player, bundle);
+        }
+    }
+
+    /**
+     * Opens the altar container. The offering grid lives in a server side container and the altar range is re-checked
+     * here, so the screen is only ever handed out by the server.
+     */
+    public static void handleAltarOpenRequest(ServerPlayer player, AltarOpenRequestPacket message)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        if (RequestGuard.checkSequence(player, message.sequence()) != null)
+        {
+            return;
+        }
+
+        if (AltarService.governingValue(player) < 0L)
+        {
+            NotifySender.sendFailure(player, "no_altar");
+            return;
+        }
+
+        NetworkHooks.openScreen(player, new SimpleMenuProvider(
+                (windowId, inventory, owner) -> new AltarMenu(windowId, inventory,
+                        new SimpleContainer(ModConstants.ALTAR_SLOTS)),
+                Component.translatable("gui." + ModConstants.MOD_ID + ".altar.title")));
+        AltarMobScan.send(player);
     }
 
     /**
@@ -86,15 +141,41 @@ public final class ServerRequestHandler
         }
     }
 
-    public static void handleDealerBetMove(ServerPlayer player, DealerBetMovePacket message)
+    /**
+     * The bet box of one member: the server checks the session membership and then opens the container menu itself, so
+     * a client can never ask for a box it does not own.
+     */
+    public static void handleDealerBetOpenRequest(ServerPlayer player, DealerBetOpenRequestPacket message)
     {
         if (player == null)
         {
             return;
         }
 
-        DealerWagerService.moveBet(player, message.dealerEntityId(), message.action(), message.index(),
-                message.itemId(), message.count());
+        if (RequestGuard.checkSequence(player, message.sequence()) != null)
+        {
+            return;
+        }
+
+        DealerWagerService.openBetMenu(player, message.dealerEntityId(), message.targetId());
+    }
+
+    /**
+     * The creature list of the altar screen: the server scans its own range and answers the asking player only.
+     */
+    public static void handleMobListRequest(ServerPlayer player, MobListRequestPacket message)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        if (RequestGuard.checkSequence(player, message.sequence()) != null)
+        {
+            return;
+        }
+
+        AltarMobScan.send(player);
     }
 
     public static void handleValueTableRefresh(ServerPlayer player, ValueTableRefreshRequestPacket message)
@@ -268,26 +349,28 @@ public final class ServerRequestHandler
         }
     }
 
-    private static void handleDraw(ServerPlayer player, int sequence, String playerName, String itemId,
+    private static DrawResult handleDraw(ServerPlayer player, int sequence, String playerName, String itemId,
             OfferingBundle bundle, boolean wagerAllowed)
     {
         if (player == null)
         {
-            return;
+            return DrawResult.failure("identity_mismatch");
         }
 
         if (!player.getGameProfile().getName().equals(playerName))
         {
-            respondDraw(player, sequence, itemId, DrawResult.failure("identity_mismatch"));
-            return;
+            DrawResult failure = DrawResult.failure("identity_mismatch");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         String guard = RequestGuard.checkDraw(player, sequence);
 
         if (guard != null)
         {
-            respondDraw(player, sequence, itemId, DrawResult.failure(guard));
-            return;
+            DrawResult failure = DrawResult.failure(guard);
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         /*
@@ -296,45 +379,50 @@ public final class ServerRequestHandler
          */
         if (wagerAllowed && WagerService.isGamblersDiceLocked(player))
         {
-            respondDraw(player, sequence, itemId, DrawResult.failure("wager_locked"));
-            return;
+            DrawResult failure = DrawResult.failure("wager_locked");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         if (wagerAllowed && player.isShiftKeyDown())
         {
-            handleWager(player, sequence, itemId);
-            return;
+            return handleWager(player, sequence, itemId);
         }
 
-        respondDraw(player, sequence, itemId, DrawEngine.perform(player, itemId, bundle, sequence));
+        DrawResult result = DrawEngine.perform(player, itemId, bundle, sequence);
+        respondDraw(player, sequence, itemId, result);
+        return result;
     }
 
     /**
      * A sneaking right click starts a wager instead of a single draw.
      * The dice is consumed once the wager area is created, and the outcome is reported by the wager itself.
      */
-    private static void handleWager(ServerPlayer player, int sequence, String itemId)
+    private static DrawResult handleWager(ServerPlayer player, int sequence, String itemId)
     {
         if (!WagerService.hasOtherPlayersNearby(player))
         {
-            respondDraw(player, sequence, itemId, DrawResult.failure("no_player_nearby"));
-            return;
+            DrawResult failure = DrawResult.failure("no_player_nearby");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         if (!WagerService.startWager(player))
         {
-            respondDraw(player, sequence, itemId, DrawResult.failure("wager_failed"));
-            return;
+            DrawResult failure = DrawResult.failure("wager_failed");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         if (!DrawEngine.consumeDice(player, itemId))
         {
             DevilBoneGambler.LOGGER.error("The wager started but the dice could not be consumed, player={}",
                     player.getGameProfile().getName());
-            return;
+            return DrawResult.failure("item_mismatch");
         }
 
         DealerRewardService.recordDiceUse(player);
+        return DrawResult.accepted();
     }
 
     private static void respondDraw(ServerPlayer player, int sequence, String itemId, DrawResult result)

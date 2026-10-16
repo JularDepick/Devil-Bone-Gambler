@@ -115,11 +115,17 @@ public class DealerScreen extends Screen
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button)
     {
-        int chest = this.chestCellAt(mouseX, mouseY);
+        int member = this.memberCellAt(mouseX, mouseY);
 
-        if (chest >= 0 && this.panel != null)
+        if (member >= 0 && this.panel != null)
         {
-            ClientActions.openDealerBetScreen(this.panel);
+            /*
+             * Every cell of the nine grid opens the bet box of the member sitting in it. The box is a container menu
+             * owned by the server, so the panel only asks for it and the server opens it after it checked that the
+             * requester is a member of the wager and marked whether that box may be changed.
+             */
+            ClientActions.sendDealerBetOpenRequest(this.panel.dealerEntityId(),
+                    this.panel.members().get(member).playerId());
             return true;
         }
 
@@ -209,14 +215,15 @@ public class DealerScreen extends Screen
         this.drawCellFrame(graphics, x, y);
         PlayerFaceRenderer.draw(graphics, this.skinOf(entry.playerId()), x + 1, y + 1, 32);
 
-        if (entry.playerId().equals(this.selfId()))
-        {
-            graphics.pose().pushPose();
-            graphics.pose().translate(x + 1 + 32 - CHEST_SIZE, y + 1 + 32 - CHEST_SIZE, 0.0D);
-            graphics.pose().scale(0.875F, 0.875F, 1.0F);
-            graphics.renderItem(new ItemStack(Items.CHEST), 0, 0);
-            graphics.pose().popPose();
-        }
+        /*
+         * Every member has a bet box, so every cell carries the box icon and the whole cell is the click target;
+         * the tooltip says whether that box may be changed.
+         */
+        graphics.pose().pushPose();
+        graphics.pose().translate(x + 1 + 32 - CHEST_SIZE, y + 1 + 32 - CHEST_SIZE, 0.0D);
+        graphics.pose().scale(0.875F, 0.875F, 1.0F);
+        graphics.renderItem(new ItemStack(Items.CHEST), 0, 0);
+        graphics.pose().popPose();
     }
 
     private void drawCellFrame(GuiGraphics graphics, int x, int y)
@@ -271,11 +278,22 @@ public class DealerScreen extends Screen
             if (mouseX >= x && mouseX < x + CELL - 2 && mouseY >= y && mouseY < y + CELL - 2)
             {
                 DealerPanelPacket.MemberEntry entry = members.get(index);
-                Component text = Component.literal(entry.name())
+                /*
+                 * A member who went offline is shown under the name the session knows; a session that never saw the
+                 * name shows the offline wording instead of any identifier.
+                 */
+                Component memberName = entry.name().isEmpty()
+                        ? Component.translatable(LANG + "offline_member")
+                        : Component.literal(entry.name());
+                Component hint = Component.translatable(entry.playerId().equals(this.selfId())
+                        ? LANG + "open_hint" : LANG + "open_hint_others");
+                Component text = memberName.copy()
                         .append(Component.literal("\n"))
                         .append(Component.translatable(LANG + "bet_value", Long.valueOf(entry.betValue())))
                         .append(Component.literal("\n"))
-                        .append(Component.translatable(LANG + "bet_count", Integer.valueOf(entry.betCount())));
+                        .append(Component.translatable(LANG + "bet_count", Integer.valueOf(entry.betCount())))
+                        .append(Component.literal("\n"))
+                        .append(hint);
                 graphics.renderTooltip(this.font, text, mouseX, mouseY);
                 return;
             }
@@ -298,9 +316,10 @@ public class DealerScreen extends Screen
     }
 
     /**
-     * Returns the cell index of the own chest icon under the cursor, or minus one.
+     * Returns the member index whose cell of the nine grid is under the cursor, or minus one.
+     * Any member may be asked for, because the box of another member is opened as a read only view.
      */
-    private int chestCellAt(double mouseX, double mouseY)
+    private int memberCellAt(double mouseX, double mouseY)
     {
         if (this.panel == null)
         {
@@ -310,19 +329,13 @@ public class DealerScreen extends Screen
         int gridX = this.leftPos + (PANEL_WIDTH - GRID) / 2;
         int gridY = this.topPos + GRID_TOP;
         List<DealerPanelPacket.MemberEntry> members = this.panel.members();
-        UUID self = this.selfId();
 
         for (int index = 0; index < members.size() && index < SLOT_CELLS.length; index++)
         {
-            if (!members.get(index).playerId().equals(self))
-            {
-                continue;
-            }
+            int x = gridX + SLOT_CELLS[index][0] * CELL;
+            int y = gridY + SLOT_CELLS[index][1] * CELL;
 
-            int x = gridX + SLOT_CELLS[index][0] * CELL + 1 + 32 - CHEST_SIZE;
-            int y = gridY + SLOT_CELLS[index][1] * CELL + 1 + 32 - CHEST_SIZE;
-
-            if (mouseX >= x && mouseX < x + CHEST_SIZE && mouseY >= y && mouseY < y + CHEST_SIZE)
+            if (mouseX >= x && mouseX < x + CELL - 2 && mouseY >= y && mouseY < y + CELL - 2)
             {
                 return index;
             }

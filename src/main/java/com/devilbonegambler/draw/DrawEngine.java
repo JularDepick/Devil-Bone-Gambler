@@ -27,6 +27,7 @@ import com.devilbonegambler.util.ServerScheduler;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -38,6 +39,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
@@ -72,6 +74,13 @@ public final class DrawEngine
 
         if (sacrifice && !hasOfferings(player, offeringBundle))
         {
+            return DrawResult.failure("not_enough_items");
+        }
+
+        if (offeringBundle.isTaken() && offeringBundle.items().isEmpty() && offeringBundle.mobs().isEmpty()
+                && !hasNumericOffering(offeringBundle))
+        {
+            /* Nothing really left the altar container, so there is nothing to sacrifice. */
             return DrawResult.failure("not_enough_items");
         }
 
@@ -112,7 +121,8 @@ public final class DrawEngine
         RequestGuard.markBusy(player, ModConstants.POINT_DISPLAY_TICKS);
 
         PendingDraw pending = new PendingDraw(player.getUUID(), sequence, itemId, roll, baseTier, targetTier, overflow,
-                region.tierOrZero(), hit, weightSum, totalValue, offeringBundle, luck, seed);
+                region.tierOrZero(), hit, weightSum, totalValue, offeringBundle, luck, seed, player.serverLevel(),
+                player.blockPosition());
         ServerScheduler.schedule(ModConstants.POINT_DISPLAY_TICKS, server -> resolve(server, pending));
 
         return DrawResult.accepted();
@@ -138,6 +148,7 @@ public final class DrawEngine
         {
             DevilBoneGambler.LOGGER.info("Draw aborted, the player left before the result, player={}",
                     pending.playerId);
+            dropTaken(pending);
             return;
         }
 
@@ -147,6 +158,7 @@ public final class DrawEngine
         {
             audit(player, pending, commandResult, false, 0L);
             NotifySender.sendFailure(player, "command_failed");
+            returnTaken(player, pending.bundle);
             ModNetwork.sendToPlayer(player, new DrawResultPacket(pending.sequence, false, "command_failed",
                     pending.itemId, 1));
             return;
@@ -302,13 +314,17 @@ public final class DrawEngine
 
     private static boolean hasOfferings(ServerPlayer player, OfferingBundle bundle)
     {
-        for (Offering offering : bundle.items())
+        /* An offering taken out of an altar container is no longer in the inventory, so it is not counted there. */
+        if (!bundle.isTaken())
         {
-            Item item = resolveItem(offering.itemId());
-
-            if (item == null || countItem(player, item) < offering.count())
+            for (Offering offering : bundle.items())
             {
-                return false;
+                Item item = resolveItem(offering.itemId());
+
+                if (item == null || countItem(player, item) < offering.count())
+                {
+                    return false;
+                }
             }
         }
 
@@ -343,13 +359,17 @@ public final class DrawEngine
     {
         boolean result = true;
 
-        for (Offering offering : bundle.items())
+        /* The item part of a container offering left the inventory when it entered the altar container. */
+        if (!bundle.isTaken())
         {
-            Item item = resolveItem(offering.itemId());
-
-            if (item == null || !deductItem(player, item, offering.count()))
+            for (Offering offering : bundle.items())
             {
-                result = false;
+                Item item = resolveItem(offering.itemId());
+
+                if (item == null || !deductItem(player, item, offering.count()))
+                {
+                    result = false;
+                }
             }
         }
 
@@ -445,6 +465,53 @@ public final class DrawEngine
         }
     }
 
+    /**
+     * Hands back an offering that already left an altar container, so a refused sacrifice never swallows it.
+     */
+    public static void returnTaken(ServerPlayer player, OfferingBundle bundle)
+    {
+        if (player == null || bundle == null || !bundle.isTaken())
+        {
+            return;
+        }
+
+        for (ItemStack stack : bundle.takenStacks())
+        {
+            if (stack.isEmpty())
+            {
+                continue;
+            }
+
+            if (!player.getInventory().add(stack))
+            {
+                player.drop(stack, false);
+            }
+        }
+
+        bundle.takenStacks().clear();
+    }
+
+    /**
+     * The same for a draw whose player left before the result: the stacks drop where the sacrifice was made.
+     */
+    private static void dropTaken(PendingDraw pending)
+    {
+        if (pending.bundle == null || !pending.bundle.isTaken() || pending.level == null)
+        {
+            return;
+        }
+
+        for (ItemStack stack : pending.bundle.takenStacks())
+        {
+            if (!stack.isEmpty())
+            {
+                Block.popResource(pending.level, pending.position, stack);
+            }
+        }
+
+        pending.bundle.takenStacks().clear();
+    }
+
     private static int countItem(ServerPlayer player, Item item)
     {
         Inventory inventory = player.getInventory();
@@ -535,10 +602,12 @@ public final class DrawEngine
         private final OfferingBundle bundle;
         private final int luck;
         private final long seed;
+        private final ServerLevel level;
+        private final BlockPos position;
 
         private PendingDraw(UUID playerId, int sequence, String itemId, DiceRoll roll, int baseTier, int targetTier,
                 int overflow, int hitTier, PrizeEntry hit, double weightSum, long totalValue, OfferingBundle bundle,
-                int luck, long seed)
+                int luck, long seed, ServerLevel level, BlockPos position)
         {
             this.playerId = playerId;
             this.sequence = sequence;
@@ -554,6 +623,8 @@ public final class DrawEngine
             this.bundle = bundle;
             this.luck = luck;
             this.seed = seed;
+            this.level = level;
+            this.position = position;
         }
     }
 }

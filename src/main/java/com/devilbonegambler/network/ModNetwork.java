@@ -8,19 +8,21 @@ package com.devilbonegambler.network;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.network.packet.AdminEditPacket;
+import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
-import com.devilbonegambler.network.packet.DealerBetMovePacket;
+import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
+import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
@@ -81,6 +83,10 @@ public final class ModNetwork
                 OpenValueTablePacket::encode, OpenValueTablePacket::decode, OpenValueTablePacket::handle);
         CHANNEL.registerMessage(index++, PointDisplayPacket.class,
                 PointDisplayPacket::encode, PointDisplayPacket::decode, PointDisplayPacket::handle);
+        CHANNEL.registerMessage(index++, AltarOpenRequestPacket.class,
+                AltarOpenRequestPacket::encode, AltarOpenRequestPacket::decode, AltarOpenRequestPacket::handle);
+        CHANNEL.registerMessage(index++, MobListRequestPacket.class,
+                MobListRequestPacket::encode, MobListRequestPacket::decode, MobListRequestPacket::handle);
         CHANNEL.registerMessage(index++, MobListPacket.class,
                 MobListPacket::encode, MobListPacket::decode, MobListPacket::handle);
         CHANNEL.registerMessage(index++, AltarStatusPacket.class,
@@ -89,8 +95,9 @@ public final class ModNetwork
                 ValueTableSyncPacket::encode, ValueTableSyncPacket::decode, ValueTableSyncPacket::handle);
         CHANNEL.registerMessage(index++, DealerInteractPacket.class,
                 DealerInteractPacket::encode, DealerInteractPacket::decode, DealerInteractPacket::handle);
-        CHANNEL.registerMessage(index++, DealerBetMovePacket.class,
-                DealerBetMovePacket::encode, DealerBetMovePacket::decode, DealerBetMovePacket::handle);
+        CHANNEL.registerMessage(index++, DealerBetOpenRequestPacket.class,
+                DealerBetOpenRequestPacket::encode, DealerBetOpenRequestPacket::decode,
+                DealerBetOpenRequestPacket::handle);
         CHANNEL.registerMessage(index++, DealerPanelPacket.class,
                 DealerPanelPacket::encode, DealerPanelPacket::decode, DealerPanelPacket::handle);
 

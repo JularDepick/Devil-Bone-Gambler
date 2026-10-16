@@ -77,12 +77,11 @@ public class DealerPanelPacket
     private final boolean canStart;
     private final boolean openScreen;
     private final List<MemberEntry> members;
-    private final List<ItemStack> selfBet;
 
     public DealerPanelPacket(int dealerEntityId, float dealerHealth, float dealerMaxHealth, int dealerSatiety,
             int dealerMaxSatiety, boolean hasWager, int phase, int remainingSeconds, UUID ownerId,
             boolean selfIsOwner, boolean selfIsMember, boolean canCreate, boolean canStart, boolean openScreen,
-            List<MemberEntry> members, List<ItemStack> selfBet)
+            List<MemberEntry> members)
     {
         this.dealerEntityId = dealerEntityId;
         this.dealerHealth = dealerHealth;
@@ -99,7 +98,6 @@ public class DealerPanelPacket
         this.canStart = canStart;
         this.openScreen = openScreen;
         this.members = members;
-        this.selfBet = selfBet;
     }
 
     public int dealerEntityId() { return this.dealerEntityId; }
@@ -121,7 +119,6 @@ public class DealerPanelPacket
      */
     public boolean openScreen() { return this.openScreen; }
     public List<MemberEntry> members() { return this.members; }
-    public List<ItemStack> selfBet() { return this.selfBet; }
 
     public static void encode(DealerPanelPacket message, FriendlyByteBuf buffer)
     {
@@ -155,12 +152,6 @@ public class DealerPanelPacket
             buffer.writeVarInt(entry.betCount());
         }
 
-        buffer.writeVarInt(message.selfBet.size());
-
-        for (ItemStack stack : message.selfBet)
-        {
-            buffer.writeItem(stack);
-        }
     }
 
     public static DealerPanelPacket decode(FriendlyByteBuf buffer)
@@ -191,17 +182,9 @@ public class DealerPanelPacket
             members.add(new MemberEntry(playerId, name, betValue, betCount));
         }
 
-        int betCount = buffer.readVarInt();
-        List<ItemStack> selfBet = new ArrayList<ItemStack>();
-
-        for (int index = 0; index < betCount; index++)
-        {
-            selfBet.add(buffer.readItem());
-        }
-
         return new DealerPanelPacket(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety,
                 hasWager, phase, remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate, canStart, openScreen,
-                members, selfBet);
+                members);
     }
 
     public static void handle(DealerPanelPacket message, Supplier<NetworkEvent.Context> contextSupplier)

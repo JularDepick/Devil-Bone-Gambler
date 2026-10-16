@@ -20,7 +20,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -29,25 +28,26 @@ import net.minecraftforge.registries.ForgeRegistries;
  * A row shows the localised name instead of the raw id, because the id is meaningless to a player, and the search
  * box matches both the localised name and the id, so a player who knows an id still finds its row.
  * The rows come from the snapshot the server pushed, so the screen never reads a config file itself.
+ * The table follows the shared list rules: a frozen header row, fixed column widths, centred and clipped cells, a
+ * draggable scroll bar and a hover tooltip that waits before it appears.
+ * The revision of the snapshot stays an internal detail of the optimistic lock and is never shown.
  */
 public class ValueTableScreen extends Screen
 {
     private static final int PANEL_WIDTH = 340;
     private static final int PANEL_HEIGHT = 216;
-    private static final int ROW_HEIGHT = 12;
     private static final int SLOT = 16;
 
     private static final int PANEL_COLOR = 0xC0101010;
     private static final int SLOT_SHADE = 0xFF2A2A2A;
     private static final int LIST_COLOR = 0x20000000;
+    private static final int HEADER_COLOR = 0x30FFFFFF;
     private static final int ROW_HOVER_COLOR = 0x30FFFFFF;
-    private static final int SCROLL_TRACK_COLOR = 0x40000000;
-    private static final int SCROLL_THUMB_COLOR = 0x80FFFFFF;
     private static final int TITLE_COLOR = 0xFFFFFF;
     private static final int LABEL_COLOR = 0xA0A0A0;
     private static final int AUTHOR_COLOR = 0x707070;
     private static final int TEXT_COLOR = 0xE0E0E0;
-    private static final int DEFAULT_COLOR = 0x808080;
+    private static final int HEADER_TEXT_COLOR = 0xC0C0C0;
     private static final int ENTITY_COLOR = 0xB0C4DE;
 
     private static final int SEARCH_X = 8;
@@ -61,8 +61,8 @@ public class ValueTableScreen extends Screen
 
     private static final int LIST_X = 8;
     private static final int LIST_Y = 44;
-    private static final int LIST_WIDTH = 316;
-    private static final int SCROLL_WIDTH = 6;
+    private static final int LIST_WIDTH = 300;
+    private static final int ICON_WIDTH = SLOT + 2;
     private static final int MATCHES_Y = 190;
     private static final int HINT_Y = 202;
     private static final int AUTHOR_Y = 202;
@@ -71,8 +71,10 @@ public class ValueTableScreen extends Screen
 
     private final ValueTableSnapshot snapshot;
     private final List<Row> rows = new ArrayList<Row>();
+    private final ScrollBar scrollBar = new ScrollBar();
+    private final DelayedTooltip tooltip = new DelayedTooltip();
     private List<Row> filtered = new ArrayList<Row>();
-    private int scroll;
+    private TableLayout layout;
     private int chapter;
     private int leftPos;
     private int topPos;
@@ -107,6 +109,9 @@ public class ValueTableScreen extends Screen
                 .bounds(this.leftPos + PANEL_WIDTH - 8 - CLOSE_WIDTH, this.topPos + SEARCH_Y - 1, CLOSE_WIDTH,
                         BUTTON_HEIGHT).build());
 
+        this.scrollBar.setBounds(this.leftPos + LIST_X + LIST_WIDTH + 2, this.topPos + LIST_Y
+                + ModConstants.TABLE_HEADER_HEIGHT, ModConstants.VALUE_TABLE_SCREEN_ROWS
+                        * ModConstants.TABLE_ROW_HEIGHT);
         this.applyFilter("");
         this.setInitialFocus(this.search);
     }
@@ -123,16 +128,14 @@ public class ValueTableScreen extends Screen
         {
             ItemStack stack = ItemLabels.itemStackOf(entry.getKey());
             this.rows.add(new Row(stack, ItemLabels.itemName(entry.getKey()), entry.getKey(),
-                    entry.getValue().intValue(), false,
-                    entry.getValue().intValue() == this.snapshot.defaultValue()));
+                    entry.getValue().intValue(), false));
         }
 
         for (Map.Entry<String, Integer> entry : this.snapshot.entities().entrySet())
         {
             EntityType<?> type = ItemLabels.entityTypeOf(entry.getKey());
             this.rows.add(new Row(spawnEggOf(type), ItemLabels.entityName(entry.getKey()), entry.getKey(),
-                    entry.getValue().intValue(), true,
-                    entry.getValue().intValue() == this.snapshot.defaultEntityValue()));
+                    entry.getValue().intValue(), true));
         }
 
         this.rows.sort((first, second) -> first.name().compareToIgnoreCase(second.name()));
@@ -167,6 +170,27 @@ public class ValueTableScreen extends Screen
     }
 
     /**
+     * Locks the column widths of the whole table, so the header and every row line up on the same grid.
+     */
+    private void rebuildLayout()
+    {
+        List<String> names = new ArrayList<String>();
+        List<String> values = new ArrayList<String>();
+
+        for (Row row : this.filtered)
+        {
+            names.add(row.name());
+            values.add(Integer.toString(row.value()));
+        }
+
+        this.layout = new TableLayout(this.font, LIST_WIDTH);
+        this.layout.addColumn(Component.empty(), ICON_WIDTH, new ArrayList<String>());
+        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_name"), 0, names);
+        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_value"), 0, values);
+        this.layout.compute();
+    }
+
+    /**
      * Filters on the localised name and on the raw id, so both a readable query and a known id work.
      */
     private void applyFilter(String query)
@@ -189,7 +213,11 @@ public class ValueTableScreen extends Screen
         }
 
         this.filtered = result;
-        this.scroll = 0;
+        this.rebuildLayout();
+        this.scrollBar.setRange(Math.max(0, this.filtered.size() - ModConstants.VALUE_TABLE_SCREEN_ROWS),
+                ModConstants.VALUE_TABLE_SCREEN_ROWS);
+        this.scrollBar.setValue(0);
+        this.tooltip.reset();
     }
 
     private boolean chapterAllows(Row row)
@@ -221,79 +249,99 @@ public class ValueTableScreen extends Screen
     {
         this.renderBackground(graphics);
         graphics.fill(this.leftPos, this.topPos, this.leftPos + PANEL_WIDTH, this.topPos + PANEL_HEIGHT, PANEL_COLOR);
-        this.drawHeader(graphics);
-        this.drawRows(graphics, mouseX, mouseY);
-        this.drawScrollBar(graphics);
+        graphics.drawString(this.font, this.title, this.leftPos + 8, this.topPos + 8, TITLE_COLOR);
+        this.drawTable(graphics, mouseX, mouseY);
         this.drawFooter(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        this.drawTooltip(graphics, mouseX, mouseY);
     }
 
-    private void drawHeader(GuiGraphics graphics)
-    {
-        graphics.drawString(this.font, this.title, this.leftPos + 8, this.topPos + 8, TITLE_COLOR);
-        Component revision = Component.translatable(KEY_PREFIX + "revision",
-                Integer.valueOf(this.snapshot.revision()));
-        graphics.drawString(this.font, revision, this.leftPos + PANEL_WIDTH - 8 - this.font.width(revision),
-                this.topPos + 8, LABEL_COLOR);
-    }
-
-    private void drawRows(GuiGraphics graphics, int mouseX, int mouseY)
+    /**
+     * Header row, scrolling rows and the scroll bar; the header never moves with the scroll position.
+     */
+    private void drawTable(GuiGraphics graphics, int mouseX, int mouseY)
     {
         int listX = this.leftPos + LIST_X;
-        int listY = this.topPos + LIST_Y;
+        int headerY = this.topPos + LIST_Y;
+        int rowsY = headerY + ModConstants.TABLE_HEADER_HEIGHT;
         int visible = Math.min(ModConstants.VALUE_TABLE_SCREEN_ROWS, this.filtered.size());
-        graphics.fill(listX, listY, listX + LIST_WIDTH, listY + visible * ROW_HEIGHT, LIST_COLOR);
+
+        graphics.fill(listX, headerY, listX + LIST_WIDTH, headerY + ModConstants.TABLE_HEADER_HEIGHT, HEADER_COLOR);
+        this.layout.drawHeader(graphics, listX, headerY + 2, HEADER_TEXT_COLOR);
+        graphics.fill(listX, rowsY, listX + LIST_WIDTH, rowsY + ModConstants.VALUE_TABLE_SCREEN_ROWS
+                * ModConstants.TABLE_ROW_HEIGHT, LIST_COLOR);
 
         for (int index = 0; index < visible; index++)
         {
-            int rowIndex = this.scroll + index;
-            Row row = this.filtered.get(rowIndex);
-            int y = listY + index * ROW_HEIGHT;
-            boolean hovered = mouseX >= listX && mouseX < listX + LIST_WIDTH && mouseY >= y && mouseY < y + ROW_HEIGHT;
+            Row row = this.filtered.get(this.scrollBar.value() + index);
+            int y = rowsY + index * ModConstants.TABLE_ROW_HEIGHT;
 
-            if (hovered)
+            if (this.hoveredRow(listX, rowsY, mouseX, mouseY) == this.scrollBar.value() + index)
             {
-                graphics.fill(listX, y, listX + LIST_WIDTH, y + ROW_HEIGHT, ROW_HOVER_COLOR);
-                graphics.renderTooltip(this.font, Component.literal(row.id()), mouseX, mouseY);
+                graphics.fill(listX, y, listX + LIST_WIDTH, y + ModConstants.TABLE_ROW_HEIGHT, ROW_HOVER_COLOR);
             }
 
             if (!row.stack().isEmpty())
             {
-                graphics.fill(listX + 1, y, listX + SLOT, y + SLOT - 1, SLOT_SHADE);
-                graphics.renderItem(row.stack(), listX + 1, y - 1);
+                int iconX = listX + this.layout.x(0) + 1;
+                graphics.fill(iconX, y, iconX + SLOT, y + SLOT - 1, SLOT_SHADE);
+                graphics.renderItem(row.stack(), iconX, y - 1);
             }
 
-            int nameColor = row.entity() ? ENTITY_COLOR : TEXT_COLOR;
-            graphics.drawString(this.font, this.clip(row.name(), 170), listX + SLOT + 4, y + 2, nameColor);
-            graphics.drawString(this.font, this.valueText(row), listX + LIST_WIDTH - 28, y + 2,
-                    row.defaulted() ? DEFAULT_COLOR : TEXT_COLOR);
+            this.layout.drawCell(graphics, 1, row.name(), listX, y + 2, row.entity() ? ENTITY_COLOR : TEXT_COLOR);
+            this.layout.drawCell(graphics, 2, Integer.toString(row.value()), listX, y + 2, TEXT_COLOR);
         }
+
+        this.scrollBar.render(graphics);
     }
 
-    private Component valueText(Row row)
+    /**
+     * Index of the row under the pointer, or -1 when the pointer is outside the row area.
+     */
+    private int hoveredRow(int listX, int rowsY, int mouseX, int mouseY)
     {
-        return row.defaulted() ? Component.translatable(KEY_PREFIX + "default", Integer.valueOf(row.value()))
-                : Component.literal(Integer.toString(row.value()));
-    }
-
-    private void drawScrollBar(GuiGraphics graphics)
-    {
-        if (this.filtered.size() <= ModConstants.VALUE_TABLE_SCREEN_ROWS)
+        if (mouseX < listX || mouseX >= listX + LIST_WIDTH || mouseY < rowsY)
         {
+            return -1;
+        }
+
+        int index = (mouseY - rowsY) / ModConstants.TABLE_ROW_HEIGHT;
+
+        if (index < 0 || index >= ModConstants.VALUE_TABLE_SCREEN_ROWS)
+        {
+            return -1;
+        }
+
+        int rowIndex = this.scrollBar.value() + index;
+        return rowIndex < this.filtered.size() ? rowIndex : -1;
+    }
+
+    /**
+     * The raw id goes to the hover tooltip, so a row can still be traced back to its configuration entry, and a name
+     * that had to be clipped is repeated in full.
+     */
+    private void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY)
+    {
+        int listX = this.leftPos + LIST_X;
+        int rowsY = this.topPos + LIST_Y + ModConstants.TABLE_HEADER_HEIGHT;
+        int index = this.hoveredRow(listX, rowsY, mouseX, mouseY);
+
+        if (index < 0)
+        {
+            this.tooltip.render(graphics, this.font, null, null, mouseX, mouseY);
             return;
         }
 
-        int trackX = this.leftPos + LIST_X + LIST_WIDTH + 2;
-        int trackY = this.topPos + LIST_Y;
-        int trackHeight = ModConstants.VALUE_TABLE_SCREEN_ROWS * ROW_HEIGHT;
-        graphics.fill(trackX, trackY, trackX + SCROLL_WIDTH, trackY + trackHeight, SCROLL_TRACK_COLOR);
+        Row row = this.filtered.get(index);
+        List<Component> lines = new ArrayList<Component>();
 
-        int thumbHeight = Math.max(8, trackHeight * ModConstants.VALUE_TABLE_SCREEN_ROWS / this.filtered.size());
-        int travel = trackHeight - thumbHeight;
-        int maximum = this.filtered.size() - ModConstants.VALUE_TABLE_SCREEN_ROWS;
-        int offset = maximum <= 0 ? 0 : travel * this.scroll / maximum;
-        graphics.fill(trackX, trackY + offset, trackX + SCROLL_WIDTH, trackY + offset + thumbHeight,
-                SCROLL_THUMB_COLOR);
+        if (this.layout.isClipped(1, row.name()))
+        {
+            lines.add(Component.literal(row.name()));
+        }
+
+        lines.add(ItemLabels.idTooltip(row.id()));
+        this.tooltip.render(graphics, this.font, row.id(), lines, mouseX, mouseY);
     }
 
     private void drawFooter(GuiGraphics graphics)
@@ -311,15 +359,49 @@ public class ValueTableScreen extends Screen
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta)
     {
-        int maximum = Math.max(0, this.filtered.size() - ModConstants.VALUE_TABLE_SCREEN_ROWS);
-
-        if (maximum == 0)
+        if (!this.scrollBar.isActive())
         {
             return super.mouseScrolled(mouseX, mouseY, delta);
         }
 
-        this.scroll = Math.max(0, Math.min(maximum, this.scroll + (delta > 0 ? -1 : 1)));
+        this.scrollBar.scrollBy(delta > 0 ? -1 : 1);
+        this.tooltip.reset();
         return true;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button)
+    {
+        if (this.scrollBar.mouseClicked(mouseX, mouseY, button))
+        {
+            this.tooltip.reset();
+            return true;
+        }
+
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY)
+    {
+        if (this.scrollBar.mouseDragged(mouseX, mouseY, button))
+        {
+            this.tooltip.reset();
+            return true;
+        }
+
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button)
+    {
+        if (this.scrollBar.mouseReleased(mouseX, mouseY, button))
+        {
+            return true;
+        }
+
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
@@ -328,12 +410,7 @@ public class ValueTableScreen extends Screen
         return false;
     }
 
-    private String clip(String text, int width)
-    {
-        return this.font.width(text) <= width ? text : this.font.plainSubstrByWidth(text, width - 3) + "...";
-    }
-
-    private record Row(ItemStack stack, String name, String id, int value, boolean entity, boolean defaulted)
+    private record Row(ItemStack stack, String name, String id, int value, boolean entity)
     {
     }
 }

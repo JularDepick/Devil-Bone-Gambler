@@ -12,6 +12,7 @@ import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.registry.ModCreativeTabs;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
+import com.devilbonegambler.registry.ModMenus;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -39,6 +40,7 @@ public class DevilBoneGambler
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModEntities.ENTITIES.register(modEventBus);
         ModCreativeTabs.TABS.register(modEventBus);
+        ModMenus.MENUS.register(modEventBus);
 
         modEventBus.addListener(this::onCommonSetup);
     }

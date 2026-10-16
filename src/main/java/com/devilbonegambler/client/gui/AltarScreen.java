@@ -7,124 +7,94 @@
 package com.devilbonegambler.client.gui;
 
 import com.devilbonegambler.client.ClientActions;
+import com.devilbonegambler.client.ClientPacketHandler;
 import com.devilbonegambler.draw.Offering;
 import com.devilbonegambler.draw.OfferingBundle;
+import com.devilbonegambler.menu.AltarMenu;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.util.ModConstants;
-import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ValueTableBook;
-import com.devilbonegambler.client.ClientPacketHandler;
 import com.devilbonegambler.util.ValueTableSnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * The offering screen of the devil's dice, laid out in three columns.
- * The left column lists the creatures inside the altar range, the middle column keeps the read-only player
- * inventory and the 3x3 altar slots, and the right column carries the numeric offerings.
- * The player inventory is drawn read-only and filled by moving stacks with the cursor, like the vanilla inventory:
- * the screen never registers a slot, so there is no path that could change the real inventory. The altar itself is a
- * pure client side staging list validated by the server on submit, and the drawn inventory is derived from the real
- * one minus whatever sits on the cursor or in the altar, so an offering can never exceed what the player holds.
+ * The left column lists the creatures inside the altar range, the middle column keeps the real container slots of the
+ * offering grid and of the player inventory, and the right column carries the numeric offerings.
+ * Both grids are vanilla container slots, so picking up, placing, dragging and shift clicking are carried by the vanilla
+ * container rules and the client keeps no copy of the inventory of its own. The offering grid belongs to the menu, so
+ * the server reads the stacks that really sit there when the sacrifice is submitted and returns whatever is left when
+ * the screen closes.
  */
-public class AltarScreen extends Screen
+public class AltarScreen extends AbstractContainerScreen<AltarMenu>
 {
     private static final int PANEL_WIDTH = 400;
     private static final int PANEL_HEIGHT = 220;
-    private static final int SLOT = 18;
+
     private static final int PANEL_COLOR = 0xC0101010;
     private static final int SLOT_COLOR = 0xFF373737;
     private static final int SLOT_SHADE = 0xFF2A2A2A;
-    private static final int HIGHLIGHT_COLOR = 0x80FFFFFF;
     private static final int LIST_COLOR = 0x20000000;
+    private static final int HEADER_COLOR = 0x30FFFFFF;
     private static final int ROW_HOVER_COLOR = 0x30FFFFFF;
+    private static final int ROW_SELECTED_COLOR = 0x307FC97F;
     private static final int CHECK_COLOR = 0xFF7FC97F;
     private static final int SEPARATOR_COLOR = 0x40FFFFFF;
-    private static final int SCROLL_TRACK_COLOR = 0x40000000;
-    private static final int SCROLL_THUMB_COLOR = 0x80FFFFFF;
     private static final int TITLE_COLOR = 0xFFFFFF;
     private static final int LABEL_COLOR = 0xA0A0A0;
+    private static final int HEADER_TEXT_COLOR = 0xC0C0C0;
+    private static final int TEXT_COLOR = 0xE0E0E0;
     private static final int STATUS_COLOR = 0xFF8080;
     private static final int AUTHOR_COLOR = 0x707070;
-    private static final int TEXT_COLOR = 0xE0E0E0;
+    private static final int ESTIMATE_COLOR = 0xD8B860;
     private static final long TIMEOUT_MS = 10000L;
 
     private static final int LABEL_OFFSET = 14;
     private static final int CHECK_SIZE = 9;
 
+    /*
+     * Left column: the frozen header, the scrolling creature rows and the hint.
+     */
     private static final int MOB_X = 8;
     private static final int MOB_WIDTH = 110;
-    private static final int MOB_LABEL_Y = 20;
-    private static final int MOB_LIST_Y = 32;
-    private static final int MOB_ROW_HEIGHT = 11;
-    private static final int MOB_VISIBLE_ROWS = 12;
-    private static final int MOB_TEXT_WIDTH = 92;
-    private static final int HINT_Y = 166;
+    private static final int MOB_TABLE_WIDTH = 100;
+    private static final int MOB_HEALTH_WIDTH = 40;
+    private static final int MOB_VISIBLE_ROWS = 8;
+    private static final int MOB_LIST_Y = 40;
+    private static final int MOB_SCROLL_GAP = 2;
+    private static final int HINT_Y = 152;
     private static final int HINT_LINE_HEIGHT = 10;
 
-    private static final int INVENTORY_X = 132;
-    private static final int INVENTORY_LABEL_Y = 18;
-    private static final int INVENTORY_Y = 28;
-    private static final int HOTBAR_Y = 82;
-    private static final int ALTAR_X = 132;
-    private static final int ALTAR_LABEL_Y = 104;
-    private static final int ALTAR_Y = 114;
-    private static final int SUMMARY_X = 190;
-    private static final int SUMMARY_Y = 104;
-    private static final int SUMMARY_WIDTH = 108;
-    private static final int SUMMARY_LINE_HEIGHT = 11;
-    private static final int ESTIMATE_COLOR = 0xD8B860;
+    private static final int TITLE_Y = 6;
+    private static final int SUMMARY_Y = 18;
+    private static final int ESTIMATE_Y = 28;
 
-    private static final int VALUE_X = 308;
-    private static final int VALUE_WIDTH = 84;
-    private static final int VALUE_LABEL_Y = 20;
-    private static final int FIELD_X = 356;
-    private static final int FIELD_WIDTH = 36;
-    private static final int FIELD_HEIGHT = 14;
-    private static final int FIELD_MAX_LENGTH = 5;
-    private static final int HEALTH_Y = 34;
-    private static final int HEALTH_FIELD_Y = 33;
-    private static final int HEALTH_CURRENT_Y = 48;
-    private static final int FOOD_Y = 60;
-    private static final int FOOD_FIELD_Y = 59;
-    private static final int FOOD_CURRENT_Y = 74;
-    private static final int EXPERIENCE_Y = 86;
-    private static final int EXPERIENCE_NOTE_Y = 96;
-    private static final int NOTE_LINE_HEIGHT = 9;
-    private static final int QUICK_BUTTON_Y = 116;
-    private static final int QUICK_BUTTON_STEP = 16;
-    private static final int QUICK_BUTTON_WIDTH = 84;
-    private static final int QUICK_BUTTON_HEIGHT = 14;
-    private static final int DEATH_DROP_Y = 150;
-    private static final int DEATH_DROP_WIDTH = 70;
-    private static final int DEATH_DROP_LINE_HEIGHT = 10;
-
-    private static final int SEPARATOR_LEFT_X = 122;
-    private static final int SEPARATOR_RIGHT_X = 304;
-    private static final int SEPARATOR_TOP_Y = 18;
-    private static final int SEPARATOR_BOTTOM_Y = 194;
-
+    /*
+     * Middle column: the offering grid above and the real player inventory below, both positioned by the menu.
+     */
+    private static final int OFFERING_LABEL_Y = 14;
+    private static final int INVENTORY_LABEL_Y = 80;
     private static final int OFFER_BUTTON_X = 126;
     private static final int CANCEL_BUTTON_X = 216;
     private static final int BOTTOM_BUTTON_Y = 174;
@@ -136,46 +106,76 @@ public class AltarScreen extends Screen
     private static final int AUTHOR_X = 132;
     private static final int AUTHOR_Y = 207;
 
-    private final List<ItemStack> altar = new ArrayList<ItemStack>();
     /*
-     * The stack on the cursor. The grid is filled by moving items between the cursor and a slot, like the vanilla
-     * inventory, and the drawn inventory is the real one minus everything on the cursor or already offered, so the
-     * offered total can never grow past what the player holds.
+     * Right column: the numeric offerings, their sliders and the action buttons.
      */
-    private ItemStack carried = ItemStack.EMPTY;
-    private final List<Component> tooltipLines = new ArrayList<Component>();
+    private static final int VALUE_X = 308;
+    private static final int VALUE_WIDTH = 84;
+    private static final int VALUE_LABEL_Y = 18;
+    private static final int SLIDER_HEIGHT = 20;
+    private static final int HEALTH_Y = 30;
+    private static final int HEALTH_SLIDER_Y = 41;
+    private static final int HEALTH_CURRENT_Y = 62;
+    private static final int FOOD_Y = 73;
+    private static final int FOOD_SLIDER_Y = 84;
+    private static final int FOOD_CURRENT_Y = 105;
+    private static final int EXPERIENCE_Y = 116;
+    private static final int EXPERIENCE_NOTE_Y = 126;
+    private static final int NOTE_LINE_HEIGHT = 9;
+    private static final int QUICK_BUTTON_Y = 146;
+    private static final int QUICK_BUTTON_STEP = 15;
+    private static final int QUICK_BUTTON_WIDTH = 84;
+    private static final int QUICK_BUTTON_HEIGHT = 14;
+    private static final int DEATH_DROP_Y = 177;
+    private static final int DEATH_DROP_WIDTH = 70;
+    private static final int DEATH_DROP_LINE_HEIGHT = 10;
+
+    private static final int SEPARATOR_LEFT_X = 122;
+    private static final int SEPARATOR_RIGHT_X = 304;
+    private static final int SEPARATOR_TOP_Y = 14;
+    private static final int SEPARATOR_BOTTOM_Y = 200;
+
+    /*
+     * Value factors of the client estimate, mirroring the server arithmetic so the summary line matches the settled
+     * value instead of only the item part.
+     */
+    private static final int HEALTH_VALUE_FACTOR = 2;
+    private static final double FOOD_LEVEL_MAX = 20.0D;
+
     private final List<MobListPacket.MobEntry> mobEntries = new ArrayList<MobListPacket.MobEntry>();
     private final Set<UUID> selectedMobs = new HashSet<UUID>();
+    private final ScrollBar mobScrollBar = new ScrollBar();
+    private final DelayedTooltip mobTooltip = new DelayedTooltip();
 
-    private int leftPos;
-    private int topPos;
+    private TableLayout mobLayout;
+    private IntSlider healthSlider;
+    private IntSlider foodSlider;
     private boolean submitting;
     private int pendingSequence = -1;
     private long submitTime;
     private String status = "";
-    private int mobScroll;
     private boolean healthChecked;
     private boolean foodChecked;
     private boolean deathDropChecked;
-    private EditBox healthField;
-    private EditBox foodField;
+    private int mobRefreshTicks;
 
-    public AltarScreen()
+    public AltarScreen(AltarMenu menu, Inventory inventory, Component title)
     {
-        super(Component.translatable(key("altar.title")));
-
-        for (int index = 0; index < ModConstants.ALTAR_SLOTS; index++)
-        {
-            this.altar.add(ItemStack.EMPTY);
-        }
+        super(menu, inventory, title);
+        this.imageWidth = PANEL_WIDTH;
+        this.imageHeight = PANEL_HEIGHT;
     }
 
     @Override
     protected void init()
     {
         super.init();
-        this.leftPos = (this.width - PANEL_WIDTH) / 2;
-        this.topPos = (this.height - PANEL_HEIGHT) / 2;
+
+        /*
+         * A resize rebuilds every widget, so the numbers the player already dialled in are carried over.
+         */
+        int health = this.healthSlider == null ? 0 : this.healthSlider.value();
+        int food = this.foodSlider == null ? 0 : this.foodSlider.value();
 
         addRenderableWidget(Button.builder(Component.translatable(key("altar.offer")), button -> submit())
                 .pos(this.leftPos + OFFER_BUTTON_X, this.topPos + BOTTOM_BUTTON_Y)
@@ -190,15 +190,46 @@ public class AltarScreen extends Screen
                 .pos(this.leftPos + VALUE_X, this.topPos + QUICK_BUTTON_Y + QUICK_BUTTON_STEP)
                 .size(QUICK_BUTTON_WIDTH, QUICK_BUTTON_HEIGHT).build());
 
-        this.healthField = addValueField(HEALTH_FIELD_Y);
-        this.foodField = addValueField(FOOD_FIELD_Y);
+        this.healthSlider = addRenderableWidget(new IntSlider(this.leftPos + VALUE_X, this.topPos + HEALTH_SLIDER_Y,
+                VALUE_WIDTH, SLIDER_HEIGHT, Component.translatable(key("altar.health")), 0, currentHealth(), health));
+        this.foodSlider = addRenderableWidget(new IntSlider(this.leftPos + VALUE_X, this.topPos + FOOD_SLIDER_Y,
+                VALUE_WIDTH, SLIDER_HEIGHT, Component.translatable(key("altar.food")), 0, currentFood(), food));
+
+        this.mobScrollBar.setBounds(this.leftPos + MOB_X + MOB_TABLE_WIDTH + MOB_SCROLL_GAP,
+                this.topPos + MOB_LIST_Y, ModConstants.TABLE_HEADER_HEIGHT
+                        + MOB_VISIBLE_ROWS * ModConstants.TABLE_ROW_HEIGHT);
+        this.mobScrollBar.setRange(maximumMobScroll(), MOB_VISIBLE_ROWS);
+        this.mobRefreshTicks = 0;
+        rebuildMobTable();
+        /* The list is asked for here as well as on the interval, so an opened screen fills at once. */
+        ClientActions.sendMobListRequest();
     }
 
     @Override
-    public void tick()
+    protected void containerTick()
     {
-        super.tick();
+        super.containerTick();
+
+        /*
+         * The limits follow the player, because another mod may raise the maximum health or the current value itself.
+         */
+        if (this.healthSlider != null)
+        {
+            this.healthSlider.setRange(0, currentHealth());
+        }
+
+        if (this.foodSlider != null)
+        {
+            this.foodSlider.setRange(0, currentFood());
+        }
+
         normalizeDeathDrop();
+
+        if (++this.mobRefreshTicks >= ModConstants.TICKS_PER_SECOND)
+        {
+            this.mobRefreshTicks = 0;
+            ClientActions.sendMobListRequest();
+        }
 
         if (this.submitting && System.currentTimeMillis() - this.submitTime > TIMEOUT_MS)
         {
@@ -211,87 +242,135 @@ public class AltarScreen extends Screen
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
     {
         renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, partialTick);
+        drawMobTooltip(graphics, mouseX, mouseY);
+        renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    /**
+     * Panel, separators, the slot frames of every real slot and the creature table.
+     * Slot contents and the cursor stack are drawn by the container screen itself, so nothing here touches an item.
+     */
+    @Override
+    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY)
+    {
         graphics.fill(this.leftPos, this.topPos, this.leftPos + PANEL_WIDTH, this.topPos + PANEL_HEIGHT, PANEL_COLOR);
         drawSeparators(graphics);
+        drawSlotFrames(graphics);
         drawMobList(graphics, mouseX, mouseY);
-        drawValueChecks(graphics);
-        drawInventorySlots(graphics, mouseX, mouseY);
-        drawAltarSlots(graphics, mouseX, mouseY);
-        super.render(graphics, mouseX, mouseY, partialTick);
-        drawLabels(graphics);
-        drawCarried(graphics, mouseX, mouseY);
-        drawTooltip(graphics, mouseX, mouseY);
+        drawChecks(graphics);
+    }
+
+    /**
+     * Every label of the panel, drawn above the slots like a vanilla container screen does with its own labels.
+     */
+    @Override
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY)
+    {
+        graphics.drawString(this.font, this.title, MOB_X, TITLE_Y, TITLE_COLOR, false);
+        graphics.drawString(this.font, clip(Component.translatable(key("altar.summary"),
+                Integer.valueOf(countEntries()), Integer.valueOf(countItems())).getString(), MOB_WIDTH), MOB_X,
+                SUMMARY_Y, TEXT_COLOR, false);
+        graphics.drawString(this.font, clip(Component.translatable(key("altar.estimate"),
+                Long.valueOf(estimatedValue())).getString(), MOB_WIDTH), MOB_X, ESTIMATE_Y, ESTIMATE_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("altar.altar")), AltarMenu.OFFERING_X,
+                OFFERING_LABEL_Y, LABEL_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("altar.backpack")), AltarMenu.INVENTORY_X,
+                INVENTORY_LABEL_Y, LABEL_COLOR, false);
+        drawWrapped(graphics, Component.translatable(key("altar.hint")), MOB_X, HINT_Y, MOB_WIDTH, HINT_LINE_HEIGHT,
+                LABEL_COLOR);
+        drawValueLabels(graphics);
+        graphics.drawString(this.font, clip(this.status, STATUS_WIDTH), STATUS_X, STATUS_Y, STATUS_COLOR, false);
+        graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"), AUTHOR_X,
+                AUTHOR_Y, AUTHOR_COLOR, false);
+    }
+
+    /**
+     * Adds one extra value line under the vanilla tooltip of a hovered slot.
+     * A stack inside the offering grid carries its subtotal, anything else carries its unit value.
+     */
+    @Override
+    protected List<Component> getTooltipFromContainerItem(ItemStack stack)
+    {
+        List<Component> lines = super.getTooltipFromContainerItem(stack);
+        boolean insideOffering = this.hoveredSlot != null && this.hoveredSlot.index < AltarMenu.OFFERING_SLOTS;
+        appendValueLine(lines, stack, insideOffering);
+        return lines;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button)
     {
-        if (this.submitting)
+        if (!this.submitting)
         {
-            return super.mouseClicked(mouseX, mouseY, button);
+            if (this.mobScrollBar.mouseClicked(mouseX, mouseY, button))
+            {
+                this.mobTooltip.reset();
+                return true;
+            }
+
+            int mobRow = mobRowAt(mouseX, mouseY);
+
+            if (mobRow >= 0)
+            {
+                toggleMob(mobRow);
+                return true;
+            }
+
+            if (insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + HEALTH_Y))
+            {
+                this.healthChecked = !this.healthChecked;
+                return true;
+            }
+
+            if (insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + FOOD_Y))
+            {
+                this.foodChecked = !this.foodChecked;
+                return true;
+            }
+
+            if (deathDropAvailable()
+                    && insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + DEATH_DROP_Y))
+            {
+                this.deathDropChecked = !this.deathDropChecked;
+                return true;
+            }
         }
 
-        int mobRow = mobRowAt(mouseX, mouseY);
-
-        if (mobRow >= 0)
-        {
-            toggleMob(mobRow);
-            return true;
-        }
-
-        if (insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + HEALTH_Y))
-        {
-            this.healthChecked = !this.healthChecked;
-            return true;
-        }
-
-        if (insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + FOOD_Y))
-        {
-            this.foodChecked = !this.foodChecked;
-            return true;
-        }
-
-        if (deathDropAvailable() && insideCheck(mouseX, mouseY, this.leftPos + VALUE_X, this.topPos + DEATH_DROP_Y))
-        {
-            this.deathDropChecked = !this.deathDropChecked;
-            return true;
-        }
-
-        int altarIndex = altarIndexAt(mouseX, mouseY);
-
-        if (altarIndex >= 0)
-        {
-            clickAltar(altarIndex, button);
-            return true;
-        }
-
-        int inventoryIndex = inventoryIndexAt(mouseX, mouseY);
-
-        if (inventoryIndex >= 0)
-        {
-            clickInventory(inventoryIndex, button);
-            return true;
-        }
-
+        /* The container slots keep their vanilla behaviour, so a pending request never blocks a stack. */
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY)
+    {
+        if (this.mobScrollBar.mouseDragged(mouseX, mouseY, button))
+        {
+            this.mobTooltip.reset();
+            return true;
+        }
+
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button)
+    {
+        if (this.mobScrollBar.mouseReleased(mouseX, mouseY, button))
+        {
+            return true;
+        }
+
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta)
     {
-        if (!this.submitting && insideMobList(mouseX, mouseY))
+        if (!this.submitting && insideMobList(mouseX, mouseY) && this.mobScrollBar.isActive())
         {
-            int maximum = maximumMobScroll();
-
-            if (delta > 0.0D)
-            {
-                this.mobScroll = Math.max(0, this.mobScroll - 1);
-            }
-            else if (delta < 0.0D)
-            {
-                this.mobScroll = Math.min(maximum, this.mobScroll + 1);
-            }
-
+            this.mobScrollBar.scrollBy(delta > 0.0D ? -1 : 1);
+            this.mobTooltip.reset();
             return true;
         }
 
@@ -329,7 +408,8 @@ public class AltarScreen extends Screen
         }
 
         this.selectedMobs.retainAll(present);
-        this.mobScroll = Math.min(this.mobScroll, maximumMobScroll());
+        rebuildMobTable();
+        this.mobScrollBar.setRange(maximumMobScroll(), MOB_VISIBLE_ROWS);
     }
 
     /**
@@ -353,18 +433,6 @@ public class AltarScreen extends Screen
         this.status = Component.translatable(key("reason." + message.reasonKey())).getString();
     }
 
-    private EditBox addValueField(int offsetY)
-    {
-        EditBox box = new EditBox(this.font, this.leftPos + FIELD_X, this.topPos + offsetY, FIELD_WIDTH,
-                FIELD_HEIGHT, Component.empty());
-        box.setMaxLength(FIELD_MAX_LENGTH);
-        box.setFilter(value -> value.matches("[0-9]*"));
-        box.setValue("0");
-        box.setResponder(value -> normalizeDeathDrop());
-        addRenderableWidget(box);
-        return box;
-    }
-
     private void offerAll()
     {
         if (this.submitting)
@@ -374,8 +442,16 @@ public class AltarScreen extends Screen
 
         this.healthChecked = true;
         this.foodChecked = true;
-        setFieldValue(this.healthField, currentHealth());
-        setFieldValue(this.foodField, currentFood());
+
+        if (this.healthSlider != null)
+        {
+            this.healthSlider.setValue(currentHealth());
+        }
+
+        if (this.foodSlider != null)
+        {
+            this.foodSlider.setValue(currentFood());
+        }
     }
 
     private void offerHalf()
@@ -387,22 +463,30 @@ public class AltarScreen extends Screen
 
         this.healthChecked = true;
         this.foodChecked = true;
-        setFieldValue(this.healthField, Math.max(0, currentHealth() / 2));
-        setFieldValue(this.foodField, Math.max(0, currentFood() / 2));
+
+        if (this.healthSlider != null)
+        {
+            this.healthSlider.setValue(Math.max(0, currentHealth() / 2));
+        }
+
+        if (this.foodSlider != null)
+        {
+            this.foodSlider.setValue(Math.max(0, currentFood() / 2));
+        }
     }
 
     private void toggleMob(int index)
     {
-        MobListPacket.MobEntry entry = this.mobEntries.get(index);
-
-        if (entry == null)
+        if (index < 0 || index >= this.mobEntries.size())
         {
             return;
         }
 
-        if (!this.selectedMobs.remove(entry.id()))
+        UUID id = this.mobEntries.get(index).id();
+
+        if (!this.selectedMobs.remove(id))
         {
-            this.selectedMobs.add(entry.id());
+            this.selectedMobs.add(id);
         }
     }
 
@@ -413,24 +497,23 @@ public class AltarScreen extends Screen
             return;
         }
 
-        List<Offering> offerings = collectOfferings();
-        List<UUID> mobs = selectedMobIds();
-        int health = offeredHealth();
-        int food = offeredFood();
-        boolean allHealth = this.healthChecked && healthInput() >= currentHealth();
-        boolean deathDrop = this.deathDropChecked && deathDropAvailable();
-
-        if (offerings.isEmpty() && mobs.isEmpty() && health <= 0 && food <= 0 && !allHealth)
-        {
-            this.status = Component.translatable(key(numericOfferingEmpty()
-                    ? "altar.no_offering" : "altar.empty")).getString();
-            return;
-        }
-
         Minecraft minecraft = this.minecraft;
 
         if (minecraft == null || minecraft.player == null)
         {
+            return;
+        }
+
+        List<UUID> mobs = selectedMobIds();
+        int health = offeredHealth();
+        int food = offeredFood();
+        boolean allHealth = allHealthSelected();
+        boolean deathDrop = this.deathDropChecked && deathDropAvailable();
+
+        if (offeringEmpty() && mobs.isEmpty() && health <= 0 && food <= 0 && !allHealth)
+        {
+            this.status = Component.translatable(key(numericOfferingEmpty()
+                    ? "altar.no_offering" : "altar.empty")).getString();
             return;
         }
 
@@ -439,9 +522,13 @@ public class AltarScreen extends Screen
         this.submitTime = System.currentTimeMillis();
         this.status = Component.translatable(key("altar.waiting")).getString();
 
+        /*
+         * The item part travels empty on purpose: the server takes the stacks straight out of the altar container, so
+         * the grid is the only authority on what the player really offers.
+         */
         ModNetwork.sendToServer(new DevilsDiceRequestPacket(this.pendingSequence,
                 minecraft.player.getGameProfile().getName(), ClientActions.devilsDiceId(),
-                new OfferingBundle(offerings, mobs, health, food, allHealth, deathDrop)));
+                new OfferingBundle(new ArrayList<Offering>(), mobs, health, food, allHealth, deathDrop)));
     }
 
     private List<UUID> selectedMobIds()
@@ -459,196 +546,30 @@ public class AltarScreen extends Screen
         return result;
     }
 
-    private List<Offering> collectOfferings()
-    {
-        List<Offering> result = new ArrayList<Offering>();
-
-        for (ItemStack stack : this.altar)
-        {
-            if (stack.isEmpty())
-            {
-                continue;
-            }
-
-            ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
-
-            if (key == null)
-            {
-                continue;
-            }
-
-            /*
-             * One entry per stack, so the damage and the enchantment levels travel to the server and the
-             * value can depend on the instance rather than on the registry name alone.
-             */
-            result.add(new Offering(key.toString(), stack.getCount(), stack.getDamageValue(),
-                    ItemValuation.enchantLevelSum(stack)));
-        }
-
-        return result;
-    }
-
     /**
-     * The drawn inventory: the real stacks minus everything on the cursor or already offered.
-     * Deriving the view instead of keeping a second copy is what makes an over offer impossible, because items only
-     * ever move between the real inventory, the cursor and the altar staging.
+     * Rebuilds the frozen header and the column widths of the creature table.
+     * The name column takes the leftover width, the health column keeps a fixed pixel width.
      */
-    private List<ItemStack> currentView()
+    private void rebuildMobTable()
     {
-        Minecraft minecraft = this.minecraft;
-
-        if (minecraft == null || minecraft.player == null)
-        {
-            return new ArrayList<ItemStack>();
-        }
-
-        return SlotMoves.visibleInventory(minecraft.player.getInventory(), this.carried, this.altar);
-    }
-
-    /**
-     * Vanilla style click on an inventory slot: left takes or places the whole stack, right takes half or places one,
-     * and shift moves the whole stack straight into the altar.
-     */
-    private void clickInventory(int index, int button)
-    {
-        List<ItemStack> view = currentView();
-        ItemStack slot = index >= 0 && index < view.size() ? view.get(index) : ItemStack.EMPTY;
-
-        if (hasShiftDown())
-        {
-            if (!slot.isEmpty())
-            {
-                offerStack(slot);
-            }
-
-            return;
-        }
-
-        if (this.carried.isEmpty())
-        {
-            if (slot.isEmpty())
-            {
-                return;
-            }
-
-            int amount = button == 1 ? (slot.getCount() + 1) / 2 : slot.getCount();
-            this.carried = slot.copy();
-            this.carried.setCount(amount);
-            return;
-        }
-
-        if (slot.isEmpty() || SlotMoves.sameStack(this.carried, slot))
-        {
-            int amount = button == 1 ? 1 : this.carried.getCount();
-            this.carried.shrink(amount);
-
-            if (this.carried.getCount() <= 0)
-            {
-                this.carried = ItemStack.EMPTY;
-            }
-
-            return;
-        }
-
-        /*
-         * A different item under the cursor swaps, which returns the previous stack to the inventory view.
-         */
-        this.carried = slot.copy();
-    }
-
-    /**
-     * Vanilla style click on an altar slot: take the slot onto the cursor, or place what the cursor carries.
-     */
-    private void clickAltar(int index, int button)
-    {
-        if (index < 0 || index >= this.altar.size())
+        if (this.font == null)
         {
             return;
         }
 
-        ItemStack slot = this.altar.get(index);
+        List<String> names = new ArrayList<String>();
+        List<String> healths = new ArrayList<String>();
 
-        if (hasShiftDown())
+        for (MobListPacket.MobEntry entry : this.mobEntries)
         {
-            if (!slot.isEmpty())
-            {
-                this.altar.set(index, ItemStack.EMPTY);
-                this.status = "";
-            }
-
-            return;
+            names.add(entry.name().getString());
+            healths.add(mobHealth(entry));
         }
 
-        if (this.carried.isEmpty())
-        {
-            if (slot.isEmpty())
-            {
-                return;
-            }
-
-            int amount = button == 1 ? (slot.getCount() + 1) / 2 : slot.getCount();
-            this.carried = slot.copy();
-            this.carried.setCount(amount);
-            slot.shrink(amount);
-
-            if (slot.getCount() <= 0)
-            {
-                this.altar.set(index, ItemStack.EMPTY);
-            }
-
-            return;
-        }
-
-        if (!slot.isEmpty() && !SlotMoves.sameStack(slot, this.carried))
-        {
-            return;
-        }
-
-        int space = slot.isEmpty() ? this.carried.getMaxStackSize() : slot.getMaxStackSize() - slot.getCount();
-        int wanted = button == 1 ? 1 : this.carried.getCount();
-        int moved = Math.min(space, Math.min(wanted, this.carried.getCount()));
-
-        if (moved <= 0)
-        {
-            this.status = Component.translatable(key("altar.full")).getString();
-            return;
-        }
-
-        if (slot.isEmpty())
-        {
-            ItemStack placed = this.carried.copy();
-            placed.setCount(moved);
-            this.altar.set(index, placed);
-        }
-        else
-        {
-            slot.grow(moved);
-        }
-
-        this.carried.shrink(moved);
-
-        if (this.carried.getCount() <= 0)
-        {
-            this.carried = ItemStack.EMPTY;
-        }
-
-        this.status = "";
-    }
-
-    /**
-     * Moves one whole view stack into the altar, used by the shift click and by the batch buttons.
-     */
-    private void offerStack(ItemStack source)
-    {
-        int remaining = SlotMoves.insert(this.altar, source, source.getCount());
-
-        if (remaining >= source.getCount())
-        {
-            this.status = Component.translatable(key("altar.full")).getString();
-            return;
-        }
-
-        this.status = "";
+        this.mobLayout = new TableLayout(this.font, MOB_TABLE_WIDTH);
+        this.mobLayout.addColumn(Component.translatable(key("altar.mobs")), 0, names);
+        this.mobLayout.addColumn(Component.translatable(key("altar.column_health")), MOB_HEALTH_WIDTH, healths);
+        this.mobLayout.compute();
     }
 
     private void drawSeparators(GuiGraphics graphics)
@@ -656,63 +577,98 @@ public class AltarScreen extends Screen
         int top = this.topPos + SEPARATOR_TOP_Y;
         int bottom = this.topPos + SEPARATOR_BOTTOM_Y;
         graphics.fill(this.leftPos + SEPARATOR_LEFT_X, top, this.leftPos + SEPARATOR_LEFT_X + 1, bottom, SEPARATOR_COLOR);
-        graphics.fill(this.leftPos + SEPARATOR_RIGHT_X, top, this.leftPos + SEPARATOR_RIGHT_X + 1, bottom, SEPARATOR_COLOR);
+        graphics.fill(this.leftPos + SEPARATOR_RIGHT_X, top, this.leftPos + SEPARATOR_RIGHT_X + 1, bottom,
+                SEPARATOR_COLOR);
     }
 
+    /**
+     * The frame of every real slot, read from the menu so the drawn grid can never drift away from the slots.
+     */
+    private void drawSlotFrames(GuiGraphics graphics)
+    {
+        for (Slot slot : this.getMenu().slots)
+        {
+            int x = this.leftPos + slot.x;
+            int y = this.topPos + slot.y;
+            graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_SHADE);
+            graphics.fill(x, y, x + 16, y + 16, SLOT_COLOR);
+        }
+    }
+
+    /**
+     * Frozen header, scrolling rows with their selection mark and the draggable scroll bar.
+     */
     private void drawMobList(GuiGraphics graphics, int mouseX, int mouseY)
     {
-        int listTop = this.topPos + MOB_LIST_Y;
-        int listBottom = listTop + MOB_VISIBLE_ROWS * MOB_ROW_HEIGHT;
-        graphics.fill(this.leftPos + MOB_X, listTop, this.leftPos + MOB_X + MOB_WIDTH, listBottom, LIST_COLOR);
-
-        int hovered = mobRowAt(mouseX, mouseY);
-
-        for (int line = 0; line < MOB_VISIBLE_ROWS; line++)
-        {
-            int index = this.mobScroll + line;
-
-            if (index >= this.mobEntries.size())
-            {
-                break;
-            }
-
-            MobListPacket.MobEntry entry = this.mobEntries.get(index);
-            int rowY = listTop + line * MOB_ROW_HEIGHT;
-
-            if (index == hovered)
-            {
-                graphics.fill(this.leftPos + MOB_X, rowY, this.leftPos + MOB_X + MOB_WIDTH, rowY + MOB_ROW_HEIGHT - 1,
-                        ROW_HOVER_COLOR);
-            }
-
-            boolean selected = this.selectedMobs.contains(entry.id());
-            drawCheck(graphics, this.leftPos + MOB_X + 1, rowY + 1, selected);
-            graphics.drawString(this.font, clip(mobLabel(entry), MOB_TEXT_WIDTH),
-                    this.leftPos + MOB_X + LABEL_OFFSET, rowY + 1, selected ? TEXT_COLOR : LABEL_COLOR, false);
-        }
-
-        drawMobScrollBar(graphics, listTop, listBottom);
-    }
-
-    private void drawMobScrollBar(GuiGraphics graphics, int listTop, int listBottom)
-    {
-        int total = this.mobEntries.size();
-
-        if (total <= MOB_VISIBLE_ROWS)
+        if (this.mobLayout == null)
         {
             return;
         }
 
-        int trackHeight = listBottom - listTop;
-        int maximum = maximumMobScroll();
-        int thumbHeight = Math.max(6, trackHeight * MOB_VISIBLE_ROWS / total);
-        int thumbTop = listTop + (trackHeight - thumbHeight) * this.mobScroll / Math.max(1, maximum);
-        int barX = this.leftPos + MOB_X + MOB_WIDTH - 2;
-        graphics.fill(barX, listTop, barX + 2, listBottom, SCROLL_TRACK_COLOR);
-        graphics.fill(barX, thumbTop, barX + 2, thumbTop + thumbHeight, SCROLL_THUMB_COLOR);
+        int listX = this.leftPos + MOB_X;
+        int headerY = this.topPos + MOB_LIST_Y;
+        int rowsY = headerY + ModConstants.TABLE_HEADER_HEIGHT;
+        int hovered = mobRowAt(mouseX, mouseY);
+        int visible = Math.min(MOB_VISIBLE_ROWS,
+                Math.max(0, this.mobEntries.size() - this.mobScrollBar.value()));
+
+        graphics.fill(listX, headerY, listX + MOB_TABLE_WIDTH, headerY + ModConstants.TABLE_HEADER_HEIGHT,
+                HEADER_COLOR);
+        this.mobLayout.drawHeader(graphics, listX, headerY + 2, HEADER_TEXT_COLOR);
+
+        for (int line = 0; line < visible; line++)
+        {
+            int index = this.mobScrollBar.value() + line;
+            int y = rowsY + line * ModConstants.TABLE_ROW_HEIGHT;
+            MobListPacket.MobEntry entry = this.mobEntries.get(index);
+            boolean selected = this.selectedMobs.contains(entry.id());
+            int background = index == hovered ? ROW_HOVER_COLOR : (selected ? ROW_SELECTED_COLOR : LIST_COLOR);
+
+            graphics.fill(listX, y, listX + MOB_TABLE_WIDTH, y + ModConstants.TABLE_ROW_HEIGHT - 1, background);
+            this.mobLayout.drawCell(graphics, 0, entry.name().getString(), listX, y + 2,
+                    selected ? TEXT_COLOR : LABEL_COLOR);
+            this.mobLayout.drawCell(graphics, 1, mobHealth(entry), listX, y + 2,
+                    selected ? TEXT_COLOR : LABEL_COLOR);
+            /* The selection mark sits in the trailing gutter, so it never covers a cell text. */
+            drawCheck(graphics, listX + MOB_TABLE_WIDTH - CHECK_SIZE - 1, y + 1, selected);
+        }
+
+        this.mobScrollBar.render(graphics);
     }
 
-    private void drawValueChecks(GuiGraphics graphics)
+    /**
+     * Holds the hover tooltip of one creature row back for a moment, then shows the full name and the registry id.
+     */
+    private void drawMobTooltip(GuiGraphics graphics, int mouseX, int mouseY)
+    {
+        int index = mobRowAt(mouseX, mouseY);
+
+        if (index < 0 || index >= this.mobEntries.size() || this.mobLayout == null)
+        {
+            this.mobTooltip.render(graphics, this.font, null, null, mouseX, mouseY);
+            return;
+        }
+
+        MobListPacket.MobEntry entry = this.mobEntries.get(index);
+        String name = entry.name().getString();
+        String health = mobHealth(entry);
+        List<Component> lines = new ArrayList<Component>();
+
+        if (this.mobLayout.isClipped(0, name))
+        {
+            lines.add(Component.literal(name));
+        }
+
+        if (this.mobLayout.isClipped(1, health))
+        {
+            lines.add(Component.literal(health));
+        }
+
+        lines.add(ItemLabels.idTooltip(entry.typeId()));
+        this.mobTooltip.render(graphics, this.font, entry.id().toString(), lines, mouseX, mouseY);
+    }
+
+    private void drawChecks(GuiGraphics graphics)
     {
         drawCheck(graphics, this.leftPos + VALUE_X, this.topPos + HEALTH_Y, this.healthChecked);
         drawCheck(graphics, this.leftPos + VALUE_X, this.topPos + FOOD_Y, this.foodChecked);
@@ -723,77 +679,6 @@ public class AltarScreen extends Screen
             drawWrapped(graphics, Component.translatable(key("altar.death_drop")),
                     this.leftPos + VALUE_X + LABEL_OFFSET, this.topPos + DEATH_DROP_Y, DEATH_DROP_WIDTH,
                     DEATH_DROP_LINE_HEIGHT, TEXT_COLOR);
-        }
-    }
-
-    private void drawInventorySlots(GuiGraphics graphics, int mouseX, int mouseY)
-    {
-        List<ItemStack> view = currentView();
-        int hovered = inventoryIndexAt(mouseX, mouseY);
-
-        for (int row = 0; row < 3; row++)
-        {
-            for (int column = 0; column < 9; column++)
-            {
-                int index = 9 + row * 9 + column;
-                drawSlot(graphics, this.leftPos + INVENTORY_X + column * SLOT, this.topPos + INVENTORY_Y + row * SLOT,
-                        stackIn(view, index), hovered == index);
-            }
-        }
-
-        for (int column = 0; column < 9; column++)
-        {
-            drawSlot(graphics, this.leftPos + INVENTORY_X + column * SLOT, this.topPos + HOTBAR_Y,
-                    stackIn(view, column), hovered == column);
-        }
-    }
-
-    private static ItemStack stackIn(List<ItemStack> view, int index)
-    {
-        return index >= 0 && index < view.size() ? view.get(index) : ItemStack.EMPTY;
-    }
-
-    /**
-     * Draws the cursor stack, which is what makes the interaction read like the vanilla inventory.
-     */
-    private void drawCarried(GuiGraphics graphics, int mouseX, int mouseY)
-    {
-        if (this.carried.isEmpty())
-        {
-            return;
-        }
-
-        graphics.renderItem(this.carried, mouseX - 8, mouseY - 8);
-        graphics.renderItemDecorations(this.font, this.carried, mouseX - 8, mouseY - 8);
-    }
-
-    private void drawAltarSlots(GuiGraphics graphics, int mouseX, int mouseY)
-    {
-        int hovered = altarIndexAt(mouseX, mouseY);
-
-        for (int index = 0; index < this.altar.size(); index++)
-        {
-            int row = index / 3;
-            int column = index % 3;
-            drawSlot(graphics, this.leftPos + ALTAR_X + column * SLOT, this.topPos + ALTAR_Y + row * SLOT,
-                    this.altar.get(index), hovered == index);
-        }
-    }
-
-    private void drawSlot(GuiGraphics graphics, int x, int y, ItemStack stack, boolean hovered)
-    {
-        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_SHADE);
-        graphics.fill(x, y, x + 16, y + 16, SLOT_COLOR);
-
-        if (hovered)
-        {
-            graphics.fill(x, y, x + 16, y + 16, HIGHLIGHT_COLOR);
-        }
-
-        if (!stack.isEmpty())
-        {
-            graphics.renderItem(stack, x, y);
-            graphics.renderItemDecorations(this.font, stack, x, y);
         }
     }
 
@@ -808,52 +693,21 @@ public class AltarScreen extends Screen
         }
     }
 
-    private void drawLabels(GuiGraphics graphics)
-    {
-        graphics.drawString(this.font, this.title, this.leftPos + MOB_X, this.topPos + 6, TITLE_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.mobs")),
-                this.leftPos + MOB_X, this.topPos + MOB_LABEL_Y, LABEL_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.values")),
-                this.leftPos + VALUE_X, this.topPos + VALUE_LABEL_Y, LABEL_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.inventory")),
-                this.leftPos + INVENTORY_X, this.topPos + INVENTORY_LABEL_Y, LABEL_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.altar")),
-                this.leftPos + ALTAR_X, this.topPos + ALTAR_LABEL_Y, LABEL_COLOR, false);
-        graphics.drawString(this.font, clip(Component.translatable(key("altar.summary"),
-                Integer.valueOf(countEntries()), Integer.valueOf(countItems())).getString(), SUMMARY_WIDTH),
-                this.leftPos + SUMMARY_X, this.topPos + SUMMARY_Y, TEXT_COLOR, false);
-        graphics.drawString(this.font, clip(Component.translatable(key("altar.estimate"),
-                Long.valueOf(estimatedValue())).getString(), SUMMARY_WIDTH),
-                this.leftPos + SUMMARY_X, this.topPos + SUMMARY_Y + SUMMARY_LINE_HEIGHT, ESTIMATE_COLOR, false);
-
-        drawWrapped(graphics, Component.translatable(key("altar.hint")), this.leftPos + MOB_X,
-                this.topPos + HINT_Y, MOB_WIDTH, HINT_LINE_HEIGHT, LABEL_COLOR);
-        drawValueLabels(graphics);
-        graphics.drawString(this.font, clip(this.status, STATUS_WIDTH), this.leftPos + STATUS_X,
-                this.topPos + STATUS_Y, STATUS_COLOR, false);
-        graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"),
-                this.leftPos + AUTHOR_X, this.topPos + AUTHOR_Y, AUTHOR_COLOR, false);
-    }
-
     private void drawValueLabels(GuiGraphics graphics)
     {
-        graphics.drawString(this.font, Component.translatable(key("altar.health")),
-                this.leftPos + VALUE_X + LABEL_OFFSET, this.topPos + HEALTH_Y + 1, LABEL_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.current"), Integer.valueOf(currentHealth())),
-                this.leftPos + VALUE_X + LABEL_OFFSET, this.topPos + HEALTH_CURRENT_Y, TEXT_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.food")),
-                this.leftPos + VALUE_X + LABEL_OFFSET, this.topPos + FOOD_Y + 1, LABEL_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("altar.current"), Integer.valueOf(currentFood())),
-                this.leftPos + VALUE_X + LABEL_OFFSET, this.topPos + FOOD_CURRENT_Y, TEXT_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("altar.values")), VALUE_X, VALUE_LABEL_Y, LABEL_COLOR,
+                false);
+        graphics.drawString(this.font, Component.translatable(key("altar.current"),
+                Integer.valueOf(currentHealth())), VALUE_X + LABEL_OFFSET, HEALTH_CURRENT_Y, TEXT_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("altar.current"),
+                Integer.valueOf(currentFood())), VALUE_X + LABEL_OFFSET, FOOD_CURRENT_Y, TEXT_COLOR, false);
 
         Component experience = Component.translatable(key("altar.experience"));
-        graphics.drawString(this.font, experience, this.leftPos + VALUE_X, this.topPos + EXPERIENCE_Y, LABEL_COLOR,
-                false);
-        graphics.drawString(this.font, Integer.toString(currentLevel()),
-                this.leftPos + VALUE_X + this.font.width(experience) + 3, this.topPos + EXPERIENCE_Y, TEXT_COLOR,
-                false);
-        drawWrapped(graphics, Component.translatable(key("altar.experience_note")), this.leftPos + VALUE_X,
-                this.topPos + EXPERIENCE_NOTE_Y, VALUE_WIDTH, NOTE_LINE_HEIGHT, LABEL_COLOR);
+        graphics.drawString(this.font, experience, VALUE_X, EXPERIENCE_Y, LABEL_COLOR, false);
+        graphics.drawString(this.font, Integer.toString(currentLevel()), VALUE_X + this.font.width(experience) + 3,
+                EXPERIENCE_Y, TEXT_COLOR, false);
+        drawWrapped(graphics, Component.translatable(key("altar.experience_note")), VALUE_X, EXPERIENCE_NOTE_Y,
+                VALUE_WIDTH, NOTE_LINE_HEIGHT, LABEL_COLOR);
     }
 
     private void drawWrapped(GuiGraphics graphics, Component text, int x, int y, int width, int lineHeight, int color)
@@ -866,49 +720,36 @@ public class AltarScreen extends Screen
         }
     }
 
-    private void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY)
+    /**
+     * Adds one extra value line under the vanilla tooltip of a hovered stack.
+     */
+    private void appendValueLine(List<Component> lines, ItemStack stack, boolean insideOffering)
     {
-        Minecraft minecraft = this.minecraft;
+        ValueTableSnapshot snapshot = currentSnapshot();
 
-        if (minecraft == null || minecraft.player == null)
+        if (snapshot == null || stack.isEmpty())
         {
             return;
         }
 
-        this.tooltipLines.clear();
-        int altarIndex = altarIndexAt(mouseX, mouseY);
-        ItemStack stack = ItemStack.EMPTY;
-        boolean insideAltar = false;
+        ResourceLocation registryKey = ForgeRegistries.ITEMS.getKey(stack.getItem());
 
-        if (altarIndex >= 0)
+        if (registryKey == null)
         {
-            stack = this.altar.get(altarIndex);
-            insideAltar = true;
+            return;
         }
-        else if (!this.carried.isEmpty())
+
+        int unit = snapshot.valueOf(registryKey.toString());
+
+        if (insideOffering)
         {
-            /* The cursor hides the slot underneath, so the carried stack is what the player is looking at. */
-            stack = this.carried;
+            lines.add(Component.translatable(key("value.subtotal"), Integer.valueOf(unit),
+                    Integer.valueOf(stack.getCount()), Integer.valueOf(unit * stack.getCount())));
         }
         else
         {
-            int inventoryIndex = inventoryIndexAt(mouseX, mouseY);
-
-            if (inventoryIndex >= 0)
-            {
-                stack = stackIn(currentView(), inventoryIndex);
-            }
+            lines.add(Component.translatable(key("value.line"), Integer.valueOf(unit)));
         }
-
-        if (stack.isEmpty())
-        {
-            return;
-        }
-
-        this.tooltipLines.addAll(Screen.getTooltipFromItem(minecraft, stack));
-        appendValueLine(stack, insideAltar);
-        graphics.renderTooltip(this.font, this.tooltipLines, Optional.<net.minecraft.world.inventory.tooltip.TooltipComponent>empty(),
-                stack, mouseX, mouseY);
     }
 
     /**
@@ -930,7 +771,9 @@ public class AltarScreen extends Screen
     }
 
     /**
-     * Client side estimate of the offering value, computed from the public value table only.
+     * Client side estimate of the offering value: the grid stacks, the selected creatures and the numeric offering,
+     * with the experience bonus once any numeric offering is selected. The item part uses the public value table, so
+     * the estimate stays a hint and the server settles the real value.
      */
     private long estimatedValue()
     {
@@ -950,74 +793,92 @@ public class AltarScreen extends Screen
 
         long total = 0L;
 
-        for (ItemStack stack : this.altar)
+        for (ItemStack stack : offeringStacks())
         {
             if (stack.isEmpty())
             {
                 continue;
             }
 
-            ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
+            ResourceLocation registryKey = ForgeRegistries.ITEMS.getKey(stack.getItem());
 
-            if (key != null)
+            if (registryKey != null)
             {
-                total += (long) snapshot.valueOf(key.toString()) * (long) stack.getCount();
+                total += (long) snapshot.valueOf(registryKey.toString()) * (long) stack.getCount();
             }
         }
 
-        return total;
+        for (MobListPacket.MobEntry entry : this.mobEntries)
+        {
+            if (this.selectedMobs.contains(entry.id()))
+            {
+                total += snapshot.entityValueOf(entry.typeId());
+            }
+        }
+
+        total += (long) offeredHealth() * HEALTH_VALUE_FACTOR + (long) offeredFood();
+
+        if (numericOfferingSelected())
+        {
+            total += experienceValue();
+        }
+
+        return Math.min(total, ModConstants.MAX_TOTAL_VALUE);
     }
 
     /**
-     * Adds one extra value line under the vanilla tooltip, but only when the player carries a filled value table.
+     * Experience levels are offered in full once any numeric offering is selected, scaled by the health and food ratio.
      */
-    private void appendValueLine(ItemStack stack, boolean insideAltar)
+    private long experienceValue()
     {
         Minecraft minecraft = this.minecraft;
 
         if (minecraft == null || minecraft.player == null)
         {
-            return;
+            return 0L;
         }
 
-        ValueTableSnapshot snapshot = currentSnapshot();
+        double healthRatio = minecraft.player.getMaxHealth() <= 0.0F
+                ? 0.0D : minecraft.player.getHealth() / (double) minecraft.player.getMaxHealth();
+        double foodRatio = minecraft.player.getFoodData().getFoodLevel() / FOOD_LEVEL_MAX;
+        return (long) (minecraft.player.experienceLevel * (1.0D + healthRatio * foodRatio));
+    }
 
-        if (snapshot == null)
+    /**
+     * The stacks currently in the offering grid, read from the container the menu synchronises.
+     */
+    private List<ItemStack> offeringStacks()
+    {
+        List<ItemStack> stacks = new ArrayList<ItemStack>();
+        Container container = this.getMenu().offerings();
+        int size = Math.min(AltarMenu.OFFERING_SLOTS, container.getContainerSize());
+
+        for (int index = 0; index < size; index++)
         {
-            return;
+            stacks.add(container.getItem(index));
         }
 
-        ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        return stacks;
+    }
 
-        if (key == null)
+    private boolean offeringEmpty()
+    {
+        for (ItemStack stack : offeringStacks())
         {
-            return;
+            if (!stack.isEmpty())
+            {
+                return false;
+            }
         }
 
-        String itemId = key.toString();
-        int unit = snapshot.valueOf(itemId);
-        boolean registered = snapshot.isRegistered(itemId);
-
-        if (insideAltar)
-        {
-            this.tooltipLines.add(Component.translatable(key("value.subtotal"), Integer.valueOf(unit),
-                    Integer.valueOf(stack.getCount()), Integer.valueOf(unit * stack.getCount())));
-        }
-        else if (registered)
-        {
-            this.tooltipLines.add(Component.translatable(key("value.line"), Integer.valueOf(unit)));
-        }
-        else
-        {
-            this.tooltipLines.add(Component.translatable(key("value.line_default"), Integer.valueOf(unit)));
-        }
+        return true;
     }
 
     private int countEntries()
     {
         int result = 0;
 
-        for (ItemStack stack : this.altar)
+        for (ItemStack stack : offeringStacks())
         {
             if (!stack.isEmpty())
             {
@@ -1032,7 +893,7 @@ public class AltarScreen extends Screen
     {
         int result = 0;
 
-        for (ItemStack stack : this.altar)
+        for (ItemStack stack : offeringStacks())
         {
             result += stack.getCount();
         }
@@ -1079,32 +940,37 @@ public class AltarScreen extends Screen
         return minecraft.player.experienceLevel;
     }
 
-    private int healthInput()
-    {
-        return fieldValue(this.healthField);
-    }
-
-    private int foodInput()
-    {
-        return fieldValue(this.foodField);
-    }
-
     private int offeredHealth()
     {
-        return this.healthChecked ? healthInput() : 0;
+        return this.healthChecked && this.healthSlider != null ? this.healthSlider.value() : 0;
     }
 
     private int offeredFood()
     {
-        return this.foodChecked ? foodInput() : 0;
+        return this.foodChecked && this.foodSlider != null ? this.foodSlider.value() : 0;
     }
 
     /**
-     * Whether a numeric checkbox is ticked while its field stays at zero, so nothing would be offered.
+     * A full health sacrifice, which the death drop option and the server both require to be complete.
+     */
+    private boolean allHealthSelected()
+    {
+        return this.healthChecked && this.healthSlider != null && currentHealth() > 0
+                && this.healthSlider.value() >= currentHealth();
+    }
+
+    private boolean numericOfferingSelected()
+    {
+        return offeredHealth() > 0 || offeredFood() > 0 || allHealthSelected();
+    }
+
+    /**
+     * Whether a numeric checkbox is ticked while its slider stays at zero, so nothing would be offered.
      */
     private boolean numericOfferingEmpty()
     {
-        return (this.healthChecked && healthInput() <= 0) || (this.foodChecked && foodInput() <= 0);
+        return (this.healthChecked && this.healthSlider != null && this.healthSlider.value() <= 0)
+                || (this.foodChecked && this.foodSlider != null && this.foodSlider.value() <= 0);
     }
 
     /**
@@ -1112,7 +978,7 @@ public class AltarScreen extends Screen
      */
     private boolean deathDropAvailable()
     {
-        return !keepInventory() && healthInput() >= currentHealth() && healthChecked;
+        return !keepInventory() && allHealthSelected();
     }
 
     private void normalizeDeathDrop()
@@ -1135,42 +1001,10 @@ public class AltarScreen extends Screen
         return minecraft.level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
     }
 
-    private static void setFieldValue(EditBox box, int value)
+    private static String mobHealth(MobListPacket.MobEntry entry)
     {
-        if (box != null)
-        {
-            box.setValue(Integer.toString(Math.max(0, value)));
-        }
-    }
-
-    private static int fieldValue(EditBox box)
-    {
-        if (box == null)
-        {
-            return 0;
-        }
-
-        String raw = box.getValue().trim();
-
-        if (raw.isEmpty())
-        {
-            return 0;
-        }
-
-        try
-        {
-            return Math.max(0, Integer.parseInt(raw));
-        }
-        catch (NumberFormatException exception)
-        {
-            return 0;
-        }
-    }
-
-    private static String mobLabel(MobListPacket.MobEntry entry)
-    {
-        return Component.translatable(key("altar.mob_row"), entry.name(),
-                formatNumber(entry.health()), formatNumber(entry.maxHealth())).getString();
+        return Component.translatable(key("altar.mob_health"), formatNumber(entry.health()),
+                formatNumber(entry.maxHealth())).getString();
     }
 
     private static String formatNumber(float value)
@@ -1188,7 +1022,8 @@ public class AltarScreen extends Screen
     {
         return mouseX >= this.leftPos + MOB_X && mouseX <= this.leftPos + MOB_X + MOB_WIDTH
                 && mouseY >= this.topPos + MOB_LIST_Y
-                && mouseY <= this.topPos + MOB_LIST_Y + MOB_VISIBLE_ROWS * MOB_ROW_HEIGHT;
+                && mouseY <= this.topPos + MOB_LIST_Y + ModConstants.TABLE_HEADER_HEIGHT
+                        + MOB_VISIBLE_ROWS * ModConstants.TABLE_ROW_HEIGHT;
     }
 
     private boolean insideCheck(double mouseX, double mouseY, int x, int y)
@@ -1196,6 +1031,9 @@ public class AltarScreen extends Screen
         return mouseX >= x && mouseX < x + CHECK_SIZE && mouseY >= y && mouseY < y + CHECK_SIZE;
     }
 
+    /**
+     * Row index under the pointer, or minus one. The frozen header row is never a row of the list.
+     */
     private int mobRowAt(double mouseX, double mouseY)
     {
         if (!insideMobList(mouseX, mouseY))
@@ -1203,43 +1041,22 @@ public class AltarScreen extends Screen
             return -1;
         }
 
-        int line = (int) Math.floor((mouseY - (this.topPos + MOB_LIST_Y)) / MOB_ROW_HEIGHT);
-        int index = this.mobScroll + line;
-        return index >= 0 && index < this.mobEntries.size() ? index : -1;
-    }
+        int rowsY = this.topPos + MOB_LIST_Y + ModConstants.TABLE_HEADER_HEIGHT;
 
-    private int inventoryIndexAt(double mouseX, double mouseY)
-    {
-        int column = (int) Math.floor((mouseX - (this.leftPos + INVENTORY_X)) / SLOT);
-        int row = (int) Math.floor((mouseY - (this.topPos + INVENTORY_Y)) / SLOT);
-
-        if (column >= 0 && column < 9 && row >= 0 && row < 3)
-        {
-            return 9 + row * 9 + column;
-        }
-
-        int hotbarRow = (int) Math.floor((mouseY - (this.topPos + HOTBAR_Y)) / SLOT);
-
-        if (column >= 0 && column < 9 && hotbarRow == 0)
-        {
-            return column;
-        }
-
-        return -1;
-    }
-
-    private int altarIndexAt(double mouseX, double mouseY)
-    {
-        int column = (int) Math.floor((mouseX - (this.leftPos + ALTAR_X)) / SLOT);
-        int row = (int) Math.floor((mouseY - (this.topPos + ALTAR_Y)) / SLOT);
-
-        if (column < 0 || column >= 3 || row < 0 || row >= 3)
+        if (mouseY < rowsY)
         {
             return -1;
         }
 
-        int index = row * 3 + column;
-        return index < this.altar.size() ? index : -1;
+        int line = (int) Math.floor((mouseY - rowsY) / ModConstants.TABLE_ROW_HEIGHT);
+
+        if (line < 0 || line >= MOB_VISIBLE_ROWS)
+        {
+            return -1;
+        }
+
+        int index = this.mobScrollBar.value() + line;
+        return index >= 0 && index < this.mobEntries.size() ? index : -1;
     }
 
     private String clip(String text, int maxWidth)
@@ -1249,21 +1066,7 @@ public class AltarScreen extends Screen
             return text;
         }
 
-        StringBuilder builder = new StringBuilder();
-
-        for (int index = 0; index < text.length(); index++)
-        {
-            String candidate = builder.toString() + text.charAt(index);
-
-            if (this.font.width(candidate) > maxWidth - 6)
-            {
-                break;
-            }
-
-            builder.append(text.charAt(index));
-        }
-
-        return builder + "...";
+        return this.font.plainSubstrByWidth(text, Math.max(1, maxWidth - this.font.width("..."))) + "...";
     }
 
     private static String key(String suffix)

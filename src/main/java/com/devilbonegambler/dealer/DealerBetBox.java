@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -20,8 +22,11 @@ import net.minecraftforge.registries.ForgeRegistries;
  * Server owned bet box of one member: nine slots that never enter the world.
  * The box is the only place a bet lives while the wager runs, so leaving, cancelling and aborting all return the
  * very same stacks to the player.
+ * The box is also the container behind the nine bet slots of the bet menu, which is why it implements the vanilla
+ * container contract: the slots of the menu read and write these nine cells directly, so a bet can never exist in two
+ * places at once.
  */
-public final class DealerBetBox
+public final class DealerBetBox implements Container
 {
     private final List<ItemStack> slots = new ArrayList<ItemStack>();
 
@@ -55,6 +60,7 @@ public final class DealerBetBox
         return copy;
     }
 
+    @Override
     public boolean isEmpty()
     {
         for (ItemStack stack : this.slots)
@@ -245,6 +251,98 @@ public final class DealerBetBox
             {
                 player.drop(stack, false);
             }
+        }
+    }
+
+    /*
+     * Container: the nine cells are the same nine cells the wager service settles, so the menu and the settlement
+     * always talk about the very same stacks.
+     */
+
+    @Override
+    public int getContainerSize()
+    {
+        return this.slots.size();
+    }
+
+    @Override
+    public ItemStack getItem(int index)
+    {
+        return this.get(index);
+    }
+
+    @Override
+    public ItemStack removeItem(int index, int amount)
+    {
+        ItemStack slot = this.get(index);
+
+        if (slot.isEmpty() || amount <= 0)
+        {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack taken = slot.split(amount);
+
+        if (slot.isEmpty())
+        {
+            this.setItem(index, ItemStack.EMPTY);
+        }
+
+        this.setChanged();
+        return taken;
+    }
+
+    @Override
+    public ItemStack removeItemNoUpdate(int index)
+    {
+        ItemStack slot = this.get(index);
+
+        if (slot.isEmpty())
+        {
+            return ItemStack.EMPTY;
+        }
+
+        this.slots.set(index, ItemStack.EMPTY);
+        return slot;
+    }
+
+    @Override
+    public void setItem(int index, ItemStack stack)
+    {
+        if (index < 0 || index >= this.slots.size())
+        {
+            return;
+        }
+
+        this.slots.set(index, stack);
+        this.setChanged();
+    }
+
+    @Override
+    public void setChanged()
+    {
+        /*
+         * The box is the in memory authority of the wager, so a change is already live for whoever reads the box and
+         * the menu detects it by comparing the slots. There is no state to flush and no listener to wake up.
+         */
+    }
+
+    @Override
+    public boolean stillValid(Player player)
+    {
+        /*
+         * The box has no block to walk away from, so it stays valid for as long as it exists. The only way a box may
+         * stop being usable is the end of its session, and the service then closes the menu on the server.
+         */
+        return true;
+    }
+
+    @Override
+    public void clearContent()
+    {
+        for (int index = 0; index < this.slots.size(); index++)
+        {
+            this.slots.set(index, ItemStack.EMPTY);
         }
     }
 }

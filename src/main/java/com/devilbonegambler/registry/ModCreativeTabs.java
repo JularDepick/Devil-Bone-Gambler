@@ -32,6 +32,9 @@ public final class ModCreativeTabs
                 output.accept(ModBlocks.DEVILS_ALTAR_ITEM.get());
                 output.accept(ModItems.OFFERING_VALUE_TABLE.get());
                 output.accept(ModItems.GAMBLERS_DEALER_SPAWN_EGG.get());
+                output.accept(ModItems.GAMEPLAY_MANUAL.get());
+                output.accept(ModItems.ADMIN_MANUAL.get());
+                output.accept(ModItems.CREATOR_MANUAL.get());
             })
             .build());
 

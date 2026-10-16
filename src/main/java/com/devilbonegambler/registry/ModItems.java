@@ -9,6 +9,8 @@ package com.devilbonegambler.registry;
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.item.DevilsDiceItem;
 import com.devilbonegambler.item.GamblersDiceItem;
+import com.devilbonegambler.item.ManualItem;
+import com.devilbonegambler.manual.ManualKind;
 import com.devilbonegambler.item.OfferingValueTableItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Item;
@@ -36,6 +38,36 @@ public final class ModItems
 
     public static final RegistryObject<Item> GAMBLERS_DEALER_SPAWN_EGG = ITEMS.register("gamblers_dealer_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.GAMBLERS_DEALER, 0x4A3B2A, 0xC8A165, new Item.Properties()));
+
+    /*
+     * The three manuals are book shaped, never craftable and never stackable, and their content ships as markdown.
+     */
+    public static final RegistryObject<Item> GAMEPLAY_MANUAL = registerManual(ManualKind.GAMEPLAY);
+    public static final RegistryObject<Item> ADMIN_MANUAL = registerManual(ManualKind.ADMIN);
+    public static final RegistryObject<Item> CREATOR_MANUAL = registerManual(ManualKind.CREATOR);
+
+    private static RegistryObject<Item> registerManual(ManualKind kind)
+    {
+        return ITEMS.register(kind.itemId(), () -> new ManualItem(kind, new Item.Properties().stacksTo(1)));
+    }
+
+    /**
+     * Registered item of a manual kind, used by the grant service.
+     */
+    public static Item manualOf(ManualKind kind)
+    {
+        if (kind == ManualKind.CREATOR)
+        {
+            return CREATOR_MANUAL.get();
+        }
+
+        if (kind == ManualKind.ADMIN)
+        {
+            return ADMIN_MANUAL.get();
+        }
+
+        return GAMEPLAY_MANUAL.get();
+    }
 
     private ModItems()
     {

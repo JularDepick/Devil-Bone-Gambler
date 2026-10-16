@@ -7,10 +7,14 @@
 package com.devilbonegambler.config;
 
 import com.devilbonegambler.util.ModConstants;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 /**
  * The prize pool written when the config file does not exist yet.
  * Three regions keyed by dice point: 1 for free draws, 2 and 3 for higher points.
+ * A preset entry keeps its name as a text component, so the name an administrator reads follows the language of the
+ * game instead of the language the file was created in.
  */
 public final class DefaultPrizePool
 {
@@ -95,10 +99,74 @@ public final class DefaultPrizePool
         return "{\"translate\":\"gui." + ModConstants.MOD_ID + ".notify." + key + "\"}";
     }
 
-    private static void add(PrizeRegion region, String id, double weight, boolean red, boolean majorEvent,
+    /**
+     * Language key of the name of a preset entry. A configuration written before names became translatable stores the
+     * plain slug, which is resolved through the same key.
+     */
+    public static String nameKey(String slug)
+    {
+        return "entry." + ModConstants.MOD_ID + "." + slug;
+    }
+
+    /**
+     * Stored form of a preset entry name: a text component, so the name follows the reader language.
+     */
+    public static String nameJson(String slug)
+    {
+        return "{\"translate\":\"" + nameKey(slug) + "\"}";
+    }
+
+    /**
+     * Name of an entry as it is shown: a stored text component is resolved, a stored slug is resolved through the
+     * preset key when that key exists in the language of the reader, and anything else stays the literal the
+     * administrator typed.
+     */
+    public static String displayName(String stored)
+    {
+        if (stored == null || stored.isEmpty())
+        {
+            return "";
+        }
+
+        if (stored.startsWith("{"))
+        {
+            try
+            {
+                MutableComponent parsed = Component.Serializer.fromJson(stored);
+                return parsed == null ? stored : resolve(parsed.getString(), stored);
+            }
+            catch (RuntimeException exception)
+            {
+                return stored;
+            }
+        }
+
+        String key = nameKey(stored);
+        String translated = Component.translatable(key).getString();
+        return key.equals(translated) ? stored : translated;
+    }
+
+    /**
+     * A stored text component resolves through the language of the reader; when that language has no entry for the key
+     * yet, the slug behind the key is still readable and is shown instead of the raw key.
+     */
+    private static String resolve(String translated, String stored)
+    {
+        String prefix = "entry." + ModConstants.MOD_ID + ".";
+
+        if (translated.startsWith(prefix))
+        {
+            return translated.substring(prefix.length());
+        }
+
+        return translated.isEmpty() ? stored : translated;
+    }
+
+    private static void add(PrizeRegion region, String slug, double weight, boolean red, boolean majorEvent,
             String command, String mode, String text)
     {
         String color = red ? ModConstants.ENTRY_COLOR_RED : ModConstants.ENTRY_COLOR_BLACK;
-        region.entriesOrEmpty().add(new PrizeEntry(id, true, weight, color, majorEvent, command, mode, text));
+        region.entriesOrEmpty().add(new PrizeEntry(nameJson(slug), true, weight, color, majorEvent, command, mode,
+                text));
     }
 }

@@ -35,6 +35,13 @@ public final class ModConstants
      * Save data names
      */
     public static final String LUCK_DATA_NAME = "devil_bone_gambler_luck";
+    public static final String MANUAL_GRANT_DATA_NAME = "devil_bone_gambler_manual_grant";
+
+    /*
+     * Manuals: shipped markdown content, one file per manual and language, read only and never generated at runtime.
+     */
+    public static final String MANUAL_RESOURCE_DIR = "manuals/";
+    public static final String MANUAL_RESOURCE_EXTENSION = ".md";
 
     /*
      * Luck
@@ -62,7 +69,10 @@ public final class ModConstants
 
     public static final int MAX_COMMAND_LENGTH = 512;
     public static final int MAX_NOTIFY_TEXT_LENGTH = 256;
-    public static final int MAX_ENTRY_ID_LENGTH = 64;
+    /*
+     * A preset entry name is stored as a text component, which takes more room than a plain label.
+     */
+    public static final int MAX_ENTRY_ID_LENGTH = 96;
 
     /*
      * Dice roll
@@ -137,7 +147,7 @@ public final class ModConstants
     /*
      * Rows held by the searchable value table view at once, and the longest query it accepts.
      */
-    public static final int VALUE_TABLE_SCREEN_ROWS = 12;
+    public static final int VALUE_TABLE_SCREEN_ROWS = 11;
     public static final int VALUE_TABLE_SEARCH_MAX = 48;
     /*
      * Chapter filters of the searchable view, cycled in this order by one button.
@@ -146,6 +156,17 @@ public final class ModConstants
     public static final int VALUE_TABLE_CHAPTER_ITEM = 1;
     public static final int VALUE_TABLE_CHAPTER_ENTITY = 2;
     public static final int VALUE_TABLE_CHAPTER_COUNT = 3;
+
+    /*
+     * List tables: every list view shares one fixed header row, one row height, one scroll bar and one hover delay.
+     * The hover delay holds a tooltip back until the pointer rested on the same row, so a tooltip never flashes.
+     */
+    public static final int TABLE_HEADER_HEIGHT = 12;
+    public static final int TABLE_ROW_HEIGHT = 12;
+    public static final int TABLE_CELL_PADDING = 4;
+    public static final int TABLE_SCROLL_WIDTH = 6;
+    public static final int TABLE_SCROLL_MIN_THUMB = 8;
+    public static final long TOOLTIP_DELAY_MS = 500L;
 
     /*
      * Placeholders

@@ -6,13 +6,18 @@
 
 package com.devilbonegambler.client;
 
+import com.devilbonegambler.client.gui.AltarScreen;
+import com.devilbonegambler.client.gui.DealerBetScreen;
 import com.devilbonegambler.client.render.GamblersDealerRenderer;
 import com.devilbonegambler.registry.ModEntities;
+import com.devilbonegambler.registry.ModMenus;
 import com.devilbonegambler.util.ModConstants;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 /**
  * Client only registrations, kept on the mod bus and behind the client dist so no server class loads it.
@@ -28,5 +33,17 @@ public final class ClientSetup
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
         event.registerEntityRenderer(ModEntities.GAMBLERS_DEALER.get(), GamblersDealerRenderer::new);
+    }
+
+    /**
+     * The container menus of the mod carry their own screens; the altar screen is opened only by the server.
+     */
+    @SubscribeEvent
+    public static void onClientSetup(FMLClientSetupEvent event)
+    {
+        event.enqueueWork(() -> {
+            MenuScreens.register(ModMenus.ALTAR.get(), AltarScreen::new);
+            MenuScreens.register(ModMenus.DEALER_BET.get(), DealerBetScreen::new);
+        });
     }
 }
