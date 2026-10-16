@@ -144,23 +144,41 @@ public final class RegionSelector
     }
 
     /**
-     * Weight of one entry after the overflow boost. Only same colour entries are boosted, opposite ones stay untouched.
+     * Heaviest candidate weight of the pool, used as the reference point of the rarity boost.
+     * Zero when the pool holds no candidate.
      */
-    public static double effectiveWeight(PrizeEntry entry, boolean redPoint, int overflow)
+    private static double poolMaxWeight(PrizeRegion region, boolean redPoint, boolean colorOwned)
+    {
+        double max = 0.0D;
+
+        for (PrizeEntry entry : region.entriesOrEmpty())
+        {
+            if (isCandidate(entry, redPoint, colorOwned))
+            {
+                max = Math.max(max, entry.weightOrZero());
+            }
+        }
+
+        return max;
+    }
+
+    /**
+     * Weight of one entry after the overflow boost.
+     * The boost grows with how uncommon an entry is inside the pool, so a larger overflow favours the entries that
+     * usually stay rare. Scaling the whole pool by one factor would change nothing, because the pool is single
+     * colour and a uniform factor cancels out of the odds.
+     */
+    public static double effectiveWeight(PrizeEntry entry, double poolMaxWeight, int overflow)
     {
         double weight = entry.weightOrZero();
 
-        if (weight <= 0.0D || overflow <= 0)
+        if (weight <= 0.0D || overflow <= 0 || poolMaxWeight <= 0.0D)
         {
             return weight;
         }
 
-        if (redPoint != entry.isRed())
-        {
-            return weight;
-        }
-
-        return weight * (1.0D + overflow * ModConstants.OVERFLOW_WEIGHT_BONUS);
+        double rarity = 1.0D - Math.min(1.0D, weight / poolMaxWeight);
+        return weight * (1.0D + overflow * ModConstants.OVERFLOW_WEIGHT_BONUS * rarity);
     }
 
     public static double totalWeight(PrizeRegion region, boolean redPoint, int overflow)
@@ -170,13 +188,14 @@ public final class RegionSelector
 
     private static double totalWeight(PrizeRegion region, boolean redPoint, int overflow, boolean colorOwned)
     {
+        double max = poolMaxWeight(region, redPoint, colorOwned);
         double result = 0.0D;
 
         for (PrizeEntry entry : region.entriesOrEmpty())
         {
             if (isCandidate(entry, redPoint, colorOwned))
             {
-                result += effectiveWeight(entry, redPoint, overflow);
+                result += effectiveWeight(entry, max, overflow);
             }
         }
 
@@ -189,6 +208,7 @@ public final class RegionSelector
     public static PrizeEntry pick(RandomSource random, PrizeRegion region, boolean redPoint, int overflow)
     {
         boolean colorOwned = colorOwnsPool(region, redPoint);
+        double max = poolMaxWeight(region, redPoint, colorOwned);
         double weightSum = totalWeight(region, redPoint, overflow, colorOwned);
 
         if (weightSum <= 0.0D)
@@ -206,7 +226,7 @@ public final class RegionSelector
                 continue;
             }
 
-            double weight = effectiveWeight(entry, redPoint, overflow);
+            double weight = effectiveWeight(entry, max, overflow);
 
             if (weight <= 0.0D)
             {

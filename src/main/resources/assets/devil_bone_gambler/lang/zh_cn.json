@@ -11,7 +11,7 @@
   "gui.devil_bone_gambler.altar.title": "恶魔的祭坛",
   "gui.devil_bone_gambler.altar.inventory": "只读背包",
   "gui.devil_bone_gambler.altar.altar": "恶魔的祭坛",
-  "gui.devil_bone_gambler.altar.hint": "左键投入 1 件, 右键投入整叠, 祭坛内左键取回 1 件, 右键取回整叠",
+  "gui.devil_bone_gambler.altar.hint": "左键拾取或放下整叠, 右键拾取半叠或放下 1 件, Shift 加左键整叠投入或取回",
   "gui.devil_bone_gambler.altar.summary": "祭品 %s 项, 共 %s 件",
   "gui.devil_bone_gambler.altar.offer": "献祭",
   "gui.devil_bone_gambler.altar.cancel": "取消",
@@ -59,6 +59,12 @@
   "gui.devil_bone_gambler.admin.refresh": "刷新",
   "gui.devil_bone_gambler.admin.submit": "提交",
   "gui.devil_bone_gambler.admin.close": "关闭",
+  "gui.devil_bone_gambler.admin.manage_admins": "管理员",
+  "gui.devil_bone_gambler.admin.label_admin_name": "玩家名字",
+  "gui.devil_bone_gambler.admin.admin_add": "添加",
+  "gui.devil_bone_gambler.admin.creator_tag": "创建者",
+  "gui.devil_bone_gambler.admin.admin_name_required": "请先输入玩家名字",
+  "gui.devil_bone_gambler.admin.creator_protected": "创建者不可被移除",
   "gui.devil_bone_gambler.admin.toggle_on": "已启用",
   "gui.devil_bone_gambler.admin.toggle_off": "已停用",
   "gui.devil_bone_gambler.admin.apply_batch": "批量设为",
@@ -153,6 +159,7 @@
   "gui.devil_bone_gambler.reason.duplicate_request": "重复的请求",
   "gui.devil_bone_gambler.reason.too_frequent": "请求过于频繁",
   "gui.devil_bone_gambler.reason.no_permission": "权限不足",
+  "gui.devil_bone_gambler.reason.admin_edit_rejected": "该管理员操作被拒绝",
   "gui.devil_bone_gambler.reason.empty_pool": "奖池没有任何可用条目",
   "gui.devil_bone_gambler.reason.zero_weight": "目标区域权重总和为零",
   "gui.devil_bone_gambler.reason.no_candidate": "没有可用的候选区域",
@@ -206,5 +213,8 @@
   "gui.devil_bone_gambler.reason.dealer_in_other_wager": "你已在另一场荷官赌局中",
   "gui.devil_bone_gambler.reason.dealer_wager_exists": "该荷官已有进行中的赌局",
   "gui.devil_bone_gambler.reason.dealer_not_owner": "只有赌局发起者可以开启赌局",
-  "gui.devil_bone_gambler.reason.dealer_bet_full": "赌注箱已满"
+  "gui.devil_bone_gambler.reason.dealer_bet_full": "赌注箱已满",
+
+  "key.categories.devil_bone_gambler": "恶魔的骰子",
+  "key.devil_bone_gambler.admin_panel": "打开管理面板"
 }

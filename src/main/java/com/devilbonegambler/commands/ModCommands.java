@@ -7,8 +7,7 @@
 package com.devilbonegambler.commands;
 
 import com.devilbonegambler.config.ServerConfigManager;
-import com.devilbonegambler.network.ModNetwork;
-import com.devilbonegambler.network.packet.AdminPanelDataPacket;
+import com.devilbonegambler.network.ServerRequestHandler;
 import com.devilbonegambler.util.ModConstants;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -41,11 +40,21 @@ public final class ModCommands
     {
         event.getDispatcher().register(Commands.literal(ROOT_LITERAL)
                 .then(Commands.literal(CONFIG_LITERAL)
-                        .requires(source -> source.hasPermission(ModConstants.ADMIN_PERMISSION_LEVEL))
+                        .requires(ModCommands::mayManage)
                         .executes(ModCommands::openPanel))
                 .then(Commands.literal(RELOAD_LITERAL)
-                        .requires(source -> source.hasPermission(ModConstants.ADMIN_PERMISSION_LEVEL))
+                        .requires(ModCommands::mayManage)
                         .executes(ModCommands::reload)));
+    }
+
+    /**
+     * The command surface follows the same rule as the panel: the creator and the granted admins, not the vanilla
+     * permission level, so an operator without an entry in the admin list cannot reach the config.
+     */
+    private static boolean mayManage(CommandSourceStack source)
+    {
+        ServerPlayer player = source.getPlayer();
+        return player != null && ServerConfigManager.isManager(player.getGameProfile().getName());
     }
 
     private static int openPanel(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
@@ -58,8 +67,7 @@ public final class ModCommands
             return 0;
         }
 
-        ModNetwork.sendToPlayer(player, new AdminPanelDataPacket(
-                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson()));
+        ServerRequestHandler.sendPanel(player);
         return 1;
     }
 

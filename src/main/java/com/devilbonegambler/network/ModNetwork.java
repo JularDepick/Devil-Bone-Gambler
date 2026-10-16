@@ -7,6 +7,7 @@
 package com.devilbonegambler.network;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
@@ -62,6 +63,8 @@ public final class ModNetwork
                 ValueTableRefreshRequestPacket::handle);
         CHANNEL.registerMessage(index++, AdminPanelRequestPacket.class,
                 AdminPanelRequestPacket::encode, AdminPanelRequestPacket::decode, AdminPanelRequestPacket::handle);
+        CHANNEL.registerMessage(index++, AdminEditPacket.class,
+                AdminEditPacket::encode, AdminEditPacket::decode, AdminEditPacket::handle);
         CHANNEL.registerMessage(index++, ConfigWriteRequestPacket.class,
                 ConfigWriteRequestPacket::encode, ConfigWriteRequestPacket::decode, ConfigWriteRequestPacket::handle);
 

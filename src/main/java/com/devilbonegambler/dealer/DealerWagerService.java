@@ -35,7 +35,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -271,9 +273,10 @@ public final class DealerWagerService
     }
 
     /**
-     * One bet box move. The client only states the side and the index, the server owns both stacks.
+     * One bet box move. The client states the item and the count, the server resolves it against the real inventory.
      */
-    public static void moveBet(ServerPlayer player, int dealerEntityId, int action, int index, boolean wholeStack)
+    public static void moveBet(ServerPlayer player, int dealerEntityId, int action, int index, String itemId,
+            int count)
     {
         MinecraftServer server = player.getServer();
         GamblersDealer dealer = resolveDealer(server, dealerEntityId);
@@ -298,33 +301,44 @@ public final class DealerWagerService
             return;
         }
 
-        if (action == DealerBetMovePacket.FROM_INVENTORY)
+        ResourceLocation key = ResourceLocation.tryParse(itemId);
+        Item item = key == null ? null : ForgeRegistries.ITEMS.getValue(key);
+
+        if (item == null)
         {
-            if (index < 0 || index >= player.getInventory().getContainerSize())
+            return;
+        }
+
+        if (action == DealerBetMovePacket.ACTION_TO_BOX)
+        {
+            /*
+             * Take the items out first and hand back whatever the box did not accept, so a full box can never leave a
+             * second copy behind in the inventory.
+             */
+            ItemStack taken = takeFromInventory(player, item, count);
+
+            if (taken.isEmpty())
             {
                 return;
             }
 
-            ItemStack source = player.getInventory().getItem(index);
+            int moved = box.insert(taken, taken.getCount(), index);
 
-            if (source.isEmpty())
+            if (moved < taken.getCount())
             {
-                return;
-            }
-
-            int moved = box.insert(source, wholeStack ? source.getCount() : 1);
-
-            if (moved <= 0)
-            {
+                taken.shrink(moved);
                 NotifySender.sendFailure(player, "dealer_bet_full");
-                return;
+
+                if (!player.getInventory().add(taken))
+                {
+                    player.drop(taken, false);
+                }
             }
 
-            source.shrink(moved);
             player.getInventory().setChanged();
             player.inventoryMenu.broadcastChanges();
         }
-        else
+        else if (action == DealerBetMovePacket.ACTION_TO_INVENTORY)
         {
             if (index < 0 || index >= ModConstants.DEALER_BET_SLOTS)
             {
@@ -338,7 +352,7 @@ public final class DealerWagerService
                 return;
             }
 
-            int amount = wholeStack ? source.getCount() : 1;
+            int amount = Math.min(Math.max(1, count), source.getCount());
             ItemStack taken = source.copy();
             taken.setCount(amount);
             source.shrink(amount);
@@ -356,8 +370,50 @@ public final class DealerWagerService
             player.getInventory().setChanged();
             player.inventoryMenu.broadcastChanges();
         }
+        else
+        {
+            return;
+        }
 
         sendPanels(server, session, dealer);
+    }
+
+    /**
+     * Removes up to the given amount of one item from the player inventory, earliest slot first.
+     * The returned stack is what was really removed, so the caller can give back what the box refused.
+     */
+    private static ItemStack takeFromInventory(ServerPlayer player, Item item, int amount)
+    {
+        int wanted = Math.max(1, amount);
+        ItemStack taken = ItemStack.EMPTY;
+        Inventory inventory = player.getInventory();
+
+        for (int slot = 0; slot < inventory.getContainerSize() && wanted > 0; slot++)
+        {
+            ItemStack stack = inventory.getItem(slot);
+
+            if (stack.isEmpty() || stack.getItem() != item)
+            {
+                continue;
+            }
+
+            int step = Math.min(wanted, stack.getCount());
+
+            if (taken.isEmpty())
+            {
+                taken = stack.copy();
+                taken.setCount(step);
+            }
+            else
+            {
+                taken.grow(step);
+            }
+
+            stack.shrink(step);
+            wanted -= step;
+        }
+
+        return taken;
     }
 
     public static boolean isInAnyWager(ServerPlayer player)

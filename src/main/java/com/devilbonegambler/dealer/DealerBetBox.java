@@ -130,6 +130,58 @@ public final class DealerBetBox
     }
 
     /**
+     * Same as insert, but the preferred cell is filled first so a click can target one cell of the grid.
+     * A cell that holds a different item is skipped and the remainder falls back to the normal order.
+     */
+    public int insert(ItemStack source, int amount, int preferredIndex)
+    {
+        int remaining = Math.min(Math.max(0, amount), source.getCount());
+
+        if (remaining <= 0 || preferredIndex < 0 || preferredIndex >= this.slots.size())
+        {
+            return insert(source, amount);
+        }
+
+        ItemStack slot = this.slots.get(preferredIndex);
+        int room;
+
+        if (slot.isEmpty())
+        {
+            room = source.getMaxStackSize();
+        }
+        else if (ItemStack.isSameItemSameTags(slot, source))
+        {
+            room = slot.getMaxStackSize() - slot.getCount();
+        }
+        else
+        {
+            room = 0;
+        }
+
+        if (room <= 0)
+        {
+            return insert(source, amount);
+        }
+
+        int step = Math.min(room, remaining);
+
+        if (slot.isEmpty())
+        {
+            ItemStack copy = source.copy();
+            copy.setCount(step);
+            this.slots.set(preferredIndex, copy);
+        }
+        else
+        {
+            slot.grow(step);
+        }
+
+        ItemStack rest = source.copy();
+        rest.setCount(remaining - step);
+        return step + insert(rest, remaining - step);
+    }
+
+    /**
      * Empties the box and hands the stacks over, which is what settlement, leaving and cancelling all use.
      */
     public List<ItemStack> takeAll()

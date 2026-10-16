@@ -95,11 +95,13 @@ public final class ClientPacketHandler
 
         if (minecraft.screen instanceof AdminConfigScreen panel)
         {
-            panel.applyServerData(message.prizePoolJson(), message.itemValuesJson());
+            panel.applyServerData(message.prizePoolJson(), message.itemValuesJson(), message.creatorName(),
+                    message.admins(), message.canManageAdmins());
             return;
         }
 
-        ClientActions.openAdminPanel(message.prizePoolJson(), message.itemValuesJson());
+        ClientActions.openAdminPanel(message.prizePoolJson(), message.itemValuesJson(), message.creatorName(),
+                message.admins(), message.canManageAdmins());
     }
 
     public static void handleConfigWriteResponse(ConfigWriteResponsePacket message)

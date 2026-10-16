@@ -15,11 +15,14 @@
 │   ├── DevilsAltarBlock.java        # 祭坛方块, 承载献祭价值且不打开界面
 │   └── DevilsAltarBlockEntity.java  # 祭坛方块实体, 持有献祭价值并与客户端同步
 ├── client/                          # 客户端专属代码, 仅经 DistExecutor 触达
+│   ├── AdminPanelKey.java           # 管理面板键位 Shift 加 D, 经原版按键注册因此可改绑
+│   ├── AdminPanelKeyInput.java      # 按键触发与开面板请求
 │   ├── ClientActions.java           # 客户端动作入口, 发包与打开界面
 │   ├── ClientPacketHandler.java     # 客户端侧网络包分发
 │   ├── ClientSetup.java             # 客户端注册入口, 注册实体渲染器
 │   ├── gui/                         # 客户端界面
 │   │   ├── AdminConfigScreen.java   # 管理员配置面板
+│   │   ├── SlotMoves.java           # 格子搬运工具, 背包视图的守恒与插入
 │   │   ├── AltarScreen.java         # 献祭界面
 │   │   ├── DealerBetScreen.java     # 荷官赌注箱界面
 │   │   ├── DealerScreen.java        # 荷官九宫格界面
@@ -32,6 +35,7 @@
 │   ├── ModCommands.java             # 管理员命令入口
 │   └── RandomPoolSampler.java       # 随机池令牌取样, 执行前替换为池内一个条目
 ├── config/                          # 服务端配置模型与读写
+│   ├── AccessConfig.java            # 管理访问配置, 创建者与管理员名单
 │   ├── DefaultPrizePool.java        # 首次生成奖池配置时使用的预设
 │   ├── RandomPoolConfig.java        # 随机池配置模型, 世界加载时由注册表重建
 │   ├── ItemValueConfig.java         # 物品价值配置模型
@@ -75,6 +79,7 @@
 │   ├── RequestGuard.java            # 请求序号去重与频率限制
 │   ├── ServerRequestHandler.java    # 服务端请求处理
 │   └── packet/                      # 消息包
+│       ├── AdminEditPacket.java
 │       ├── AdminPanelDataPacket.java
 │       ├── AdminPanelRequestPacket.java
 │       ├── AltarStatusPacket.java

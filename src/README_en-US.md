@@ -16,11 +16,14 @@ src/main/java/com/devilbonegambler/
 │   ├── DevilsAltarBlock.java        # The altar block, carrying the offering value and never opening a screen
 │   └── DevilsAltarBlockEntity.java  # Altar block entity, owning the offering value and syncing it to the client
 ├── client/                          # Client-only code, reached only through DistExecutor
+│   ├── AdminPanelKey.java           # Admin panel shortcut, Shift plus D, registered so it can be rebound
+│   ├── AdminPanelKeyInput.java      # Key trigger and panel request
 │   ├── ClientActions.java           # Client action entry, packet sending and screen opening
 │   ├── ClientPacketHandler.java     # Client side packet dispatch
 │   ├── ClientSetup.java             # Client registration entry, registers the entity renderer
 │   ├── gui/                         # Client screens
 │   │   ├── AdminConfigScreen.java   # Admin config panel
+│   │   ├── SlotMoves.java           # Slot move helpers, inventory view conservation and insertion
 │   │   ├── AltarScreen.java         # Offering screen
 │   │   ├── DealerBetScreen.java     # Dealer bet box screen
 │   │   ├── DealerScreen.java        # Dealer nine grid screen
@@ -33,6 +36,7 @@ src/main/java/com/devilbonegambler/
 │   ├── ModCommands.java             # Admin command entry
 │   └── RandomPoolSampler.java       # Random pool sampling, replaces a random token with one entry before execution
 ├── config/                          # Server config models and file access
+│   ├── AccessConfig.java            # Management access, the creator and the admin names
 │   ├── DefaultPrizePool.java        # Preset used when the prize pool file is created
 │   ├── RandomPoolConfig.java        # Random pool model, rebuilt from the registries on world load
 │   ├── ItemValueConfig.java         # Item value config model
@@ -76,6 +80,7 @@ src/main/java/com/devilbonegambler/
 │   ├── RequestGuard.java            # Request sequence dedup and rate limit
 │   ├── ServerRequestHandler.java    # Server side request handling
 │   └── packet/                      # Message packets
+│       ├── AdminEditPacket.java
 │       ├── AdminPanelDataPacket.java
 │       ├── AdminPanelRequestPacket.java
 │       ├── AltarStatusPacket.java

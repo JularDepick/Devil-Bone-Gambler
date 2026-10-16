@@ -53,6 +53,7 @@ public final class ServerConfigManager
     private static PrizePoolConfig prizePool;
     private static ItemValueConfig itemValues;
     private static RandomPoolConfig randomPools;
+    private static AccessConfig access;
     private static Path configDir;
     private static MinecraftServer serverRef;
 
@@ -91,6 +92,15 @@ public final class ServerConfigManager
         if (!(event.getEntity() instanceof ServerPlayer player))
         {
             return;
+        }
+
+        /*
+         * The creator is the first player to join while the field is still empty, so a fresh server needs no manual
+         * setup and later joins never take the role over.
+         */
+        if (grantCreatorIfAbsent(player.getGameProfile().getName()))
+        {
+            DevilBoneGambler.LOGGER.info("Recorded the mod creator as {}", player.getGameProfile().getName());
         }
 
         CompoundTag snapshot = ValueTableBook.snapshotTag();
@@ -143,11 +153,77 @@ public final class ServerConfigManager
         return randomPools == null ? "{}" : GSON.toJson(randomPools);
     }
 
+    public static AccessConfig access()
+    {
+        return access;
+    }
+
+    public static String accessJson()
+    {
+        return access == null ? "{}" : GSON.toJson(access);
+    }
+
+    /**
+     * Whether the named player may manage the mod, which is the creator or one of the granted admins.
+     */
+    public static boolean isManager(String playerName)
+    {
+        return access != null && access.isManager(playerName);
+    }
+
+    public static boolean canManageAdmins(String playerName)
+    {
+        return access != null && access.canManageAdmins(playerName);
+    }
+
+    /**
+     * Grants one admin name and writes the file, used by the creator through the admin panel.
+     */
+    public static boolean addAdmin(String playerName)
+    {
+        if (access == null || !access.addAdmin(playerName))
+        {
+            return false;
+        }
+
+        writeAccess();
+        return true;
+    }
+
+    /**
+     * Revokes one admin name and writes the file. The creator can never be revoked.
+     */
+    public static boolean removeAdmin(String playerName)
+    {
+        if (access == null || !access.removeAdmin(playerName))
+        {
+            return false;
+        }
+
+        writeAccess();
+        return true;
+    }
+
+    /**
+     * Records the creator the first time a player joins an empty file, so the role needs no manual setup.
+     */
+    public static boolean grantCreatorIfAbsent(String playerName)
+    {
+        if (access == null || !access.setCreatorIfAbsent(playerName))
+        {
+            return false;
+        }
+
+        writeAccess();
+        return true;
+    }
+
     public static void clear()
     {
         prizePool = null;
         itemValues = null;
         randomPools = null;
+        access = null;
         configDir = null;
         serverRef = null;
     }
@@ -174,6 +250,20 @@ public final class ServerConfigManager
         prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
         randomPools = readRandomPools(root.resolve(ModConstants.RANDOM_POOL_FILE));
+
+        Path accessPath = root.resolve(ModConstants.ACCESS_FILE);
+        boolean accessMissing = !Files.isRegularFile(accessPath);
+        access = readAccess(accessPath);
+
+        /*
+         * The access file is created up front with an empty creator, so an operator can hand fill the name instead of
+         * having to wait for the intended player to join first.
+         */
+        if (accessMissing)
+        {
+            writeAccess();
+        }
+
         pushValueTable();
 
         if (scanValues())
@@ -188,6 +278,10 @@ public final class ServerConfigManager
 
         serverRef = server;
         refreshCommandValidity();
+
+        DevilBoneGambler.LOGGER.info("Access loaded: creator={} admins={}",
+                access.creatorOrEmpty().isEmpty() ? "(unset)" : access.creatorOrEmpty(),
+                Integer.valueOf(access.adminsOrEmpty().size()));
 
         DevilBoneGambler.LOGGER.info("Prize pool loaded: {} regions, {} entries, revision {}",
                 Integer.valueOf(prizePool.regionsOrEmpty().size()),
@@ -528,6 +622,48 @@ public final class ServerConfigManager
 
         randomPools.normalize();
         writeJson(configDir.resolve(ModConstants.RANDOM_POOL_FILE), randomPools);
+    }
+
+    private static AccessConfig readAccess(Path path)
+    {
+        if (!Files.isRegularFile(path))
+        {
+            AccessConfig created = AccessConfig.empty();
+            created.normalize();
+            return created;
+        }
+
+        try
+        {
+            AccessConfig loaded = GSON.fromJson(readText(path), AccessConfig.class);
+
+            if (loaded == null)
+            {
+                throw new IllegalStateException("empty access file");
+            }
+
+            loaded.normalize();
+            return loaded;
+        }
+        catch (RuntimeException exception)
+        {
+            DevilBoneGambler.LOGGER.error("Failed to read {}, management access stays unset", path, exception);
+            backup(path);
+            AccessConfig created = AccessConfig.empty();
+            created.normalize();
+            return created;
+        }
+    }
+
+    private static void writeAccess()
+    {
+        if (configDir == null || access == null)
+        {
+            return;
+        }
+
+        access.normalize();
+        writeJson(configDir.resolve(ModConstants.ACCESS_FILE), access);
     }
 
     private static ItemValueConfig readItemValues(Path path)

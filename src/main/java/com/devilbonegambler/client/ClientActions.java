@@ -13,6 +13,7 @@ import com.devilbonegambler.client.gui.DealerScreen;
 import com.devilbonegambler.client.gui.ValueTableScreen;
 import com.devilbonegambler.draw.OfferingBundle;
 import com.devilbonegambler.network.ModNetwork;
+import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.DealerBetMovePacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
@@ -22,6 +23,7 @@ import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -74,9 +76,12 @@ public final class ClientActions
         ModNetwork.sendToServer(new DealerInteractPacket(dealerEntityId, action));
     }
 
-    public static void sendDealerBetMove(int dealerEntityId, int action, int index, boolean wholeStack)
+    /**
+     * One bet box move described by item and count, so the panel can place exactly what the cursor carries.
+     */
+    public static void sendDealerBetMove(int dealerEntityId, int action, int index, String itemId, int count)
     {
-        ModNetwork.sendToServer(new DealerBetMovePacket(dealerEntityId, action, index, wholeStack));
+        ModNetwork.sendToServer(new DealerBetMovePacket(dealerEntityId, action, index, itemId, count));
     }
 
     public static void openDealerScreen(DealerPanelPacket panel)
@@ -161,6 +166,15 @@ public final class ClientActions
     }
 
     /**
+     * One change of the admin list. Only the creator may ask for it and the server re-checks that.
+     */
+    public static void sendAdminEdit(boolean add, String name)
+    {
+        ModNetwork.sendToServer(new AdminEditPacket(nextSequence(),
+                add ? AdminEditPacket.ACTION_ADD : AdminEditPacket.ACTION_REMOVE, name));
+    }
+
+    /**
      * Opens the searchable value table view. The data comes from the server pushed snapshot, so the rows are always
      * the live table and every row shows the localised item name.
      */
@@ -169,9 +183,11 @@ public final class ClientActions
         Minecraft.getInstance().setScreen(new ValueTableScreen(ClientPacketHandler.valueTable()));
     }
 
-    public static void openAdminPanel(String prizePoolJson, String itemValuesJson)
+    public static void openAdminPanel(String prizePoolJson, String itemValuesJson, String creatorName,
+            List<String> admins, boolean canManageAdmins)
     {
-        Minecraft.getInstance().setScreen(new AdminConfigScreen(prizePoolJson, itemValuesJson));
+        Minecraft.getInstance().setScreen(new AdminConfigScreen(prizePoolJson, itemValuesJson, creatorName, admins,
+                canManageAdmins));
     }
 
     /**

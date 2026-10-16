@@ -35,7 +35,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -44,8 +43,10 @@ import net.minecraftforge.registries.ForgeRegistries;
  * The offering screen of the devil's dice, laid out in three columns.
  * The left column lists the creatures inside the altar range, the middle column keeps the read-only player
  * inventory and the 3x3 altar slots, and the right column carries the numeric offerings.
- * The player inventory is drawn read-only: the screen never registers a slot, so there is no path that could
- * change the real inventory. The altar itself is a pure client side staging list validated by the server on submit.
+ * The player inventory is drawn read-only and filled by moving stacks with the cursor, like the vanilla inventory:
+ * the screen never registers a slot, so there is no path that could change the real inventory. The altar itself is a
+ * pure client side staging list validated by the server on submit, and the drawn inventory is derived from the real
+ * one minus whatever sits on the cursor or in the altar, so an offering can never exceed what the player holds.
  */
 public class AltarScreen extends Screen
 {
@@ -136,6 +137,12 @@ public class AltarScreen extends Screen
     private static final int AUTHOR_Y = 207;
 
     private final List<ItemStack> altar = new ArrayList<ItemStack>();
+    /*
+     * The stack on the cursor. The grid is filled by moving items between the cursor and a slot, like the vanilla
+     * inventory, and the drawn inventory is the real one minus everything on the cursor or already offered, so the
+     * offered total can never grow past what the player holds.
+     */
+    private ItemStack carried = ItemStack.EMPTY;
     private final List<Component> tooltipLines = new ArrayList<Component>();
     private final List<MobListPacket.MobEntry> mobEntries = new ArrayList<MobListPacket.MobEntry>();
     private final Set<UUID> selectedMobs = new HashSet<UUID>();
@@ -212,6 +219,7 @@ public class AltarScreen extends Screen
         drawAltarSlots(graphics, mouseX, mouseY);
         super.render(graphics, mouseX, mouseY, partialTick);
         drawLabels(graphics);
+        drawCarried(graphics, mouseX, mouseY);
         drawTooltip(graphics, mouseX, mouseY);
     }
 
@@ -253,7 +261,7 @@ public class AltarScreen extends Screen
 
         if (altarIndex >= 0)
         {
-            takeBack(altarIndex, button == 1);
+            clickAltar(altarIndex, button);
             return true;
         }
 
@@ -261,7 +269,7 @@ public class AltarScreen extends Screen
 
         if (inventoryIndex >= 0)
         {
-            offerFrom(inventoryIndex, button == 1);
+            clickInventory(inventoryIndex, button);
             return true;
         }
 
@@ -480,104 +488,167 @@ public class AltarScreen extends Screen
         return result;
     }
 
-    private void offerFrom(int inventoryIndex, boolean wholeStack)
+    /**
+     * The drawn inventory: the real stacks minus everything on the cursor or already offered.
+     * Deriving the view instead of keeping a second copy is what makes an over offer impossible, because items only
+     * ever move between the real inventory, the cursor and the altar staging.
+     */
+    private List<ItemStack> currentView()
     {
         Minecraft minecraft = this.minecraft;
 
         if (minecraft == null || minecraft.player == null)
         {
-            return;
+            return new ArrayList<ItemStack>();
         }
 
-        ItemStack source = minecraft.player.getInventory().getItem(inventoryIndex);
-
-        if (source.isEmpty())
-        {
-            return;
-        }
-
-        int amount = wholeStack ? source.getCount() : 1;
-        int remaining = insert(source, amount);
-
-        if (remaining >= amount)
-        {
-            this.status = Component.translatable(key("altar.full")).getString();
-        }
-        else
-        {
-            this.status = "";
-        }
+        return SlotMoves.visibleInventory(minecraft.player.getInventory(), this.carried, this.altar);
     }
 
     /**
-     * Returns how many items could not be placed into the altar.
+     * Vanilla style click on an inventory slot: left takes or places the whole stack, right takes half or places one,
+     * and shift moves the whole stack straight into the altar.
      */
-    private int insert(ItemStack source, int amount)
+    private void clickInventory(int index, int button)
     {
-        int remaining = amount;
+        List<ItemStack> view = currentView();
+        ItemStack slot = index >= 0 && index < view.size() ? view.get(index) : ItemStack.EMPTY;
 
-        for (ItemStack slot : this.altar)
+        if (hasShiftDown())
         {
-            if (remaining <= 0)
+            if (!slot.isEmpty())
             {
-                break;
+                offerStack(slot);
             }
 
-            if (slot.isEmpty() || !ItemStack.isSameItemSameTags(slot, source))
-            {
-                continue;
-            }
-
-            int space = slot.getMaxStackSize() - slot.getCount();
-
-            if (space <= 0)
-            {
-                continue;
-            }
-
-            int moved = Math.min(space, remaining);
-            slot.grow(moved);
-            remaining -= moved;
+            return;
         }
 
-        for (int index = 0; index < this.altar.size() && remaining > 0; index++)
+        if (this.carried.isEmpty())
         {
-            if (!this.altar.get(index).isEmpty())
+            if (slot.isEmpty())
             {
-                continue;
+                return;
             }
 
-            int moved = Math.min(source.getMaxStackSize(), remaining);
-            ItemStack copy = source.copy();
-            copy.setCount(moved);
-            this.altar.set(index, copy);
-            remaining -= moved;
+            int amount = button == 1 ? (slot.getCount() + 1) / 2 : slot.getCount();
+            this.carried = slot.copy();
+            this.carried.setCount(amount);
+            return;
         }
 
-        return remaining;
+        if (slot.isEmpty() || SlotMoves.sameStack(this.carried, slot))
+        {
+            int amount = button == 1 ? 1 : this.carried.getCount();
+            this.carried.shrink(amount);
+
+            if (this.carried.getCount() <= 0)
+            {
+                this.carried = ItemStack.EMPTY;
+            }
+
+            return;
+        }
+
+        /*
+         * A different item under the cursor swaps, which returns the previous stack to the inventory view.
+         */
+        this.carried = slot.copy();
     }
 
-    private void takeBack(int index, boolean wholeStack)
+    /**
+     * Vanilla style click on an altar slot: take the slot onto the cursor, or place what the cursor carries.
+     */
+    private void clickAltar(int index, int button)
     {
+        if (index < 0 || index >= this.altar.size())
+        {
+            return;
+        }
+
         ItemStack slot = this.altar.get(index);
 
-        if (slot.isEmpty())
+        if (hasShiftDown())
+        {
+            if (!slot.isEmpty())
+            {
+                this.altar.set(index, ItemStack.EMPTY);
+                this.status = "";
+            }
+
+            return;
+        }
+
+        if (this.carried.isEmpty())
+        {
+            if (slot.isEmpty())
+            {
+                return;
+            }
+
+            int amount = button == 1 ? (slot.getCount() + 1) / 2 : slot.getCount();
+            this.carried = slot.copy();
+            this.carried.setCount(amount);
+            slot.shrink(amount);
+
+            if (slot.getCount() <= 0)
+            {
+                this.altar.set(index, ItemStack.EMPTY);
+            }
+
+            return;
+        }
+
+        if (!slot.isEmpty() && !SlotMoves.sameStack(slot, this.carried))
         {
             return;
         }
 
-        if (wholeStack)
+        int space = slot.isEmpty() ? this.carried.getMaxStackSize() : slot.getMaxStackSize() - slot.getCount();
+        int wanted = button == 1 ? 1 : this.carried.getCount();
+        int moved = Math.min(space, Math.min(wanted, this.carried.getCount()));
+
+        if (moved <= 0)
         {
-            this.altar.set(index, ItemStack.EMPTY);
+            this.status = Component.translatable(key("altar.full")).getString();
             return;
         }
 
-        slot.shrink(1);
-
         if (slot.isEmpty())
         {
-            this.altar.set(index, ItemStack.EMPTY);
+            ItemStack placed = this.carried.copy();
+            placed.setCount(moved);
+            this.altar.set(index, placed);
         }
+        else
+        {
+            slot.grow(moved);
+        }
+
+        this.carried.shrink(moved);
+
+        if (this.carried.getCount() <= 0)
+        {
+            this.carried = ItemStack.EMPTY;
+        }
+
+        this.status = "";
+    }
+
+    /**
+     * Moves one whole view stack into the altar, used by the shift click and by the batch buttons.
+     */
+    private void offerStack(ItemStack source)
+    {
+        int remaining = SlotMoves.insert(this.altar, source, source.getCount());
+
+        if (remaining >= source.getCount())
+        {
+            this.status = Component.translatable(key("altar.full")).getString();
+            return;
+        }
+
+        this.status = "";
     }
 
     private void drawSeparators(GuiGraphics graphics)
@@ -657,14 +728,7 @@ public class AltarScreen extends Screen
 
     private void drawInventorySlots(GuiGraphics graphics, int mouseX, int mouseY)
     {
-        Minecraft minecraft = this.minecraft;
-
-        if (minecraft == null || minecraft.player == null)
-        {
-            return;
-        }
-
-        Inventory inventory = minecraft.player.getInventory();
+        List<ItemStack> view = currentView();
         int hovered = inventoryIndexAt(mouseX, mouseY);
 
         for (int row = 0; row < 3; row++)
@@ -673,15 +737,34 @@ public class AltarScreen extends Screen
             {
                 int index = 9 + row * 9 + column;
                 drawSlot(graphics, this.leftPos + INVENTORY_X + column * SLOT, this.topPos + INVENTORY_Y + row * SLOT,
-                        inventory.getItem(index), hovered == index);
+                        stackIn(view, index), hovered == index);
             }
         }
 
         for (int column = 0; column < 9; column++)
         {
             drawSlot(graphics, this.leftPos + INVENTORY_X + column * SLOT, this.topPos + HOTBAR_Y,
-                    inventory.getItem(column), hovered == column);
+                    stackIn(view, column), hovered == column);
         }
+    }
+
+    private static ItemStack stackIn(List<ItemStack> view, int index)
+    {
+        return index >= 0 && index < view.size() ? view.get(index) : ItemStack.EMPTY;
+    }
+
+    /**
+     * Draws the cursor stack, which is what makes the interaction read like the vanilla inventory.
+     */
+    private void drawCarried(GuiGraphics graphics, int mouseX, int mouseY)
+    {
+        if (this.carried.isEmpty())
+        {
+            return;
+        }
+
+        graphics.renderItem(this.carried, mouseX - 8, mouseY - 8);
+        graphics.renderItemDecorations(this.font, this.carried, mouseX - 8, mouseY - 8);
     }
 
     private void drawAltarSlots(GuiGraphics graphics, int mouseX, int mouseY)
@@ -802,13 +885,18 @@ public class AltarScreen extends Screen
             stack = this.altar.get(altarIndex);
             insideAltar = true;
         }
+        else if (!this.carried.isEmpty())
+        {
+            /* The cursor hides the slot underneath, so the carried stack is what the player is looking at. */
+            stack = this.carried;
+        }
         else
         {
             int inventoryIndex = inventoryIndexAt(mouseX, mouseY);
 
             if (inventoryIndex >= 0)
             {
-                stack = minecraft.player.getInventory().getItem(inventoryIndex);
+                stack = stackIn(currentView(), inventoryIndex);
             }
         }
 

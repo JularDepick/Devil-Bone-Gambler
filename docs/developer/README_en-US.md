@@ -44,6 +44,7 @@ Empty directories are kept in git through a `.gitkeep` placeholder
 | Luck data | `<world save>/data/devil_bone_gambler_luck.dat` | Per player luck value |
 | Dice usage data | `<world save>/data/devil_bone_gambler_dealer_usage.dat` | Per player consumed gambler's dice counter, used for the dealer spawn egg reward |
 | Random pools | `<world save>/serverconfig/devil_bone_gambler/random_pools.json` | Sample space of the random prize tokens, rebuilt from a registry scan and overwritten on every world load, with item, effect, entity, enchantment and potion pools |
+| Management access | `<world save>/serverconfig/devil_bone_gambler/access.json` | The creator and the admin names, player names only; the first player to join an empty file becomes the creator, both the creator and the admins may open the panel, and only the creator may change the admin list |
 
 ## Admin Entry
 

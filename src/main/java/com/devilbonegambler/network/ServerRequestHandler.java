@@ -15,6 +15,7 @@ import com.devilbonegambler.draw.DrawResult;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.draw.OfferingBundle;
 import com.devilbonegambler.item.OfferingValueTableItem;
+import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
@@ -29,6 +30,7 @@ import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ValueTableBook;
 import com.devilbonegambler.wager.WagerService;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.server.MinecraftServer;
@@ -92,7 +94,7 @@ public final class ServerRequestHandler
         }
 
         DealerWagerService.moveBet(player, message.dealerEntityId(), message.action(), message.index(),
-                message.wholeStack());
+                message.itemId(), message.count());
     }
 
     public static void handleValueTableRefresh(ServerPlayer player, ValueTableRefreshRequestPacket message)
@@ -127,7 +129,7 @@ public final class ServerRequestHandler
             return;
         }
 
-        if (!player.hasPermissions(ModConstants.ADMIN_PERMISSION_LEVEL))
+        if (!isManager(player))
         {
             NotifySender.sendFailure(player, "no_permission");
             return;
@@ -144,8 +146,73 @@ public final class ServerRequestHandler
             return;
         }
 
-        ModNetwork.sendToPlayer(player, new AdminPanelDataPacket(
-                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson()));
+        sendPanel(player);
+    }
+
+    /**
+     * One change of the admin list. Only the creator may ask for it, and the creator can never be removed.
+     */
+    public static void handleAdminEdit(ServerPlayer player, AdminEditPacket message)
+    {
+        if (player == null || !ServerConfigManager.canManageAdmins(player.getGameProfile().getName()))
+        {
+            NotifySender.sendFailure(player, "no_permission");
+            return;
+        }
+
+        if (RequestGuard.checkSequence(player, message.sequence()) != null)
+        {
+            return;
+        }
+
+        String name = message.name() == null ? "" : message.name().trim();
+        boolean changed;
+
+        if (message.action() == AdminEditPacket.ACTION_ADD)
+        {
+            changed = ServerConfigManager.addAdmin(name);
+        }
+        else if (message.action() == AdminEditPacket.ACTION_REMOVE)
+        {
+            changed = ServerConfigManager.removeAdmin(name);
+        }
+        else
+        {
+            changed = false;
+        }
+
+        if (!changed)
+        {
+            NotifySender.sendFailure(player, "admin_edit_rejected");
+        }
+
+        /* The panel is refreshed either way, so the list always shows the stored state. */
+        sendPanel(player);
+    }
+
+    private static boolean isManager(ServerPlayer player)
+    {
+        return player != null && ServerConfigManager.isManager(player.getGameProfile().getName());
+    }
+
+    /**
+     * Pushes the panel payload with the management access of the requester, shared by the shortcut and the command.
+     */
+    public static void sendPanel(ServerPlayer player)
+    {
+        ServerPlayer target = player;
+
+        if (target == null)
+        {
+            return;
+        }
+
+        ModNetwork.sendToPlayer(target, new AdminPanelDataPacket(
+                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson(),
+                ServerConfigManager.access() == null ? "" : ServerConfigManager.access().creatorOrEmpty(),
+                ServerConfigManager.access() == null ? new ArrayList<String>()
+                        : new ArrayList<String>(ServerConfigManager.access().adminsOrEmpty()),
+                ServerConfigManager.canManageAdmins(target.getGameProfile().getName())));
     }
 
     public static void handleConfigWrite(ServerPlayer player, ConfigWriteRequestPacket message)
@@ -155,7 +222,7 @@ public final class ServerRequestHandler
             return;
         }
 
-        if (!player.hasPermissions(ModConstants.ADMIN_PERMISSION_LEVEL))
+        if (!isManager(player))
         {
             ModNetwork.sendToPlayer(player, new ConfigWriteResponsePacket(
                     message.sequence(), message.domain(), 0, false, "no_permission"));
@@ -300,7 +367,7 @@ public final class ServerRequestHandler
 
         for (ServerPlayer target : server.getPlayerList().getPlayers())
         {
-            if (target.hasPermissions(ModConstants.ADMIN_PERMISSION_LEVEL))
+            if (isManager(target))
             {
                 sendLatest(target, domain);
             }

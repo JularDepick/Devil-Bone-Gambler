@@ -11,7 +11,7 @@
   "gui.devil_bone_gambler.altar.title": "Devil's Altar",
   "gui.devil_bone_gambler.altar.inventory": "Read-only Inventory",
   "gui.devil_bone_gambler.altar.altar": "Devil's Altar",
-  "gui.devil_bone_gambler.altar.hint": "Left click to offer 1, right click to offer the whole stack, left click inside the altar to take back 1, right click to take back all",
+  "gui.devil_bone_gambler.altar.hint": "Left click picks up or puts down a stack, right click takes half or puts down one, shift left click moves a whole stack in or out",
   "gui.devil_bone_gambler.altar.summary": "%s offering entries, %s items in total",
   "gui.devil_bone_gambler.altar.offer": "Offer",
   "gui.devil_bone_gambler.altar.cancel": "Cancel",
@@ -59,6 +59,12 @@
   "gui.devil_bone_gambler.admin.refresh": "Reload",
   "gui.devil_bone_gambler.admin.submit": "Submit",
   "gui.devil_bone_gambler.admin.close": "Close",
+  "gui.devil_bone_gambler.admin.manage_admins": "Admins",
+  "gui.devil_bone_gambler.admin.label_admin_name": "Player name",
+  "gui.devil_bone_gambler.admin.admin_add": "Add",
+  "gui.devil_bone_gambler.admin.creator_tag": "creator",
+  "gui.devil_bone_gambler.admin.admin_name_required": "Type a player name first",
+  "gui.devil_bone_gambler.admin.creator_protected": "The creator cannot be removed",
   "gui.devil_bone_gambler.admin.toggle_on": "Enabled",
   "gui.devil_bone_gambler.admin.toggle_off": "Disabled",
   "gui.devil_bone_gambler.admin.apply_batch": "Set All",
@@ -153,6 +159,7 @@
   "gui.devil_bone_gambler.reason.duplicate_request": "Duplicate request",
   "gui.devil_bone_gambler.reason.too_frequent": "Requests are too frequent",
   "gui.devil_bone_gambler.reason.no_permission": "No permission",
+  "gui.devil_bone_gambler.reason.admin_edit_rejected": "The admin change was rejected",
   "gui.devil_bone_gambler.reason.empty_pool": "The prize pool has no usable entry",
   "gui.devil_bone_gambler.reason.zero_weight": "The target region has zero total weight",
   "gui.devil_bone_gambler.reason.no_candidate": "No usable candidate region",
@@ -206,5 +213,8 @@
   "gui.devil_bone_gambler.reason.dealer_in_other_wager": "You are already in another dealer wager",
   "gui.devil_bone_gambler.reason.dealer_wager_exists": "This dealer already runs a wager",
   "gui.devil_bone_gambler.reason.dealer_not_owner": "Only the creator may start the wager",
-  "gui.devil_bone_gambler.reason.dealer_bet_full": "The bet box is full"
+  "gui.devil_bone_gambler.reason.dealer_bet_full": "The bet box is full",
+
+  "key.categories.devil_bone_gambler": "Devil Bone Gambler",
+  "key.devil_bone_gambler.admin_panel": "Open the admin panel"
 }

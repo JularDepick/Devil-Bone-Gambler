@@ -65,6 +65,18 @@ public class AdminConfigScreen extends Screen
     private static final int LABEL_COLOR = 0xA0A0A0;
     private static final int TEXT_COLOR = 0xE0E0E0;
     private static final int STATUS_COLOR = 0x80C0FF;
+    private static final int CREATOR_COLOR = 0xD8B860;
+
+    private static final int ADMIN_WINDOW_X = 60;
+    private static final int ADMIN_WINDOW_Y = 56;
+    private static final int ADMIN_WINDOW_WIDTH = 260;
+    private static final int ADMIN_WINDOW_HEIGHT = 152;
+    private static final int ADMIN_LIST_Y = 22;
+    private static final int ADMIN_ROW_HEIGHT = 11;
+    private static final int ADMIN_VISIBLE_ROWS = 7;
+    private static final int ADMIN_FIELD_Y = 106;
+    private static final int ADMIN_FIELD_WIDTH = 142;
+    private static final int ADMIN_CLOSE_Y = 128;
 
     private final List<Row> prizeRows = new ArrayList<Row>();
     private final List<String> valueKeys = new ArrayList<String>();
@@ -103,22 +115,43 @@ public class AdminConfigScreen extends Screen
     private Button commandCancelButton;
     private boolean commandEditorOpen;
 
-    public AdminConfigScreen(String prizePoolJson, String itemValuesJson)
+    /*
+     * Management access as pushed by the server. The creator is shown first and can never be removed, the granted
+     * admins follow and each of them can be revoked.
+     */
+    private String creatorName = "";
+    private List<String> admins = new ArrayList<String>();
+    private boolean canManageAdmins;
+    private boolean adminWindowOpen;
+    private int selectedAdminRow = -1;
+    private EditBox fieldAdminName;
+    private Button adminButton;
+    private Button adminAddButton;
+    private Button adminRemoveButton;
+    private Button adminCloseButton;
+
+    public AdminConfigScreen(String prizePoolJson, String itemValuesJson, String creatorName, List<String> admins,
+            boolean canManageAdmins)
     {
         super(Component.translatable(key("admin.title")));
-        applyServerData(prizePoolJson, itemValuesJson);
+        applyServerData(prizePoolJson, itemValuesJson, creatorName, admins, canManageAdmins);
         this.status = Component.translatable(key("admin.status_idle")).getString();
     }
 
     /**
      * Replaces the local copy with the payload pushed by the server.
      */
-    public void applyServerData(String prizePoolJson, String itemValuesJson)
+    public void applyServerData(String prizePoolJson, String itemValuesJson, String creatorName,
+            List<String> admins, boolean canManageAdmins)
     {
         this.prizePool = parsePrizePool(prizePoolJson);
         this.itemValues = parseItemValues(itemValuesJson);
+        this.creatorName = creatorName == null ? "" : creatorName;
+        this.admins = admins == null ? new ArrayList<String>() : new ArrayList<String>(admins);
+        this.canManageAdmins = canManageAdmins;
         this.selectedPrizeIndex = -1;
         this.selectedValueIndex = -1;
+        this.selectedAdminRow = -1;
         this.scroll = 0;
         rebuildPrizeRows();
         rebuildValueKeys();
@@ -244,6 +277,24 @@ public class AdminConfigScreen extends Screen
         addRenderableWidget(Button.builder(Component.translatable(key("admin.close")), button -> onClose())
                 .pos(this.leftPos + 320, buttonY).size(52, 18).build());
 
+        this.adminButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_admins")),
+                button -> openAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + 18)
+                        .size(72, FIELD_HEIGHT + 2).build());
+        this.fieldAdminName = new EditBox(this.font, this.leftPos + ADMIN_WINDOW_X + 6,
+                this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y, ADMIN_FIELD_WIDTH, FIELD_HEIGHT,
+                Component.translatable(key("admin.label_admin_name")));
+        this.fieldAdminName.setMaxLength(ModConstants.MAX_PLAYER_NAME_LENGTH);
+        addRenderableWidget(this.fieldAdminName);
+        this.adminAddButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.admin_add")),
+                button -> addAdmin()).pos(this.leftPos + ADMIN_WINDOW_X + 152,
+                        this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y - 1).size(46, FIELD_HEIGHT + 2).build());
+        this.adminRemoveButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.remove")),
+                button -> removeSelectedAdmin()).pos(this.leftPos + ADMIN_WINDOW_X + 202,
+                        this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y - 1).size(50, FIELD_HEIGHT + 2).build());
+        this.adminCloseButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
+                button -> closeAdminWindow()).pos(this.leftPos + ADMIN_WINDOW_X + 6,
+                        this.topPos + ADMIN_WINDOW_Y + ADMIN_CLOSE_Y).size(64, 16).build());
+
         this.widgetsReady = true;
         refreshFields();
     }
@@ -274,8 +325,139 @@ public class AdminConfigScreen extends Screen
                     windowY + 6, TITLE_COLOR, false);
         }
 
+        if (this.adminWindowOpen)
+        {
+            drawAdminWindow(graphics);
+        }
+
         super.render(graphics, mouseX, mouseY, partialTick);
         drawFieldLabels(graphics);
+    }
+
+    /**
+     * The creator is listed first and carries the creator tag, the granted admins follow and can be revoked.
+     */
+    private void drawAdminWindow(GuiGraphics graphics)
+    {
+        int windowX = this.leftPos + ADMIN_WINDOW_X;
+        int windowY = this.topPos + ADMIN_WINDOW_Y;
+        graphics.fill(windowX - 1, windowY - 1, windowX + ADMIN_WINDOW_WIDTH + 1,
+                windowY + ADMIN_WINDOW_HEIGHT + 1, WINDOW_BORDER_COLOR);
+        graphics.fill(windowX, windowY, windowX + ADMIN_WINDOW_WIDTH, windowY + ADMIN_WINDOW_HEIGHT, WINDOW_COLOR);
+        graphics.drawString(this.font, Component.translatable(key("admin.manage_admins")), windowX + 6, windowY + 6,
+                TITLE_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("admin.label_admin_name")), windowX + 6,
+                windowY + ADMIN_FIELD_Y - 10, LABEL_COLOR, false);
+
+        List<String> rows = adminDisplayRows();
+
+        for (int row = 0; row < Math.min(ADMIN_VISIBLE_ROWS, rows.size()); row++)
+        {
+            int y = windowY + ADMIN_LIST_Y + row * ADMIN_ROW_HEIGHT;
+            graphics.fill(windowX + 5, y - 1, windowX + ADMIN_WINDOW_WIDTH - 5, y + ADMIN_ROW_HEIGHT - 2,
+                    row == this.selectedAdminRow ? ROW_SELECTED_COLOR : ROW_COLOR);
+            boolean creatorRow = isCreatorRow(row);
+            String name = rows.get(row);
+            String label = creatorRow
+                    ? name + " (" + Component.translatable(key("admin.creator_tag")).getString() + ")"
+                    : name;
+            graphics.drawString(this.font, label, windowX + 8, y, creatorRow ? CREATOR_COLOR : TEXT_COLOR, false);
+        }
+    }
+
+    /**
+     * Rows of the manager window: the creator first, then the granted admins without a duplicate of the creator.
+     */
+    private List<String> adminDisplayRows()
+    {
+        List<String> rows = new ArrayList<String>();
+
+        if (!this.creatorName.isEmpty())
+        {
+            rows.add(this.creatorName);
+        }
+
+        for (String admin : this.admins)
+        {
+            if (admin == null || admin.trim().isEmpty() || admin.equalsIgnoreCase(this.creatorName))
+            {
+                continue;
+            }
+
+            rows.add(admin);
+        }
+
+        return rows;
+    }
+
+    private boolean isCreatorRow(int row)
+    {
+        return row == 0 && !this.creatorName.isEmpty();
+    }
+
+    /**
+     * The creator row is never removable, which is what keeps the creator from deleting themselves.
+     */
+    private boolean canRemoveSelectedAdmin()
+    {
+        return this.canManageAdmins && this.selectedAdminRow >= 0 && !isCreatorRow(this.selectedAdminRow)
+                && this.selectedAdminRow < adminDisplayRows().size();
+    }
+
+    private int adminRowAt(double mouseX, double mouseY)
+    {
+        int listX = this.leftPos + ADMIN_WINDOW_X + 5;
+        int listY = this.topPos + ADMIN_WINDOW_Y + ADMIN_LIST_Y;
+        int rows = Math.min(ADMIN_VISIBLE_ROWS, adminDisplayRows().size());
+
+        if (mouseX < listX || mouseX > listX + ADMIN_WINDOW_WIDTH - 10 || mouseY < listY)
+        {
+            return -1;
+        }
+
+        int row = (int) ((mouseY - listY) / ADMIN_ROW_HEIGHT);
+        return row >= 0 && row < rows ? row : -1;
+    }
+
+    private void openAdminWindow()
+    {
+        this.adminWindowOpen = true;
+        this.selectedAdminRow = -1;
+        refreshFields();
+    }
+
+    private void closeAdminWindow()
+    {
+        this.adminWindowOpen = false;
+        refreshFields();
+    }
+
+    /**
+     * Adds the typed name to the admin list. The server re-checks that the requester is the creator.
+     */
+    private void addAdmin()
+    {
+        String name = this.fieldAdminName.getValue() == null ? "" : this.fieldAdminName.getValue().trim();
+
+        if (name.isEmpty())
+        {
+            this.status = Component.translatable(key("admin.admin_name_required")).getString();
+            return;
+        }
+
+        ClientActions.sendAdminEdit(true, name);
+        this.fieldAdminName.setValue("");
+    }
+
+    private void removeSelectedAdmin()
+    {
+        if (!canRemoveSelectedAdmin())
+        {
+            this.status = Component.translatable(key("admin.creator_protected")).getString();
+            return;
+        }
+
+        ClientActions.sendAdminEdit(false, adminDisplayRows().get(this.selectedAdminRow));
     }
 
     @Override
@@ -292,6 +474,17 @@ public class AdminConfigScreen extends Screen
             return this.commandEditor.keyPressed(keyCode, scanCode, modifiers);
         }
 
+        if (this.adminWindowOpen)
+        {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE)
+            {
+                closeAdminWindow();
+                return true;
+            }
+
+            return this.fieldAdminName.keyPressed(keyCode, scanCode, modifiers);
+        }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -303,6 +496,24 @@ public class AdminConfigScreen extends Screen
             this.commandEditor.mouseClicked(mouseX, mouseY, button);
             this.commandApplyButton.mouseClicked(mouseX, mouseY, button);
             this.commandCancelButton.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+
+        if (this.adminWindowOpen)
+        {
+            int adminRow = adminRowAt(mouseX, mouseY);
+
+            if (adminRow >= 0)
+            {
+                this.selectedAdminRow = adminRow;
+                refreshFields();
+                return true;
+            }
+
+            this.fieldAdminName.mouseClicked(mouseX, mouseY, button);
+            this.adminAddButton.mouseClicked(mouseX, mouseY, button);
+            this.adminRemoveButton.mouseClicked(mouseX, mouseY, button);
+            this.adminCloseButton.mouseClicked(mouseX, mouseY, button);
             return true;
         }
 
@@ -324,6 +535,11 @@ public class AdminConfigScreen extends Screen
         if (this.commandEditorOpen)
         {
             return this.commandEditor.mouseScrolled(mouseX, mouseY, delta);
+        }
+
+        if (this.adminWindowOpen)
+        {
+            return true;
         }
 
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
@@ -489,6 +705,12 @@ public class AdminConfigScreen extends Screen
         setVisible(this.applyBatchButton, this.valueTab);
         setVisible(this.chapterButton, this.valueTab);
         setVisible(this.fieldFilter, this.valueTab);
+        setVisible(this.adminButton, this.canManageAdmins);
+        setVisible(this.fieldAdminName, this.adminWindowOpen);
+        setVisible(this.adminAddButton, this.adminWindowOpen);
+        setVisible(this.adminRemoveButton, this.adminWindowOpen);
+        setVisible(this.adminCloseButton, this.adminWindowOpen);
+        this.adminRemoveButton.active = canRemoveSelectedAdmin();
 
         if (regionRow != null)
         {

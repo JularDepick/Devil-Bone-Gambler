@@ -27,6 +27,7 @@ public final class ModConstants
     public static final String CONFIG_DIR_NAME = "devil_bone_gambler";
     public static final String PRIZE_POOL_FILE = "prize_pool.json";
     public static final String ITEM_VALUES_FILE = "item_values.json";
+    public static final String ACCESS_FILE = "access.json";
     public static final String CONFIG_DOMAIN_PRIZE_POOL = "prize_pool";
     public static final String CONFIG_DOMAIN_ITEM_VALUES = "item_values";
 
@@ -126,7 +127,7 @@ public final class ModConstants
      * Requests and permissions
      */
     public static final long MIN_REQUEST_INTERVAL_MS = 250L;
-    public static final int ADMIN_PERMISSION_LEVEL = 2;
+
     public static final int DRAW_COMMAND_PERMISSION_LEVEL = 4;
 
     /*
@@ -225,6 +226,11 @@ public final class ModConstants
      * Random pools: the sample space of the random prize tokens, rebuilt from the registries on every world load.
      */
     public static final String RANDOM_POOL_FILE = "random_pools.json";
+    /*
+     * Longest player name the admin panel accepts. A vanilla name is at most 16 characters, the margin covers a
+     * hand written file without opening the field to arbitrary text.
+     */
+    public static final int MAX_PLAYER_NAME_LENGTH = 32;
     public static final String RANDOM_POOL_ITEM = "item";
     public static final String RANDOM_POOL_EFFECT = "effect";
     public static final String RANDOM_POOL_ENTITY = "entity";
