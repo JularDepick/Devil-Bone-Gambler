@@ -179,11 +179,12 @@ public class DealerScreen extends Screen
         }
 
         ClientActions.sendDealerInteract(this.panel.dealerEntityId(), action);
-
-        if (action != DealerInteractPacket.ACTION_LEAVE)
-        {
-            this.onClose();
-        }
+        /*
+         * Every action leads out of this panel, leaving the wager included: the refreshed panel only goes to the
+         * players still in the wager, so a member who just left would otherwise keep staring at a panel they are no
+         * longer part of.
+         */
+        this.onClose();
     }
 
     private void drawDealerCell(GuiGraphics graphics, int x, int y)
