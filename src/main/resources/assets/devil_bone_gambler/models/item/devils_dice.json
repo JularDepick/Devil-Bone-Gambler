@@ -1,6 +1,21 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "minecraft:block/block",
   "textures": {
-    "layer0": "devil_bone_gambler:item/devils_dice"
-  }
+    "particle": "devil_bone_gambler:item/devils_dice",
+    "dice": "devil_bone_gambler:item/devils_dice"
+  },
+  "elements": [
+    {
+      "from": [2, 2, 2],
+      "to": [14, 14, 14],
+      "faces": {
+        "north": { "uv": [0.0, 0.0, 2.6667, 12.0], "texture": "#dice" },
+        "east": { "uv": [5.3333, 0.0, 8.0, 12.0], "texture": "#dice" },
+        "south": { "uv": [13.3333, 0.0, 16.0, 12.0], "texture": "#dice" },
+        "west": { "uv": [8.0, 0.0, 10.6667, 12.0], "texture": "#dice" },
+        "up": { "uv": [2.6667, 0.0, 5.3333, 12.0], "texture": "#dice" },
+        "down": { "uv": [10.6667, 0.0, 13.3333, 12.0], "texture": "#dice" }
+      }
+    }
+  ]
 }

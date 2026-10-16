@@ -4,7 +4,6 @@
   "item.devil_bone_gambler.devils_dice": "Devil's Dice",
   "item.devil_bone_gambler.offering_value_table": "Offering Value Table",
   "block.devil_bone_gambler.devils_altar": "Devil's Altar",
-  "tooltip.devil_bone_gambler.altar_value": "Offering value: %s",
 
 
   "gui.devil_bone_gambler.author": "Author: JularDepick",
@@ -55,7 +54,9 @@
   "gui.devil_bone_gambler.admin.tab_value": "Item Values",
   "gui.devil_bone_gambler.admin.add_region": "Add Region",
   "gui.devil_bone_gambler.admin.add_entry": "Add Entry",
+  "gui.devil_bone_gambler.command.reloaded": "Devil Bone Gambler config reloaded",
   "gui.devil_bone_gambler.admin.remove": "Remove",
+  "gui.devil_bone_gambler.admin.remove_confirm": "Confirm delete",
   "gui.devil_bone_gambler.admin.refresh": "Reload",
   "gui.devil_bone_gambler.admin.submit": "Submit",
   "gui.devil_bone_gambler.admin.close": "Close",
@@ -114,7 +115,6 @@
   "gui.devil_bone_gambler.admin.cancel": "Cancel",
   "gui.devil_bone_gambler.admin.status_command_invalid": "Command validation failed, this entry will never be drawn: %s",
   "gui.devil_bone_gambler.admin.label_region": "Region tier",
-  "gui.devil_bone_gambler.admin.label_threshold": "Value threshold",
   "gui.devil_bone_gambler.admin.label_id": "Entry id",
   "gui.devil_bone_gambler.admin.label_weight": "Weight",
   "gui.devil_bone_gambler.admin.label_command": "Command",
@@ -123,7 +123,6 @@
 
   "gui.devil_bone_gambler.notify.default": "Fate is sealed",
 
-  "gui.devil_bone_gambler.notify.mode.actionbar": "Action bar",
   "gui.devil_bone_gambler.notify.mode.tellraw": "Chat",
   "gui.devil_bone_gambler.notify.mode.none": "Silent",
 
@@ -166,13 +165,11 @@
   "gui.devil_bone_gambler.reason.command_failed": "The command failed to run",
   "gui.devil_bone_gambler.reason.revision_conflict": "Config revision conflict",
   "gui.devil_bone_gambler.reason.invalid_config": "The config content is invalid",
-  "gui.devil_bone_gambler.reason.panel_closed": "The panel is no longer valid",
   "gui.devil_bone_gambler.reason.not_ready": "The server config is not ready yet",
   "gui.devil_bone_gambler.reason.no_player_nearby": "No player nearby",
   "gui.devil_bone_gambler.reason.wager_failed": "The wager could not be started",
   "gui.devil_bone_gambler.reason.wager_locked": "You have joined a wager and cannot use the Gambler's Dice while it runs",
   "gui.devil_bone_gambler.reason.altar_range_overlap": "Altar ranges may not overlap, the altar was destroyed and dropped",
-  "gui.devil_bone_gambler.reason.target_missing": "That player was not found",
   "gui.devil_bone_gambler.reason.unknown": "Unknown reason",
 
   "item.devil_bone_gambler.gamblers_dealer_spawn_egg": "Gambler's Dealer Spawn Egg",

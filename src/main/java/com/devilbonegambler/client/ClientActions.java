@@ -151,8 +151,9 @@ public final class ClientActions
 
         ModNetwork.sendToServer(new DevilsDiceRequestPacket(nextSequence(),
                 minecraft.player.getGameProfile().getName(), devilsDiceId(), OfferingBundle.empty()));
-        minecraft.gui.setOverlayMessage(
-                Component.translatable("gui." + ModConstants.MOD_ID + ".altar.place_hint"), false);
+        /* The hint goes to the chat box, so nothing of the mod ever appears above the hotbar. */
+        minecraft.gui.getChat().addMessage(
+                Component.translatable("gui." + ModConstants.MOD_ID + ".altar.place_hint"));
     }
 
     public static void sendValueTableRefreshRequest()
@@ -191,7 +192,7 @@ public final class ClientActions
     }
 
     /**
-     * Shows the rolled point and colour on the action bar, before the result text arrives.
+     * Shows the rolled point and colour in the chat box, before the result text arrives.
      */
     public static void showPointDisplay(int point, boolean red, int overflow)
     {
@@ -214,7 +215,7 @@ public final class ClientActions
                             Integer.valueOf(overflow)));
         }
 
-        minecraft.gui.setOverlayMessage(text, false);
+        minecraft.gui.getChat().addMessage(text);
     }
 
     public static String devilsDiceId()

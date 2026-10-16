@@ -23,6 +23,8 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientSetup.java             # Client registration entry, registers the entity renderer
 │   ├── gui/                         # Client screens
 │   │   ├── AdminConfigScreen.java   # Admin config panel
+│   │   ├── ConfirmButton.java       # Two step confirm button, the first click only relabels it
+│   │   ├── ItemLabels.java          # Translated names and raw registry ids for items and creatures
 │   │   ├── SlotMoves.java           # Slot move helpers, inventory view conservation and insertion
 │   │   ├── AltarScreen.java         # Offering screen
 │   │   ├── DealerBetScreen.java     # Dealer bet box screen

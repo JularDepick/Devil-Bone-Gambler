@@ -63,7 +63,7 @@ public final class ModCommands
 
         if (!ServerConfigManager.isReady())
         {
-            player.displayClientMessage(Component.translatable("gui." + ModConstants.MOD_ID + ".reason.not_ready"), true);
+            player.sendSystemMessage(Component.translatable("gui." + ModConstants.MOD_ID + ".reason.not_ready"));
             return 0;
         }
 
@@ -81,7 +81,8 @@ public final class ModCommands
         }
 
         ServerConfigManager.load(server);
-        context.getSource().sendSuccess(() -> Component.literal("Devil Bone Gambler config reloaded"), true);
+        context.getSource().sendSuccess(
+                () -> Component.translatable("gui." + ModConstants.MOD_ID + ".command.reloaded"), true);
         return 1;
     }
 }

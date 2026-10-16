@@ -4,7 +4,6 @@
   "item.devil_bone_gambler.devils_dice": "恶魔的骰子",
   "item.devil_bone_gambler.offering_value_table": "祭品价值表",
   "block.devil_bone_gambler.devils_altar": "恶魔的祭坛",
-  "tooltip.devil_bone_gambler.altar_value": "献祭值: %s",
 
 
   "gui.devil_bone_gambler.author": "作者: JularDepick",
@@ -55,7 +54,9 @@
   "gui.devil_bone_gambler.admin.tab_value": "物品价值",
   "gui.devil_bone_gambler.admin.add_region": "新增区域",
   "gui.devil_bone_gambler.admin.add_entry": "新增条目",
+  "gui.devil_bone_gambler.command.reloaded": "恶魔骨赌的配置已重新加载",
   "gui.devil_bone_gambler.admin.remove": "删除选中",
+  "gui.devil_bone_gambler.admin.remove_confirm": "确认删除",
   "gui.devil_bone_gambler.admin.refresh": "刷新",
   "gui.devil_bone_gambler.admin.submit": "提交",
   "gui.devil_bone_gambler.admin.close": "关闭",
@@ -114,7 +115,6 @@
   "gui.devil_bone_gambler.admin.cancel": "取消",
   "gui.devil_bone_gambler.admin.status_command_invalid": "指令校验未通过, 该条目不会被抽到: %s",
   "gui.devil_bone_gambler.admin.label_region": "区域编号",
-  "gui.devil_bone_gambler.admin.label_threshold": "价值门槛",
   "gui.devil_bone_gambler.admin.label_id": "条目标识",
   "gui.devil_bone_gambler.admin.label_weight": "权重",
   "gui.devil_bone_gambler.admin.label_command": "指令文本",
@@ -123,7 +123,6 @@
 
   "gui.devil_bone_gambler.notify.default": "命运已定",
 
-  "gui.devil_bone_gambler.notify.mode.actionbar": "物品栏上方",
   "gui.devil_bone_gambler.notify.mode.tellraw": "聊天栏",
   "gui.devil_bone_gambler.notify.mode.none": "不提示",
 
@@ -166,13 +165,11 @@
   "gui.devil_bone_gambler.reason.command_failed": "指令执行失败",
   "gui.devil_bone_gambler.reason.revision_conflict": "配置修订号冲突",
   "gui.devil_bone_gambler.reason.invalid_config": "配置内容非法",
-  "gui.devil_bone_gambler.reason.panel_closed": "面板已失效",
   "gui.devil_bone_gambler.reason.not_ready": "服务端配置尚未就绪",
   "gui.devil_bone_gambler.reason.no_player_nearby": "附近无玩家",
   "gui.devil_bone_gambler.reason.wager_failed": "赌局发起失败",
   "gui.devil_bone_gambler.reason.wager_locked": "你已加入赌局, 赌局期间无法使用赌徒的骰子",
   "gui.devil_bone_gambler.reason.altar_range_overlap": "祭坛范围不可重叠, 该祭坛已被破坏并掉落",
-  "gui.devil_bone_gambler.reason.target_missing": "找不到该玩家",
   "gui.devil_bone_gambler.reason.unknown": "未知原因",
 
   "item.devil_bone_gambler.gamblers_dealer_spawn_egg": "赌徒的荷官生物蛋",

@@ -10,7 +10,7 @@ import com.devilbonegambler.DevilBoneGambler;
 
 /**
  * Design detail constants that a developer may tune without touching core logic.
- * Every value here is a documented design detail of v0.2.0.
+ * Every value here is a documented design detail of the current version.
  */
 public final class ModConstants
 {
@@ -169,12 +169,10 @@ public final class ModConstants
      * the action bar, never as a title over the whole screen, and the chat box is the default channel.
      */
     public static final String NOTIFY_MODE_TELLRAW = "tellraw";
-    public static final String NOTIFY_MODE_ACTIONBAR = "actionbar";
     public static final String NOTIFY_MODE_NONE = "none";
 
     public static final String[] NOTIFY_MODES = {
         NOTIFY_MODE_TELLRAW,
-        NOTIFY_MODE_ACTIONBAR,
         NOTIFY_MODE_NONE
     };
 

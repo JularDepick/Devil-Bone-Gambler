@@ -22,6 +22,8 @@
 │   ├── ClientSetup.java             # 客户端注册入口, 注册实体渲染器
 │   ├── gui/                         # 客户端界面
 │   │   ├── AdminConfigScreen.java   # 管理员配置面板
+│   │   ├── ConfirmButton.java       # 二次确认按钮, 首次点击只改为确认文案
+│   │   ├── ItemLabels.java          # 物品与生物的翻译名与原始注册名
 │   │   ├── SlotMoves.java           # 格子搬运工具, 背包视图的守恒与插入
 │   │   ├── AltarScreen.java         # 献祭界面
 │   │   ├── DealerBetScreen.java     # 荷官赌注箱界面

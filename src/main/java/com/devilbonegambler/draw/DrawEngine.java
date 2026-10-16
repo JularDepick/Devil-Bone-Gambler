@@ -199,7 +199,7 @@ public final class DrawEngine
     }
 
     /**
-     * Luck curve hook. The luck value is read but does not change the entry weights in v0.2.0.
+     * Luck curve hook. The luck value is read but does not change the entry weights.
      */
     private static int currentLuck(ServerPlayer player)
     {

@@ -34,7 +34,7 @@ public final class NotifySender
     public static void sendFailure(ServerPlayer player, String reasonKey)
     {
         Component text = Component.translatable("gui." + ModConstants.MOD_ID + ".reason." + reasonKey);
-        send(player, ModConstants.NOTIFY_MODE_ACTIONBAR, text);
+        send(player, ModConstants.NOTIFY_MODE_TELLRAW, text);
     }
 
     /**
@@ -76,6 +76,10 @@ public final class NotifySender
         }
     }
 
+    /**
+     * Draw text only ever goes to the chat box, so a message above the hotbar can never be mistaken for something
+     * other than a draw, and the above hotbar area stays free for the game own prompts.
+     */
     public static void send(ServerPlayer player, String mode, Component text)
     {
         if (ModConstants.NOTIFY_MODE_NONE.equals(mode))
@@ -83,15 +87,6 @@ public final class NotifySender
             return;
         }
 
-        if (ModConstants.NOTIFY_MODE_ACTIONBAR.equals(mode))
-        {
-            player.displayClientMessage(text, true);
-            return;
-        }
-
-        /*
-         * The chat box is the default, so any mode that is not the action bar or silence is told in chat.
-         */
         player.sendSystemMessage(text);
     }
 

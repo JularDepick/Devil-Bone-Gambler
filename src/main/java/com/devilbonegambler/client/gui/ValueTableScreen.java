@@ -121,33 +121,21 @@ public class ValueTableScreen extends Screen
 
         for (Map.Entry<String, Integer> entry : this.snapshot.values().entrySet())
         {
-            ItemStack stack = itemStackOf(entry.getKey());
-            this.rows.add(new Row(stack, nameOfItem(entry.getKey(), stack), entry.getKey(), entry.getValue().intValue(),
-                    false, entry.getValue().intValue() == this.snapshot.defaultValue()));
+            ItemStack stack = ItemLabels.itemStackOf(entry.getKey());
+            this.rows.add(new Row(stack, ItemLabels.itemName(entry.getKey()), entry.getKey(),
+                    entry.getValue().intValue(), false,
+                    entry.getValue().intValue() == this.snapshot.defaultValue()));
         }
 
         for (Map.Entry<String, Integer> entry : this.snapshot.entities().entrySet())
         {
-            EntityType<?> type = entityTypeOf(entry.getKey());
-            this.rows.add(new Row(spawnEggOf(type), nameOfEntity(entry.getKey(), type), entry.getKey(),
+            EntityType<?> type = ItemLabels.entityTypeOf(entry.getKey());
+            this.rows.add(new Row(spawnEggOf(type), ItemLabels.entityName(entry.getKey()), entry.getKey(),
                     entry.getValue().intValue(), true,
                     entry.getValue().intValue() == this.snapshot.defaultEntityValue()));
         }
 
         this.rows.sort((first, second) -> first.name().compareToIgnoreCase(second.name()));
-    }
-
-    private ItemStack itemStackOf(String id)
-    {
-        ResourceLocation key = ResourceLocation.tryParse(id);
-        Item item = key == null ? null : ForgeRegistries.ITEMS.getValue(key);
-        return item == null ? ItemStack.EMPTY : new ItemStack(item);
-    }
-
-    private EntityType<?> entityTypeOf(String id)
-    {
-        ResourceLocation key = ResourceLocation.tryParse(id);
-        return key == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(key);
     }
 
     /**
@@ -168,19 +156,14 @@ public class ValueTableScreen extends Screen
             return ItemStack.EMPTY;
         }
 
-        Item egg = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryBuild(key.getNamespace(),
-                key.getPath() + "_spawn_egg"));
-        return egg == null ? ItemStack.EMPTY : new ItemStack(egg);
-    }
+        ResourceLocation eggKey = ResourceLocation.tryBuild(key.getNamespace(), key.getPath() + "_spawn_egg");
 
-    private String nameOfItem(String id, ItemStack stack)
-    {
-        return stack.isEmpty() ? id : stack.getHoverName().getString();
-    }
+        if (eggKey == null || !ForgeRegistries.ITEMS.containsKey(eggKey))
+        {
+            return ItemStack.EMPTY;
+        }
 
-    private String nameOfEntity(String id, EntityType<?> type)
-    {
-        return type == null ? id : type.getDescription().getString();
+        return new ItemStack(ForgeRegistries.ITEMS.getValue(eggKey));
     }
 
     /**

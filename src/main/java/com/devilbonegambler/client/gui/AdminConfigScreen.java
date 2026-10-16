@@ -21,6 +21,7 @@ import com.devilbonegambler.util.ModConstants;
 import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import net.minecraft.client.gui.GuiGraphics;
@@ -59,7 +60,11 @@ public class AdminConfigScreen extends Screen
     private static final int COMMAND_WINDOW_WIDTH = 220;
     private static final int COMMAND_WINDOW_HEIGHT = 96;
     private static final int COMMAND_EDITOR_HEIGHT = 52;
-    private static final int WINDOW_COLOR = 0xF0101010;
+    /*
+     * A sub page is opaque and dims the page behind it, so both layers stay readable instead of mixing.
+     */
+    private static final int WINDOW_COLOR = 0xFF141414;
+    private static final int SUBPAGE_SCRIM_COLOR = 0xB0101010;
     private static final int WINDOW_BORDER_COLOR = 0xFF707070;
     private static final int TITLE_COLOR = 0xFFFFFF;
     private static final int LABEL_COLOR = 0xA0A0A0;
@@ -73,7 +78,7 @@ public class AdminConfigScreen extends Screen
     private static final int ADMIN_WINDOW_HEIGHT = 152;
     private static final int ADMIN_LIST_Y = 22;
     private static final int ADMIN_ROW_HEIGHT = 11;
-    private static final int ADMIN_VISIBLE_ROWS = 7;
+    private static final int ADMIN_VISIBLE_ROWS = 6;
     private static final int ADMIN_FIELD_Y = 106;
     private static final int ADMIN_FIELD_WIDTH = 142;
     private static final int ADMIN_CLOSE_Y = 128;
@@ -109,6 +114,14 @@ public class AdminConfigScreen extends Screen
     private Button notifyModeButton;
     private Button enabledButton;
     private Button applyBatchButton;
+    private Button tabPrizeButton;
+    private Button tabValueButton;
+    private Button addRegionButton;
+    private Button addEntryButton;
+    private Button refreshButton;
+    private Button submitButton;
+    private Button closeButton;
+    private ConfirmButton removeButton;
     private Button commandEditButton;
     private MultiLineEditBox commandEditor;
     private Button commandApplyButton;
@@ -127,7 +140,7 @@ public class AdminConfigScreen extends Screen
     private EditBox fieldAdminName;
     private Button adminButton;
     private Button adminAddButton;
-    private Button adminRemoveButton;
+    private ConfirmButton adminRemoveButton;
     private Button adminCloseButton;
 
     public AdminConfigScreen(String prizePoolJson, String itemValuesJson, String creatorName, List<String> admins,
@@ -208,10 +221,10 @@ public class AdminConfigScreen extends Screen
         this.leftPos = (this.width - PANEL_WIDTH) / 2;
         this.topPos = (this.height - PANEL_HEIGHT) / 2;
 
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")), button -> switchTab(false))
-                .pos(this.leftPos + 8, this.topPos + 32).size(88, 16).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")), button -> switchTab(true))
-                .pos(this.leftPos + 100, this.topPos + 32).size(88, 16).build());
+        this.tabPrizeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")),
+                button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + 32).size(88, 16).build());
+        this.tabValueButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")),
+                button -> switchTab(true)).pos(this.leftPos + 100, this.topPos + 32).size(88, 16).build());
 
         this.fieldTier = addField(62, Component.translatable(key("admin.label_region")), 6);
         this.colorButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleColor())
@@ -263,22 +276,23 @@ public class AdminConfigScreen extends Screen
         addRenderableWidget(this.fieldFilter);
 
         int buttonY = this.topPos + PANEL_HEIGHT - 22;
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")), button -> addRegion())
-                .pos(this.leftPos + 8, buttonY).size(68, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")), button -> addEntry())
-                .pos(this.leftPos + 80, buttonY).size(68, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.remove")),
-                button -> removeSelected()).pos(this.leftPos + 152, buttonY).size(68, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.refresh")),
+        this.addRegionButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")),
+                button -> addRegion()).pos(this.leftPos + 8, buttonY).size(68, 18).build());
+        this.addEntryButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")),
+                button -> addEntry()).pos(this.leftPos + 80, buttonY).size(68, 18).build());
+        this.removeButton = addRenderableWidget(new ConfirmButton(this.leftPos + 152, buttonY, 68, 18,
+                Component.translatable(key("admin.remove")), Component.translatable(key("admin.remove_confirm")),
+                this::removeSelected));
+        this.refreshButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.refresh")),
                 button -> ClientActions.sendAdminPanelRequest())
                 .pos(this.leftPos + 224, buttonY).size(24, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.submit")), button -> submit())
-                .pos(this.leftPos + 252, buttonY).size(64, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable(key("admin.close")), button -> onClose())
-                .pos(this.leftPos + 320, buttonY).size(52, 18).build());
+        this.submitButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.submit")),
+                button -> submit()).pos(this.leftPos + 252, buttonY).size(64, 18).build());
+        this.closeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
+                button -> onClose()).pos(this.leftPos + 320, buttonY).size(52, 18).build());
 
         this.adminButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_admins")),
-                button -> openAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + 18)
+                button -> toggleAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + 18)
                         .size(72, FIELD_HEIGHT + 2).build());
         this.fieldAdminName = new EditBox(this.font, this.leftPos + ADMIN_WINDOW_X + 6,
                 this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y, ADMIN_FIELD_WIDTH, FIELD_HEIGHT,
@@ -288,9 +302,10 @@ public class AdminConfigScreen extends Screen
         this.adminAddButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.admin_add")),
                 button -> addAdmin()).pos(this.leftPos + ADMIN_WINDOW_X + 152,
                         this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y - 1).size(46, FIELD_HEIGHT + 2).build());
-        this.adminRemoveButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.remove")),
-                button -> removeSelectedAdmin()).pos(this.leftPos + ADMIN_WINDOW_X + 202,
-                        this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y - 1).size(50, FIELD_HEIGHT + 2).build());
+        this.adminRemoveButton = addRenderableWidget(new ConfirmButton(this.leftPos + ADMIN_WINDOW_X + 202,
+                this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y - 1, 50, FIELD_HEIGHT + 2,
+                Component.translatable(key("admin.remove")), Component.translatable(key("admin.remove_confirm")),
+                this::removeSelectedAdmin));
         this.adminCloseButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
                 button -> closeAdminWindow()).pos(this.leftPos + ADMIN_WINDOW_X + 6,
                         this.topPos + ADMIN_WINDOW_Y + ADMIN_CLOSE_Y).size(64, 16).build());
@@ -311,18 +326,22 @@ public class AdminConfigScreen extends Screen
         graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"),
                 this.leftPos + EDIT_X, this.topPos + PANEL_HEIGHT - 36, LABEL_COLOR, false);
 
-        drawList(graphics);
+        this.removeButton.tickConfirm();
+        this.adminRemoveButton.tickConfirm();
+        drawList(graphics, mouseX, mouseY);
+
+        /*
+         * A sub page is painted as one opaque layer: the page behind it is dimmed first and only then the frame, so
+         * the frame and its own widgets sit unambiguously above the page.
+         */
+        if (subpageOpen())
+        {
+            drawSubPageScrim(graphics);
+        }
 
         if (this.commandEditorOpen)
         {
-            int windowX = this.leftPos + COMMAND_WINDOW_X;
-            int windowY = this.topPos + COMMAND_WINDOW_Y;
-            graphics.fill(windowX - 1, windowY - 1, windowX + COMMAND_WINDOW_WIDTH + 1,
-                    windowY + COMMAND_WINDOW_HEIGHT + 1, WINDOW_BORDER_COLOR);
-            graphics.fill(windowX, windowY, windowX + COMMAND_WINDOW_WIDTH, windowY + COMMAND_WINDOW_HEIGHT,
-                    WINDOW_COLOR);
-            graphics.drawString(this.font, Component.translatable(key("admin.label_command")), windowX + 6,
-                    windowY + 6, TITLE_COLOR, false);
+            drawCommandWindow(graphics);
         }
 
         if (this.adminWindowOpen)
@@ -331,7 +350,30 @@ public class AdminConfigScreen extends Screen
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);
-        drawFieldLabels(graphics);
+
+        /* The page behind a sub page is hidden, so its field labels are hidden with it. */
+        if (!subpageOpen())
+        {
+            drawFieldLabels(graphics);
+        }
+    }
+
+    /** Dims the page behind a sub page so the two layers never read as one surface. */
+    private void drawSubPageScrim(GuiGraphics graphics)
+    {
+        graphics.fill(this.leftPos, this.topPos, this.leftPos + PANEL_WIDTH, this.topPos + PANEL_HEIGHT,
+                SUBPAGE_SCRIM_COLOR);
+    }
+
+    private void drawCommandWindow(GuiGraphics graphics)
+    {
+        int windowX = this.leftPos + COMMAND_WINDOW_X;
+        int windowY = this.topPos + COMMAND_WINDOW_Y;
+        graphics.fill(windowX - 1, windowY - 1, windowX + COMMAND_WINDOW_WIDTH + 1,
+                windowY + COMMAND_WINDOW_HEIGHT + 1, WINDOW_BORDER_COLOR);
+        graphics.fill(windowX, windowY, windowX + COMMAND_WINDOW_WIDTH, windowY + COMMAND_WINDOW_HEIGHT, WINDOW_COLOR);
+        graphics.drawString(this.font, Component.translatable(key("admin.label_command")), windowX + 6, windowY + 6,
+                TITLE_COLOR, false);
     }
 
     /**
@@ -419,8 +461,27 @@ public class AdminConfigScreen extends Screen
         return row >= 0 && row < rows ? row : -1;
     }
 
+    /** At most one sub page is open, because both draw above the page and take the pointer. */
+    private boolean subpageOpen()
+    {
+        return this.adminWindowOpen || this.commandEditorOpen;
+    }
+
+    /** The admin button opens its sub page and closes it again on a repeated click. */
+    private void toggleAdminWindow()
+    {
+        if (this.adminWindowOpen)
+        {
+            closeAdminWindow();
+            return;
+        }
+
+        openAdminWindow();
+    }
+
     private void openAdminWindow()
     {
+        closeCommandEditor(false);
         this.adminWindowOpen = true;
         this.selectedAdminRow = -1;
         refreshFields();
@@ -510,6 +571,8 @@ public class AdminConfigScreen extends Screen
                 return true;
             }
 
+            /* The admin button stays reachable, because a repeated click closes the window again. */
+            this.adminButton.mouseClicked(mouseX, mouseY, button);
             this.fieldAdminName.mouseClicked(mouseX, mouseY, button);
             this.adminAddButton.mouseClicked(mouseX, mouseY, button);
             this.adminRemoveButton.mouseClicked(mouseX, mouseY, button);
@@ -579,11 +642,12 @@ public class AdminConfigScreen extends Screen
         refreshFields();
     }
 
-    private void drawList(GuiGraphics graphics)
+    private void drawList(GuiGraphics graphics, int mouseX, int mouseY)
     {
         int listY = this.topPos + (this.valueTab ? 72 : 54);
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         int selected = this.valueTab ? this.selectedValueIndex : this.selectedPrizeIndex;
+        int hovered = listRowAt(mouseX, mouseY);
 
         for (int line = 0; line < LIST_VISIBLE_ROWS; line++)
         {
@@ -599,6 +663,16 @@ public class AdminConfigScreen extends Screen
                     index == selected ? ROW_SELECTED_COLOR : ROW_COLOR);
             graphics.drawString(this.font, clip(labelAt(index), LIST_WIDTH - 4), this.leftPos + LIST_X + 2, y + 2,
                     TEXT_COLOR, false);
+
+            /*
+             * A row shows the translated name, so the raw id it stands for is offered on hover.
+             */
+            String id = idAt(index);
+
+            if (hovered == index && !id.isEmpty())
+            {
+                graphics.renderTooltip(this.font, ItemLabels.idTooltip(id), mouseX, mouseY);
+            }
         }
     }
 
@@ -641,11 +715,27 @@ public class AdminConfigScreen extends Screen
             boolean registered = this.entityChapter
                     ? this.itemValues.isRegisteredEntity(key)
                     : this.itemValues.isRegisteredItem(key);
-            return Component.translatable(key(registered ? "admin.value_row" : "admin.value_row_missing"), key,
-                    Integer.valueOf(valueOfKey(key))).getString();
+            return Component.translatable(key(registered ? "admin.value_row" : "admin.value_row_missing"),
+                    nameOf(key), Integer.valueOf(valueOfKey(key))).getString();
         }
 
         return this.prizeRows.get(index).label();
+    }
+
+    /**
+     * The translated name of a value row, which is what the list shows instead of the raw id.
+     */
+    private String nameOf(String id)
+    {
+        return this.entityChapter ? ItemLabels.entityName(id) : ItemLabels.itemName(id);
+    }
+
+    /**
+     * The raw registry id behind a row, empty for the prize rows, whose identifier is an admin made label.
+     */
+    private String idAt(int index)
+    {
+        return this.valueTab && index >= 0 && index < this.valueKeys.size() ? this.valueKeys.get(index) : "";
     }
 
     private int listRowAt(double mouseX, double mouseY)
@@ -685,31 +775,53 @@ public class AdminConfigScreen extends Screen
 
     private void refreshFields()
     {
+        /*
+         * An armed delete button belongs to the selection it was armed on, so any change of selection or of the
+         * pushed configuration drops it back to the plain action.
+         */
+        this.removeButton.release();
+        this.adminRemoveButton.release();
+
         RegionRow regionRow = selectedRegionRow();
         EntryRow entryRow = selectedEntryRow();
 
-        setVisible(this.fieldTier, regionRow != null);
-        setVisible(this.colorButton, entryRow != null);
-        setVisible(this.majorEventButton, entryRow != null);
-        setVisible(this.fieldId, entryRow != null);
-        setVisible(this.fieldWeight, entryRow != null);
-        setVisible(this.fieldCommand, entryRow != null);
-        setVisible(this.commandEditButton, entryRow != null);
+        /*
+         * A sub page is modal: it draws its own opaque frame above the page and owns the pointer, so every widget of
+         * the page behind it is hidden instead of showing through it or drawing over it.
+         */
+        boolean main = !subpageOpen();
+
+        setVisible(this.tabPrizeButton, main);
+        setVisible(this.tabValueButton, main);
+        setVisible(this.addRegionButton, main);
+        setVisible(this.addEntryButton, main);
+        setVisible(this.removeButton, main);
+        setVisible(this.refreshButton, main);
+        setVisible(this.submitButton, main);
+        setVisible(this.closeButton, main);
+        setVisible(this.fieldTier, main && regionRow != null);
+        setVisible(this.colorButton, main && entryRow != null);
+        setVisible(this.majorEventButton, main && entryRow != null);
+        setVisible(this.fieldId, main && entryRow != null);
+        setVisible(this.fieldWeight, main && entryRow != null);
+        setVisible(this.fieldCommand, main && entryRow != null);
+        setVisible(this.commandEditButton, main && entryRow != null);
+        setVisible(this.fieldNotifyText, main && entryRow != null);
+        setVisible(this.notifyModeButton, main && entryRow != null);
+        setVisible(this.enabledButton, main && entryRow != null);
+        setVisible(this.fieldValue, main && this.valueTab);
+        setVisible(this.applyBatchButton, main && this.valueTab);
+        setVisible(this.chapterButton, main && this.valueTab);
+        setVisible(this.fieldFilter, main && this.valueTab);
         setVisible(this.commandEditor, this.commandEditorOpen);
         setVisible(this.commandApplyButton, this.commandEditorOpen);
         setVisible(this.commandCancelButton, this.commandEditorOpen);
-        setVisible(this.fieldNotifyText, entryRow != null);
-        setVisible(this.notifyModeButton, entryRow != null);
-        setVisible(this.enabledButton, entryRow != null);
-        setVisible(this.fieldValue, this.valueTab);
-        setVisible(this.applyBatchButton, this.valueTab);
-        setVisible(this.chapterButton, this.valueTab);
-        setVisible(this.fieldFilter, this.valueTab);
-        setVisible(this.adminButton, this.canManageAdmins);
         setVisible(this.fieldAdminName, this.adminWindowOpen);
         setVisible(this.adminAddButton, this.adminWindowOpen);
         setVisible(this.adminRemoveButton, this.adminWindowOpen);
         setVisible(this.adminCloseButton, this.adminWindowOpen);
+        /* The admin button stays live while its own sub page is open, because it is also the toggle that closes it. */
+        setVisible(this.adminButton, this.canManageAdmins);
         this.adminRemoveButton.active = canRemoveSelectedAdmin();
 
         if (regionRow != null)
@@ -769,6 +881,8 @@ public class AdminConfigScreen extends Screen
             return;
         }
 
+        /* Only one sub page at a time, so opening the editor puts the manager window away. */
+        closeAdminWindow();
         this.commandEditor.setValue(entryRow.entry.commandOrEmpty());
         this.commandEditorOpen = true;
         this.commandEditor.setFocused(true);
@@ -1105,7 +1219,7 @@ public class AdminConfigScreen extends Screen
 
         for (String key : sorted.keySet())
         {
-            if (filter.isEmpty() || key.contains(filter))
+            if (filter.isEmpty() || matchesFilter(key, filter))
             {
                 this.valueKeys.add(key);
             }
@@ -1115,6 +1229,16 @@ public class AdminConfigScreen extends Screen
         {
             this.selectedValueIndex = -1;
         }
+    }
+
+    /**
+     * Matches the raw id and the translated name, so a filter works with either what is shown or what is stored.
+     */
+    private boolean matchesFilter(String key, String filter)
+    {
+        String needle = filter.toLowerCase(Locale.ROOT);
+        return key.toLowerCase(Locale.ROOT).contains(needle)
+                || nameOf(key).toLowerCase(Locale.ROOT).contains(needle);
     }
 
     private int indexOfEntry(PrizeRegion region, PrizeEntry entry)
