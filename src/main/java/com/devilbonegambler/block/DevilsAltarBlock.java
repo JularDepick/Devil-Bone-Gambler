@@ -130,14 +130,17 @@ public class DevilsAltarBlock extends Block implements EntityBlock
         /*
          * Two altar ranges may never overlap, so an altar placed inside another range is destroyed right away
          * and lands on the ground as an item, which carries the accumulated offering value back out.
-         * The altar at this position is excluded because its own range always covers itself.
+         * The altar at this position is excluded because its own range always covers itself, and the refusal names
+         * whether the covering range comes from a placed altar, from a worn altar or from both.
          */
         if (!(level instanceof ServerLevel serverLevel))
         {
             return;
         }
 
-        if (!AltarService.rangeCovers(serverLevel, pos, pos))
+        AltarService.RangeSource source = AltarService.rangeSource(serverLevel, pos, pos);
+
+        if (!source.covers())
         {
             return;
         }
@@ -151,7 +154,25 @@ public class DevilsAltarBlock extends Block implements EntityBlock
                 Block.popResource(level, pos, stack.copy());
             }
 
-            NotifySender.sendFailure(player, "altar_range_overlap");
+            NotifySender.sendFailure(player, reasonKeyFor(source));
         }
+    }
+
+    /**
+     * The refusal names the source of the covering range, so a player learns which altar to move away from.
+     */
+    private static String reasonKeyFor(AltarService.RangeSource source)
+    {
+        if (source == AltarService.RangeSource.PLACED)
+        {
+            return "altar_range_overlap_placed";
+        }
+
+        if (source == AltarService.RangeSource.WORN)
+        {
+            return "altar_range_overlap_worn";
+        }
+
+        return "altar_range_overlap_both";
     }
 }

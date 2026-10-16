@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -130,16 +131,35 @@ public final class AltarService
      */
     public static long governingValue(ServerPlayer player)
     {
+        Governing governing = governing(player);
+        return governing == null ? NO_ALTAR : governing.value();
+    }
+
+    /**
+     * Range centre of the altar that governs a player: an altar block whose range covers the player, the altar the
+     * player wears at the own position, or the altar another player wears at that wearer position.
+     * Null when no altar governs the player.
+     */
+    public static Vec3 governingCentre(ServerPlayer player)
+    {
+        Governing governing = governing(player);
+        return governing == null ? null : governing.centre();
+    }
+
+    private static Governing governing(ServerPlayer player)
+    {
         long best = wornAltarValue(player);
+        Vec3 centre = best < 0L ? null : player.position();
         DevilsAltarBlockEntity nearest = nearestAltar(player);
 
         if (nearest != null)
         {
             long value = nearest.offeringValue();
 
-            if (inRange(player, ModConstants.altarRadiusFor(value)))
+            if (inRange(player, ModConstants.altarRadiusFor(value)) && (centre == null || value >= best))
             {
-                best = Math.max(best, value);
+                best = value;
+                centre = Vec3.atCenterOf(nearest.getBlockPos());
             }
         }
 
@@ -163,10 +183,58 @@ public final class AltarService
 
                 int radius = ModConstants.altarRadiusFor(value);
 
-                if (player.distanceToSqr(other) <= (double) radius * (double) radius)
+                if (player.distanceToSqr(other) <= (double) radius * (double) radius
+                        && (centre == null ? value >= 0L : value > best))
                 {
-                    best = Math.max(best, value);
+                    best = value;
+                    centre = other.position();
                 }
+            }
+        }
+
+        return centre == null ? null : new Governing(best, centre);
+    }
+
+    /**
+     * The value of one governing altar together with the centre of its range.
+     */
+    private record Governing(long value, Vec3 centre)
+    {
+    }
+
+    /**
+     * Value of the nearest altar regardless of the range, which is one of the candidates of the carried effect.
+     */
+    public static long nearestAltarValue(ServerPlayer player)
+    {
+        DevilsAltarBlockEntity altar = nearestAltar(player);
+        return altar == null ? 0L : altar.offeringValue();
+    }
+
+    /**
+     * The largest offering value among the altar items the player holds, the worn one included, or NO_ALTAR when the
+     * inventory holds none. Every altar is a separate candidate, they are never added up.
+     */
+    public static long carriedAltarValue(ServerPlayer player)
+    {
+        Inventory inventory = player.getInventory();
+        long best = NO_ALTAR;
+
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+        {
+            ItemStack stack = inventory.getItem(slot);
+
+            if (stack.isEmpty() || !stack.is(ModBlocks.DEVILS_ALTAR_ITEM.get()))
+            {
+                continue;
+            }
+
+            CompoundTag tag = stack.getTag();
+            long value = tag == null ? 0L : Math.max(0L, tag.getLong(ModConstants.ALTAR_VALUE_TAG));
+
+            if (value > best)
+            {
+                best = value;
             }
         }
 
@@ -174,12 +242,26 @@ public final class AltarService
     }
 
     /**
-     * Value of the nearest altar regardless of the range, which is the level the halved carried effect keeps.
+     * The value that decides the strength of the altar effect of one player, or NO_ALTAR when no altar applies.
+     * The governing range, the altars the player holds and the nearest altar of the world compete as separate
+     * candidates and the strongest single one wins, so carrying several altars, wearing one on top of a range or
+     * standing in a range while wearing an altar never adds up into a stronger effect.
      */
-    public static long nearestAltarValue(ServerPlayer player)
+    public static long effectValue(ServerPlayer player)
     {
-        DevilsAltarBlockEntity altar = nearestAltar(player);
-        return altar == null ? 0L : altar.offeringValue();
+        long governing = governingValue(player);
+        long carried = carriedAltarValue(player);
+
+        /*
+         * Only a governing range or an altar held by the player makes the effect apply at all; the nearest altar of
+         * the world is a level candidate alone, exactly as it was for the carried effect before.
+         */
+        if (governing < 0L && carried < 0L)
+        {
+            return NO_ALTAR;
+        }
+
+        return Math.max(Math.max(governing, carried), nearestAltarValue(player));
     }
 
     /**
@@ -209,10 +291,48 @@ public final class AltarService
     }
 
     /**
-     * True when any altar range covers the position, ignoring the altar at the excluded position.
-     * Both placed altars and altars worn by players are sources, which is what keeps two ranges apart.
+     * Which kind of altar already covers the position, ignoring the altar at the excluded position.
+     * Both placed altars and altars worn by players are sources, which is what keeps two ranges apart, and the kind is
+     * reported as well, because a refused placement explains where the covering range comes from.
      */
-    public static boolean rangeCovers(ServerLevel level, BlockPos pos, BlockPos excluded)
+    public enum RangeSource
+    {
+        NONE,
+        PLACED,
+        WORN,
+        BOTH;
+
+        public boolean covers()
+        {
+            return this != NONE;
+        }
+    }
+
+    /**
+     * The covering range of a position, or NONE when no other altar range reaches it.
+     */
+    public static RangeSource rangeSource(ServerLevel level, BlockPos pos, BlockPos excluded)
+    {
+        boolean placed = placedRangeCovers(level, pos, excluded);
+        boolean worn = wornRangeCovers(level, pos);
+
+        if (placed && worn)
+        {
+            return RangeSource.BOTH;
+        }
+
+        if (placed)
+        {
+            return RangeSource.PLACED;
+        }
+
+        return worn ? RangeSource.WORN : RangeSource.NONE;
+    }
+
+    /**
+     * True when a placed altar other than the excluded one covers the position.
+     */
+    private static boolean placedRangeCovers(ServerLevel level, BlockPos pos, BlockPos excluded)
     {
         int reach = ModConstants.ALTAR_MAX_RADIUS;
         BlockPos min = pos.offset(-reach, -reach, -reach);
@@ -245,6 +365,14 @@ public final class AltarService
             }
         }
 
+        return false;
+    }
+
+    /**
+     * True when an altar worn by a player covers the position.
+     */
+    private static boolean wornRangeCovers(ServerLevel level, BlockPos pos)
+    {
         MinecraftServer server = level.getServer();
 
         if (server == null)
@@ -392,32 +520,29 @@ public final class AltarService
     }
 
     /**
-     * The altar range grants the vanilla damage boost, whose level follows the altar level.
-     * The effect is refreshed once per interval and overwritten while the player stays in range, so it simply
-     * expires after the player leaves.
+     * The altar grants the vanilla damage boost, whose level follows the strongest single altar that applies to the
+     * player and never the sum of several, while the duration tells whether the player stands in a range.
+     * The effect is refreshed once per interval and overwritten while it applies, so it simply expires afterwards.
      */
     private static void applyRangeEffect(ServerPlayer player)
     {
-        long value = governingValue(player);
+        long value = effectValue(player);
 
-        if (value >= 0L)
+        if (value < 0L)
         {
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
-                    ModConstants.ALTAR_EFFECT_DURATION_TICKS, ModConstants.altarLevelFor(value)));
             return;
         }
 
         /*
-         * Carrying an altar item keeps half of the effect anywhere in the world, with the level of the
-         * nearest altar. The inventory is scanned by item identity, because a recovered altar carries an
-         * NBT tag and a tag comparing lookup would miss it.
+         * Standing in a range, or wearing an altar which is a range at the wearer, keeps the full duration;
+         * only carrying an altar keeps half of it. The level always comes from the strongest single candidate.
          */
-        if (carriesAltar(player))
-        {
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
-                    ModConstants.ALTAR_EFFECT_DURATION_TICKS / ModConstants.ALTAR_CARRIED_EFFECT_DIVISOR,
-                    ModConstants.altarLevelFor(nearestAltarValue(player))));
-        }
+        boolean governed = governingValue(player) >= 0L;
+        int duration = governed ? ModConstants.ALTAR_EFFECT_DURATION_TICKS
+                : ModConstants.ALTAR_EFFECT_DURATION_TICKS / ModConstants.ALTAR_CARRIED_EFFECT_DIVISOR;
+
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, duration,
+                ModConstants.altarLevelFor(value)));
     }
 
     /**
@@ -432,25 +557,5 @@ public final class AltarService
 
         player.hurt(player.damageSources().magic(), ModConstants.ALTAR_INTRUSION_DAMAGE);
         NotifySender.sendChat(player, KEY_INTRUSION);
-    }
-
-    /**
-     * Whether any inventory slot holds an altar item, ignoring its accumulated offering value tag.
-     */
-    private static boolean carriesAltar(ServerPlayer player)
-    {
-        Inventory inventory = player.getInventory();
-
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
-        {
-            ItemStack stack = inventory.getItem(slot);
-
-            if (!stack.isEmpty() && stack.is(ModBlocks.DEVILS_ALTAR_ITEM.get()))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
