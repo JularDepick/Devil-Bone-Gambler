@@ -127,6 +127,7 @@ public final class DealerSpawnService
 
             dealer.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, target.getYRot(), 0.0F);
             dealer.setPersistenceRequired();
+            dealer.showIdleName();
             level.addFreshEntity(dealer);
             DevilBoneGambler.LOGGER.info("Dealer spawned silently near {}, pos={}",
                     target.getGameProfile().getName(), pos);

@@ -27,6 +27,9 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 
 /**
@@ -39,6 +42,7 @@ public class GamblersDealer extends PathfinderMob
     private static final String TAG_SATIETY = "DealerSatiety";
     private static final String TAG_STAY = "DealerStayTicks";
     private static final String KEY_RECRUITING = "gui." + ModConstants.MOD_ID + ".dealer.recruiting";
+    private static final String KEY_IDLE_NAME = "gui." + ModConstants.MOD_ID + ".dealer.name_tag";
 
     private int satiety = ModConstants.DEALER_MAX_SATIETY;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
@@ -171,12 +175,38 @@ public class GamblersDealer extends PathfinderMob
     {
         this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(seconds)));
         this.setCustomNameVisible(true);
+        this.dealingParticles();
     }
 
     public void clearRecruitText()
     {
-        this.setCustomName(null);
-        this.setCustomNameVisible(false);
+        this.setCustomName(Component.translatable(KEY_IDLE_NAME));
+        this.setCustomNameVisible(true);
+    }
+
+    /**
+     * The idle name tag carries the running joke, the recruit text takes it over while a wager is open.
+     */
+    public void showIdleName()
+    {
+        this.setCustomName(Component.translatable(KEY_IDLE_NAME));
+        this.setCustomNameVisible(true);
+    }
+
+    /**
+     * A small heart burst, used when the dealer starts recruiting and when a wager settles.
+     */
+    public void dealingParticles()
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        level.sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.0D, this.getZ(),
+                ModConstants.DEALER_PARTICLE_COUNT, 0.35D, 0.35D, 0.35D, 0.02D);
+        level.playSound(null, this.blockPosition(), SoundEvents.NOTE_BLOCK_CHIME.value(),
+                SoundSource.NEUTRAL, ModConstants.DEALER_SOUND_VOLUME, 1.4F);
     }
 
     /**
@@ -242,6 +272,7 @@ public class GamblersDealer extends PathfinderMob
                 : ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
         this.hosting = false;
         this.clearRecruitText();
+        this.showIdleName();
     }
 
     /**

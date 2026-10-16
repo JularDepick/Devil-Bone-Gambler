@@ -43,6 +43,7 @@ Empty directories are kept in git through a `.gitkeep` placeholder
 | Item values | `<world save>/serverconfig/devil_bone_gambler/item_values.json` | Item value table, created from the built in presets and the registry scan |
 | Luck data | `<world save>/data/devil_bone_gambler_luck.dat` | Per player luck value |
 | Dice usage data | `<world save>/data/devil_bone_gambler_dealer_usage.dat` | Per player consumed gambler's dice counter, used for the dealer spawn egg reward |
+| Random pools | `<world save>/serverconfig/devil_bone_gambler/random_pools.json` | Sample space of the random prize tokens, rebuilt from a registry scan and overwritten on every world load, with item, effect, entity, enchantment and potion pools |
 
 ## Admin Entry
 

@@ -25,12 +25,14 @@
 │   │   └── DealerScreen.java        # 荷官九宫格界面
 │   └── render/                      # 客户端渲染
 │       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
-│       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与村民贴图
+│       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与自绘制服贴图
 ├── commands/                        # 命令注册
 │   ├── CommandRunner.java           # 奖池条目指令执行与语法校验
-│   └── ModCommands.java             # 管理员命令入口
+│   ├── ModCommands.java             # 管理员命令入口
+│   └── RandomPoolSampler.java       # 随机池令牌取样, 执行前替换为池内一个条目
 ├── config/                          # 服务端配置模型与读写
 │   ├── DefaultPrizePool.java        # 首次生成奖池配置时使用的预设
+│   ├── RandomPoolConfig.java        # 随机池配置模型, 世界加载时由注册表重建
 │   ├── ItemValueConfig.java         # 物品价值配置模型
 │   ├── ItemValuePresets.java        # 内置原版物品价值基准表
 │   ├── NotifyConfig.java            # 条目结果展示配置模型
@@ -146,6 +148,8 @@ src/main/resources/
 │       ├── block/
 │       │   ├── devils_altar.png       # 祭坛方块贴图, 128x256 图集
 │       │   └── devils_altar_particle.png # 祭坛破坏粒子贴图, 16x16
+│       ├── entity/
+│       │   └── gamblers_dealer.png  # 荷官赌场制服贴图, 沿用村民 UV 布局
 │       └── item/
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
@@ -181,7 +185,8 @@ src/main/resources/
 - 自定义方块模型需要在 `textures` 中声明 `particle` 贴图, 否则破坏粒子会回退到原版缺失贴图
 - 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`
 - 赌局机制集中在 `wager/`; 祭坛的方块, 方块实体与范围服务集中在 `block/` 与 `altar/`
-- 荷官的实体, 寻路与静默生成集中在 `mob/`, 荷官赌局与奖励集中在 `dealer/`; 荷官渲染复用原版村民模型与村民贴图, 静默生成规则只在服务端执行且不下发到客户端
+- 荷官的实体, 寻路与静默生成集中在 `mob/`, 荷官赌局与奖励集中在 `dealer/`; 荷官渲染复用原版村民模型与自绘制服贴图, 静默生成规则只在服务端执行且不下发到客户端
+- 随机池的样本空间在每次世界加载成功时由注册表重建并覆盖落盘, 取样集中在 `commands/RandomPoolSampler.java`, 配置模型在 `config/RandomPoolConfig.java`
 - 祭坛遮罩的着色器程序与后处理链位于 `assets/devil_bone_gambler/shaders/`
 - 方块的挖掘工具要求同时由 `data/minecraft/tags/blocks/` 下的标签与代码中的破坏进度判定承担, 两者缺一不可
 - 配置项清单与运行期文件位置见 [开发者文档](../docs/developer/README.md)

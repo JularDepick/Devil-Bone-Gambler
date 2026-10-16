@@ -14,13 +14,13 @@ import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Dealer renderer: the vanilla villager model and the vanilla villager texture.
- * A later skin and model replacement only touches this class and its texture path.
+ * Dealer renderer: the vanilla villager model with the dealer uniform texture.
+ * A later skin or model replacement only touches this class, the texture file and the model layer.
  */
 public class GamblersDealerRenderer extends MobRenderer<GamblersDealer, VillagerModel<GamblersDealer>>
 {
-    private static final ResourceLocation TEXTURE =
-            ResourceLocation.tryParse("minecraft:textures/entity/villager/villager.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.tryParse(
+            "devil_bone_gambler:textures/entity/gamblers_dealer.png");
 
     public GamblersDealerRenderer(EntityRendererProvider.Context context)
     {

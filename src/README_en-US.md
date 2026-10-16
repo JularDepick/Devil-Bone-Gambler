@@ -26,12 +26,14 @@ src/main/java/com/devilbonegambler/
 │   │   └── DealerScreen.java        # Dealer nine grid screen
 │   └── render/                      # Client rendering
 │       ├── AltarTintHandler.java    # Screen space red tint over the altar range
-│       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and texture
+│       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and the dealer uniform texture
 ├── commands/                        # Command registration
 │   ├── CommandRunner.java           # Prize entry command execution and syntax validation
-│   └── ModCommands.java             # Admin command entry
+│   ├── ModCommands.java             # Admin command entry
+│   └── RandomPoolSampler.java       # Random pool sampling, replaces a random token with one entry before execution
 ├── config/                          # Server config models and file access
 │   ├── DefaultPrizePool.java        # Preset used when the prize pool file is created
+│   ├── RandomPoolConfig.java        # Random pool model, rebuilt from the registries on world load
 │   ├── ItemValueConfig.java         # Item value config model
 │   ├── ItemValuePresets.java        # Built in baseline values for vanilla items
 │   ├── NotifyConfig.java            # Result display settings model
@@ -147,6 +149,8 @@ src/main/resources/
 │       ├── block/
 │       │   ├── devils_altar.png       # Altar block texture, 128x256 atlas
 │       │   └── devils_altar_particle.png # Altar break particle texture, 16x16
+│       ├── entity/
+│       │   └── gamblers_dealer.png  # Dealer uniform texture, following the villager UV layout
 │       └── item/
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
@@ -182,7 +186,8 @@ src/main/resources/
 - A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`
 - The wager mechanic lives in `wager/`; the altar block, its block entity and the range service live in `block/` and `altar/`
-- The dealer entity, its pathing and the silent spawn live in `mob/`, the dealer wager and its reward live in `dealer/`; the dealer renderer reuses the vanilla villager model and texture, and the silent spawn rule runs on the server only and never reaches a client
+- The dealer entity, its pathing and the silent spawn live in `mob/`, the dealer wager and its reward live in `dealer/`; the dealer renderer reuses the vanilla villager model with the dealer uniform texture, and the silent spawn rule runs on the server only and never reaches a client
+- The random pool sample space is rebuilt from the registries and overwritten on disk on every world load; sampling lives in `commands/RandomPoolSampler.java` and the model in `config/RandomPoolConfig.java`
 - The shader programs and the post chain of the altar tint live in `assets/devil_bone_gambler/shaders/`
 - The mining tool requirement of a block is carried both by the tags under `data/minecraft/tags/blocks/` and by the destroy progress check in code, one without the other is not enough
 - The config entry list and the runtime file layout are described in the [developer documentation](../docs/developer/README_en-US.md)

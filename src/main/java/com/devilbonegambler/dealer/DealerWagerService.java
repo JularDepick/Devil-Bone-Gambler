@@ -675,6 +675,7 @@ public final class DealerWagerService
                 Component.translatable(roll.isRed() ? KEY_WIN_RED : KEY_WIN_BLACK, winner.getGameProfile().getName()));
 
         dealer.consumeForWager(members.size());
+        dealer.dealingParticles();
         DevilBoneGambler.LOGGER.info("Dealer wager settled, dealer={} point={} red={} winner={} members={}",
                 dealer.getUUID(), Integer.valueOf(roll.point()), Boolean.valueOf(roll.isRed()),
                 winner.getGameProfile().getName(), Integer.valueOf(members.size()));

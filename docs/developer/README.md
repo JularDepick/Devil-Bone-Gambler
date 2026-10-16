@@ -43,6 +43,7 @@
 | 物品价值配置 | `<世界存档>/serverconfig/devil_bone_gambler/item_values.json` | 物品价值表, 首次启动按内置预设与扫描结果生成 |
 | 玩家运气数据 | `<世界存档>/data/devil_bone_gambler_luck.dat` | 按玩家标识索引的运气值 |
 | 骰子使用计数数据 | `<世界存档>/data/devil_bone_gambler_dealer_usage.dat` | 按玩家标识索引的赌徒的骰子使用计数, 用于发放赌徒的荷官生物蛋 |
+| 随机池 | `<世界存档>/serverconfig/devil_bone_gambler/random_pools.json` | 随机条目令牌的样本空间, 每次世界加载成功时由注册表扫描重建并覆盖写盘, 含物品, 效果, 实体, 附魔与药水五个池 |
 
 ## 管理员入口
 
