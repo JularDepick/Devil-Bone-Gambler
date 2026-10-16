@@ -10,25 +10,36 @@
 ```
 ├── DevilBoneGambler.java            # 模组入口, 注册延迟注册器与网络通道
 ├── altar/                           # 祭坛范围服务
+│   ├── AltarMobScan.java            # 治辖祭坛范围内的生物扫描与列表回发
 │   └── AltarService.java            # 定位玩家最近的祭坛并驱动周期范围效果
 ├── block/                           # 祭坛方块
 │   ├── DevilsAltarBlock.java        # 祭坛方块, 承载献祭价值且不打开界面
 │   └── DevilsAltarBlockEntity.java  # 祭坛方块实体, 持有献祭价值并与客户端同步
 ├── client/                          # 客户端专属代码, 仅经 DistExecutor 触达
 │   ├── AdminPanelKey.java           # 管理面板键位 Shift 加 D, 经原版按键注册因此可改绑
+│   ├── manual/                      # 手册内容读取与 markdown 解析
+│   │   ├── ManualContent.java       # 按手册与语言读取随包 markdown 内容
+│   │   ├── ManualLine.java          # 手册的一个逻辑行与块类型
+│   │   ├── ManualParser.java        # markdown 子集解析与按页宽排版
+│   │   ├── ManualRow.java           # 排版后的一行绘制单元
+│   │   └── ManualText.java          # 行内的普通, 粗体与内联代码片段
 │   ├── AdminPanelKeyInput.java      # 按键触发与开面板请求
 │   ├── ClientActions.java           # 客户端动作入口, 发包与打开界面
 │   ├── ClientPacketHandler.java     # 客户端侧网络包分发
 │   ├── ClientSetup.java             # 客户端注册入口, 注册实体渲染器
 │   ├── gui/                         # 客户端界面
-│   │   ├── AdminConfigScreen.java   # 管理员配置面板
+│   │   ├── AdminConfigScreen.java   # 管理员配置面板, 表格列表与 Ctrl 多选
 │   │   ├── ConfirmButton.java       # 二次确认按钮, 首次点击只改为确认文案
+│   │   ├── DelayedTooltip.java      # 延迟出现的悬停提示
+│   │   ├── IntSlider.java           # 步长固定的整型滑条
 │   │   ├── ItemLabels.java          # 物品与生物的翻译名与原始注册名
-│   │   ├── SlotMoves.java           # 格子搬运工具, 背包视图的守恒与插入
-│   │   ├── AltarScreen.java         # 献祭界面
-│   │   ├── DealerBetScreen.java     # 荷官赌注箱界面
+│   │   ├── ManualScreen.java        # 通用书籍界面, 手册内容竖排滚动
+│   │   ├── ScrollBar.java           # 可拖动的列表滚动条
+│   │   ├── TableLayout.java         # 表格列宽算法与单元格绘制
+│   │   ├── AltarScreen.java         # 献祭界面, 容器背包与滑条与生物列表
+│   │   ├── DealerBetScreen.java     # 荷官赌注箱界面, 容器槽位
 │   │   ├── DealerScreen.java        # 荷官九宫格界面
-│   │   └── ValueTableScreen.java    # 可搜索祭品价值表, 本地化名称与章节切换
+│   │   └── ValueTableScreen.java    # 可搜索祭品价值表, 表格与本地化名称
 │   └── render/                      # 客户端渲染
 │       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
 │       └── GamblersDealerRenderer.java # 荷官渲染, 复用村民模型与自绘制服贴图
@@ -49,7 +60,8 @@
 │   └── ServerConfigManager.java     # 配置加载, 写盘, 扫描兜底与乐观锁
 ├── data/                            # 存档持久化
 │   ├── DealerUsageData.java         # 玩家骰子使用计数存档
-│   └── LuckData.java                # 玩家运气值存档数据
+│   ├── LuckData.java                # 玩家运气值存档数据
+│   └── ManualGrantData.java         # 手册发放状态存档
 ├── dealer/                          # 荷官赌局与奖励
 │   ├── DealerBetBox.java            # 单名成员的赌注箱
 │   ├── DealerRewardService.java     # 骰子使用计数与生物蛋发放
@@ -68,8 +80,15 @@
 ├── item/                            # 物品
 │   ├── DevilsAltarItem.java         # 恶魔的祭坛, 可放置也可佩戴在头部
 │   ├── DevilsDiceItem.java          # 恶魔的骰子
+│   ├── ManualItem.java              # 手册类物品, 右击打开通用书籍界面
 │   ├── GamblersDiceItem.java        # 赌徒的骰子
 │   └── OfferingValueTableItem.java  # 祭品价值表
+├── menu/                            # 容器菜单
+│   ├── AltarMenu.java               # 献祭容器, 九宫格与玩家槽位与布局常量
+│   └── DealerBetMenu.java           # 赌注箱容器, 赌注格与玩家槽位与布局常量
+├── manual/                          # 手册
+│   ├── ManualKind.java              # 三本手册的种类, 内容路径与语言映射
+│   └── ManualService.java           # 首次进入时按身份发放手册并提示
 ├── mixin/                           # 混入类目录, 当前为空
 ├── mob/                             # 赌徒的荷官
 │   ├── DealerSpawnService.java      # 日出日落静默生成
@@ -84,17 +103,19 @@
 │       ├── AdminEditPacket.java
 │       ├── AdminPanelDataPacket.java
 │       ├── AdminPanelRequestPacket.java
+│       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── ConfigSyncPacket.java
 │       ├── ConfigWriteRequestPacket.java
 │       ├── ConfigWriteResponsePacket.java
-│       ├── DealerBetMovePacket.java
+│       ├── DealerBetOpenRequestPacket.java
 │       ├── DealerInteractPacket.java
 │       ├── DealerPanelPacket.java
 │       ├── DevilsDiceRequestPacket.java
 │       ├── DrawResultPacket.java
 │       ├── GamblersDiceRequestPacket.java
 │       ├── MobListPacket.java
+│       ├── MobListRequestPacket.java
 │       ├── OpenValueTablePacket.java
 │       ├── PointDisplayPacket.java
 │       ├── ValueTableRefreshRequestPacket.java
@@ -105,9 +126,11 @@
 │   ├── ModCreativeTabs.java         # 模组专属物品页
 │   ├── ModEntities.java             # 实体类型注册
 │   ├── ModEntityAttributes.java     # 实体属性注册
-│   └── ModItems.java                # 物品注册
+│   ├── ModItems.java                # 物品注册
+│   └── ModMenus.java                # 容器菜单类型注册
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
+│   ├── ManualKind.java              # 三本手册的种类, 内容路径与语言映射
 │   ├── CommandPlaceholders.java     # 条目指令占位符解析与范围随机坐标
 │   ├── ItemValuation.java           # 物品实例估值, 含附魔加成与耐久折算
 │   ├── ModConstants.java            # 设计细节常量集中定义
@@ -133,13 +156,23 @@ src/main/resources/
 │   ├── lang/
 │   │   ├── en_us.json                 # 英文文本
 │   │   └── zh_cn.json                 # 简体中文文本
+│   ├── manuals/                       # 三本手册的 markdown 内容
+│   │   ├── admin_manual_en_us.md      # 管理员手册英文内容
+│   │   ├── admin_manual_zh_cn.md      # 管理员手册简体中文内容
+│   │   ├── creator_manual_en_us.md    # 创建者手册英文内容, 后半部分复用管理员手册
+│   │   ├── creator_manual_zh_cn.md    # 创建者手册简体中文内容, 后半部分复用管理员手册
+│   │   ├── gameplay_manual_en_us.md   # 玩法手册英文内容
+│   │   └── gameplay_manual_zh_cn.md   # 玩法手册简体中文内容
 │   ├── models/
 │   │   ├── block/
 │   │   │   └── devils_altar.json      # 祭坛方块模型, 51 个长方体与 128x256 图集
 │   │   └── item/
+│   │       ├── admin_manual.json
+│   │       ├── creator_manual.json
 │   │       ├── devils_altar.json      # 祭坛物品模型, 复用方块模型
 │   │       ├── devils_dice.json
 │   │       ├── gamblers_dealer_spawn_egg.json # 荷官生物蛋, 沿用原版生成式生物蛋模型
+│   │       ├── gameplay_manual.json
 │   │       ├── gamblers_dice.json
 │   │       └── offering_value_table.json
 │   ├── shaders/
@@ -156,8 +189,11 @@ src/main/resources/
 │       ├── entity/
 │       │   └── gamblers_dealer.png  # 荷官赌场制服贴图, 沿用村民 UV 布局
 │       └── item/
+│           ├── admin_manual.png
+│           ├── creator_manual.png
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
+│           ├── gameplay_manual.png
 │           └── offering_value_table.png
 ├── data/
 │   ├── devil_bone_gambler/
@@ -185,7 +221,8 @@ src/main/resources/
 - Java 包根为 `com.devilbonegambler`, 与 modId `devil_bone_gambler` 对应; 混入类所在包为 `com.devilbonegambler.mixin`, 必须与混入配置中的 `package` 字段一致
 - 客户端代码集中在 `client/` 下, 公共代码只能经 `DistExecutor` 触达, 服务端代码不得直接引用客户端类
 - 设计细节常量集中在 `util/ModConstants.java`, 作者信息集中在 `util/AuthorInfo.java`
-- 语言文件需要同时维护简体中文与英文两份, 两者键名必须完全一致
+- 语言文件需要同时维护简体中文与英文两份, 两者键名与占位符必须完全一致, 由 scripts/check_lang_keys.py 守卫
+- 容器菜单集中在 menu/ 与 registry/ModMenus.java, 界面的槽位坐标一律取自菜单类的布局常量, 因此绘制的标签与真实槽位不会脱节
 - 贴图规格为 16 的整数倍像素, 32 位带透明通道, 不使用抗锯齿与渐变; 物品与单面贴图使用 16x16, 多部件方块模型使用 16 的整数倍图集
 - 自定义方块模型需要在 `textures` 中声明 `particle` 贴图, 否则破坏粒子会回退到原版缺失贴图
 - 服务端配置的加载, 校验, 扫描兜底与同步集中在 `config/ServerConfigManager.java`; 抽取流程集中在 `draw/DrawEngine.java` 与 `draw/RegionSelector.java`

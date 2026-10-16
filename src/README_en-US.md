@@ -11,6 +11,7 @@ This directory is the mod's functional source directory; the remaining content i
 src/main/java/com/devilbonegambler/
 ├── DevilBoneGambler.java            # Mod entry, registers the deferred registries and the network channel
 ├── altar/                           # Altar range service
+│   ├── AltarMobScan.java            # Scans the governing altar range and answers the creature list request
 │   └── AltarService.java            # Finds the nearest altar of a player and drives the periodic range effect
 ├── block/                           # Altar blocks
 │   ├── DevilsAltarBlock.java        # The altar block, carrying the offering value and never opening a screen
@@ -22,14 +23,17 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientPacketHandler.java     # Client side packet dispatch
 │   ├── ClientSetup.java             # Client registration entry, registers the entity renderer
 │   ├── gui/                         # Client screens
-│   │   ├── AdminConfigScreen.java   # Admin config panel
+│   │   ├── AdminConfigScreen.java   # Admin config panel with table lists and control click multi select
 │   │   ├── ConfirmButton.java       # Two step confirm button, the first click only relabels it
+│   │   ├── DelayedTooltip.java      # Hover tooltip that appears after a delay
+│   │   ├── IntSlider.java           # Integer slider with a fixed step
 │   │   ├── ItemLabels.java          # Translated names and raw registry ids for items and creatures
-│   │   ├── SlotMoves.java           # Slot move helpers, inventory view conservation and insertion
-│   │   ├── AltarScreen.java         # Offering screen
-│   │   ├── DealerBetScreen.java     # Dealer bet box screen
+│   │   ├── ScrollBar.java           # Draggable list scroll bar
+│   │   ├── TableLayout.java         # Table column width algorithm and cell drawing
+│   │   ├── AltarScreen.java         # Offering screen with a container backpack, sliders and the creature list
+│   │   ├── DealerBetScreen.java     # Dealer bet box screen on real container slots
 │   │   ├── DealerScreen.java        # Dealer nine grid screen
-│   │   └── ValueTableScreen.java    # Searchable offering value table with localised names and chapter filter
+│   │   └── ValueTableScreen.java    # Searchable offering value table on the shared table rules
 │   └── render/                      # Client rendering
 │       ├── AltarTintHandler.java    # Screen space red tint over the altar range
 │       └── GamblersDealerRenderer.java # Dealer renderer, reusing the villager model and the dealer uniform texture
@@ -70,7 +74,14 @@ src/main/java/com/devilbonegambler/
 │   ├── DevilsAltarItem.java         # Devil's Altar, placeable and wearable on the head
 │   ├── DevilsDiceItem.java          # Devil's Dice
 │   ├── GamblersDiceItem.java        # Gambler's Dice
+│   ├── ManualItem.java              # Manual item, right click opens the generic book screen
 │   └── OfferingValueTableItem.java  # Offering Value Table
+├── menu/                            # Container menus
+│   ├── AltarMenu.java               # Offering container, grid plus player slots and the layout constants
+│   └── DealerBetMenu.java           # Bet box container, bet slots plus player slots and the layout constants
+├── manual/                          # Manuals
+│   ├── ManualKind.java              # The three manual kinds, their content paths and the language mapping
+│   └── ManualService.java           # Hands the manuals out by role on the first join
 ├── mixin/                           # Mixin package, currently empty
 ├── mob/                             # Gambler's Dealer
 │   ├── DealerSpawnService.java      # Silent sunrise and sunset spawn
@@ -85,17 +96,19 @@ src/main/java/com/devilbonegambler/
 │       ├── AdminEditPacket.java
 │       ├── AdminPanelDataPacket.java
 │       ├── AdminPanelRequestPacket.java
+│       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── ConfigSyncPacket.java
 │       ├── ConfigWriteRequestPacket.java
 │       ├── ConfigWriteResponsePacket.java
-│       ├── DealerBetMovePacket.java
+│       ├── DealerBetOpenRequestPacket.java
 │       ├── DealerInteractPacket.java
 │       ├── DealerPanelPacket.java
 │       ├── DevilsDiceRequestPacket.java
 │       ├── DrawResultPacket.java
 │       ├── GamblersDiceRequestPacket.java
 │       ├── MobListPacket.java
+│       ├── MobListRequestPacket.java
 │       ├── OpenValueTablePacket.java
 │       ├── PointDisplayPacket.java
 │       ├── ValueTableRefreshRequestPacket.java
@@ -106,7 +119,8 @@ src/main/java/com/devilbonegambler/
 │   ├── ModCreativeTabs.java         # The dedicated mod tab
 │   ├── ModEntities.java             # Entity type registration
 │   ├── ModEntityAttributes.java     # Entity attribute registration
-│   └── ModItems.java                # Item registration
+│   ├── ModItems.java                # Item registration
+│   └── ModMenus.java                # Menu type registration
 ├── util/                            # Shared helpers
 │   ├── AuthorInfo.java              # Author credit constants
 │   ├── CommandPlaceholders.java     # Prize command placeholder expansion and ranged random positions
@@ -134,13 +148,23 @@ src/main/resources/
 │   ├── lang/
 │   │   ├── en_us.json                 # English texts
 │   │   └── zh_cn.json                 # Simplified Chinese texts
+│   ├── manuals/                       # Markdown content of the three manuals
+│   │   ├── admin_manual_en_us.md      # Admin manual, English
+│   │   ├── admin_manual_zh_cn.md      # Admin manual, Simplified Chinese
+│   │   ├── creator_manual_en_us.md    # Creator's manual, English, reusing the admin content
+│   │   ├── creator_manual_zh_cn.md    # Creator's manual, Simplified Chinese, reusing the admin content
+│   │   ├── gameplay_manual_en_us.md   # Gameplay manual, English
+│   │   └── gameplay_manual_zh_cn.md   # Gameplay manual, Simplified Chinese
 │   ├── models/
 │   │   ├── block/
 │   │   │   └── devils_altar.json      # Altar block model, 51 cuboids on a 128x256 atlas
 │   │   └── item/
+│   │       ├── admin_manual.json
+│   │       ├── creator_manual.json
 │   │       ├── devils_altar.json      # Altar item model, reusing the block model
 │   │       ├── devils_dice.json
 │   │       ├── gamblers_dealer_spawn_egg.json # Dealer spawn egg, using the vanilla generated spawn egg model
+│   │       ├── gameplay_manual.json
 │   │       ├── gamblers_dice.json
 │   │       └── offering_value_table.json
 │   ├── shaders/
@@ -157,8 +181,11 @@ src/main/resources/
 │       ├── entity/
 │       │   └── gamblers_dealer.png  # Dealer uniform texture, following the villager UV layout
 │       └── item/
+│           ├── admin_manual.png
+│           ├── creator_manual.png
 │           ├── devils_dice.png
 │           ├── gamblers_dice.png
+│           ├── gameplay_manual.png
 │           └── offering_value_table.png
 ├── data/
 │   ├── devil_bone_gambler/
@@ -186,7 +213,8 @@ src/main/resources/
 - The Java package root is `com.devilbonegambler`, matching the modId `devil_bone_gambler`; mixin classes live in the `com.devilbonegambler.mixin` package, which must match the `package` field of the mixin configuration
 - Client code lives under `client/`; common code may only reach it through `DistExecutor`, and server side code must not reference client classes directly
 - Design detail constants live in `util/ModConstants.java`, the author credit lives in `util/AuthorInfo.java`
-- Language files must be maintained in both Simplified Chinese and English with exactly the same key names
+- Language files must be maintained in both Simplified Chinese and English with exactly the same key names and placeholders, guarded by `scripts/check_lang_keys.py`
+- Container menus live in `menu/` and `registry/ModMenus.java`; screens take their slot coordinates from the layout constants of the menu class, so the drawn labels and the real slots never drift apart
 - Textures are a multiple of 16 pixels, 32 bit with an alpha channel, without anti-aliasing or gradients; items and single face textures use 16x16, multi part block models use an atlas that is a multiple of 16
 - A custom block model must declare a `particle` texture, otherwise the break particles fall back to the vanilla missing texture
 - Server config loading, validation, the value scan and the config sync are centralised in `config/ServerConfigManager.java`; the draw pipeline lives in `draw/DrawEngine.java` and `draw/RegionSelector.java`

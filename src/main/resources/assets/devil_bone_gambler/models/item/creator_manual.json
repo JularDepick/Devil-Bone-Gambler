@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "devil_bone_gambler:item/creator_manual"
+  }
+}
