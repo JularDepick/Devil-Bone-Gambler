@@ -58,8 +58,6 @@
 │   ├── Offering.java                # 祭品条目
 │   ├── OfferingBundle.java          # 献祭包, 物品与生物与数值献祭项
 │   └── RegionSelector.java          # 由点数命中区域并计算溢出值
-├── effect/                          # 状态效果
-│   └── BloodlustEffect.java         # 祭坛范围效果, 加速饱食度消耗
 ├── item/                            # 物品
 │   ├── DevilsAltarItem.java         # 恶魔的祭坛, 可放置也可佩戴在头部
 │   ├── DevilsDiceItem.java          # 恶魔的骰子
@@ -97,7 +95,6 @@
 │   ├── ModBlockEntities.java        # 方块实体注册
 │   ├── ModBlocks.java               # 方块注册
 │   ├── ModCreativeTabs.java         # 模组专属物品页
-│   ├── ModEffects.java              # 状态效果注册
 │   ├── ModEntities.java             # 实体类型注册
 │   ├── ModEntityAttributes.java     # 实体属性注册
 │   └── ModItems.java                # 物品注册

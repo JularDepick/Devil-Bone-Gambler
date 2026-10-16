@@ -9,7 +9,6 @@ package com.devilbonegambler.altar;
 import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.registry.ModBlocks;
-import com.devilbonegambler.registry.ModEffects;
 import com.devilbonegambler.util.ModConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -17,6 +16,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -391,13 +391,18 @@ public final class AltarService
         }
     }
 
+    /**
+     * The altar range grants the vanilla damage boost, whose level follows the altar level.
+     * The effect is refreshed once per interval and overwritten while the player stays in range, so it simply
+     * expires after the player leaves.
+     */
     private static void applyRangeEffect(ServerPlayer player)
     {
         long value = governingValue(player);
 
         if (value >= 0L)
         {
-            player.addEffect(new MobEffectInstance(ModEffects.BLOODLUST.get(),
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
                     ModConstants.ALTAR_EFFECT_DURATION_TICKS, ModConstants.altarLevelFor(value)));
             return;
         }
@@ -409,7 +414,7 @@ public final class AltarService
          */
         if (carriesAltar(player))
         {
-            player.addEffect(new MobEffectInstance(ModEffects.BLOODLUST.get(),
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
                     ModConstants.ALTAR_EFFECT_DURATION_TICKS / ModConstants.ALTAR_CARRIED_EFFECT_DIVISOR,
                     ModConstants.altarLevelFor(nearestAltarValue(player))));
         }

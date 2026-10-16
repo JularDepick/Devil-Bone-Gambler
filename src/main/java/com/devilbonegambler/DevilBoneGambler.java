@@ -10,7 +10,6 @@ import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.registry.ModBlockEntities;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.registry.ModCreativeTabs;
-import com.devilbonegambler.registry.ModEffects;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.mojang.logging.LogUtils;
@@ -39,7 +38,6 @@ public class DevilBoneGambler
         ModBlocks.BLOCK_ITEMS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModEntities.ENTITIES.register(modEventBus);
-        ModEffects.MOB_EFFECTS.register(modEventBus);
         ModCreativeTabs.TABS.register(modEventBus);
 
         modEventBus.addListener(this::onCommonSetup);

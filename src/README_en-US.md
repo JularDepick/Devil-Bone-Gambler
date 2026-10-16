@@ -59,8 +59,6 @@ src/main/java/com/devilbonegambler/
 │   ├── Offering.java                # Offering entry
 │   ├── OfferingBundle.java          # Offering bundle of items, mobs and numeric offerings
 │   └── RegionSelector.java          # Resolves the region hit by the point and the overflow
-├── effect/                          # Mob effects
-│   └── BloodlustEffect.java         # Altar range effect, drains food saturation faster
 ├── item/                            # Items
 │   ├── DevilsAltarItem.java         # Devil's Altar, placeable and wearable on the head
 │   ├── DevilsDiceItem.java          # Devil's Dice
@@ -98,7 +96,6 @@ src/main/java/com/devilbonegambler/
 │   ├── ModBlockEntities.java        # Block entity registration
 │   ├── ModBlocks.java               # Block registration
 │   ├── ModCreativeTabs.java         # The dedicated mod tab
-│   ├── ModEffects.java              # Mob effect registration
 │   ├── ModEntities.java             # Entity type registration
 │   ├── ModEntityAttributes.java     # Entity attribute registration
 │   └── ModItems.java                # Item registration

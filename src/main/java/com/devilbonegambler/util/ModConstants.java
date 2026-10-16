@@ -92,7 +92,6 @@ public final class ModConstants
     public static final int ALTAR_EFFECT_INTERVAL_TICKS = 60;
     public static final int ALTAR_EFFECT_DURATION_TICKS = 600;
     public static final int ALTAR_CARRIED_EFFECT_DIVISOR = 2;
-    public static final float ALTAR_EXHAUSTION_PER_TICK = 0.01F;
     public static final int ALTAR_BIOME_SCAN_INTERVAL_TICKS = 10;
     public static final int ALTAR_MAX_MOB_ENTRIES = 32;
 
