@@ -26,11 +26,15 @@ public class NotifyConfig
         this.text = text;
     }
 
+    /**
+     * The chat box is the default channel, and an unknown or retired mode falls back to it too, so a configuration
+     * written by an older version still reports its result instead of going silent.
+     */
     public String modeOrDefault()
     {
         if (this.mode == null || this.mode.isEmpty())
         {
-            return ModConstants.NOTIFY_MODE_ACTIONBAR;
+            return ModConstants.NOTIFY_MODE_TELLRAW;
         }
 
         for (String candidate : ModConstants.NOTIFY_MODES)
@@ -41,7 +45,7 @@ public class NotifyConfig
             }
         }
 
-        return ModConstants.NOTIFY_MODE_ACTIONBAR;
+        return ModConstants.NOTIFY_MODE_TELLRAW;
     }
 
     public String textOrEmpty()

@@ -13,8 +13,6 @@ import com.devilbonegambler.util.Placeholders;
 import java.util.List;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -85,25 +83,16 @@ public final class NotifySender
             return;
         }
 
-        if (ModConstants.NOTIFY_MODE_TITLE.equals(mode))
+        if (ModConstants.NOTIFY_MODE_ACTIONBAR.equals(mode))
         {
-            player.connection.send(new ClientboundSetTitleTextPacket(text));
+            player.displayClientMessage(text, true);
             return;
         }
 
-        if (ModConstants.NOTIFY_MODE_SUBTITLE.equals(mode))
-        {
-            player.connection.send(new ClientboundSetSubtitleTextPacket(text));
-            return;
-        }
-
-        if (ModConstants.NOTIFY_MODE_TELLRAW.equals(mode))
-        {
-            player.sendSystemMessage(text);
-            return;
-        }
-
-        player.displayClientMessage(text, true);
+        /*
+         * The chat box is the default, so any mode that is not the action bar or silence is told in chat.
+         */
+        player.sendSystemMessage(text);
     }
 
     /**

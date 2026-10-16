@@ -774,7 +774,7 @@ public class AdminConfigScreen extends Screen
 
         PrizeEntry entry = new PrizeEntry("entry_" + (region.entriesOrEmpty().size() + 1), true, 10.0D,
                 ModConstants.ENTRY_COLOR_RED, false, "give ${player} minecraft:bread 1",
-                ModConstants.NOTIFY_MODE_ACTIONBAR, "");
+                ModConstants.NOTIFY_MODE_TELLRAW, "");
         region.entriesOrEmpty().add(entry);
         rebuildPrizeRows();
         this.selectedPrizeIndex = indexOfEntry(region, entry);

@@ -130,14 +130,21 @@ public final class ModConstants
     public static final int DRAW_COMMAND_PERMISSION_LEVEL = 4;
 
     /*
-     * Value table book
+     * Value table
      */
     public static final String VALUE_TABLE_TAG = "DevilBoneGamblerValueTable";
     /*
-     * Entries per value table page. A vanilla written book holds about 14 wrapped lines, so this count only pays
-     * off while the namespace of the vanilla ids is dropped from the line text.
+     * Rows held by the searchable value table view at once, and the longest query it accepts.
      */
-    public static final int VALUE_TABLE_PAGE_ENTRIES = 14;
+    public static final int VALUE_TABLE_SCREEN_ROWS = 12;
+    public static final int VALUE_TABLE_SEARCH_MAX = 48;
+    /*
+     * Chapter filters of the searchable view, cycled in this order by one button.
+     */
+    public static final int VALUE_TABLE_CHAPTER_ALL = 0;
+    public static final int VALUE_TABLE_CHAPTER_ITEM = 1;
+    public static final int VALUE_TABLE_CHAPTER_ENTITY = 2;
+    public static final int VALUE_TABLE_CHAPTER_COUNT = 3;
 
     /*
      * Placeholders
@@ -157,19 +164,16 @@ public final class ModConstants
     public static final int COMMAND_RANDOM_MAX_RANGE = 64;
 
     /*
-     * Result display modes
+     * Result display modes. Screen occupying titles are deliberately absent: a result is told in the chat box or on
+     * the action bar, never as a title over the whole screen, and the chat box is the default channel.
      */
-    public static final String NOTIFY_MODE_TITLE = "title";
-    public static final String NOTIFY_MODE_SUBTITLE = "subtitle";
-    public static final String NOTIFY_MODE_ACTIONBAR = "actionbar";
     public static final String NOTIFY_MODE_TELLRAW = "tellraw";
+    public static final String NOTIFY_MODE_ACTIONBAR = "actionbar";
     public static final String NOTIFY_MODE_NONE = "none";
 
     public static final String[] NOTIFY_MODES = {
-        NOTIFY_MODE_ACTIONBAR,
-        NOTIFY_MODE_TITLE,
-        NOTIFY_MODE_SUBTITLE,
         NOTIFY_MODE_TELLRAW,
+        NOTIFY_MODE_ACTIONBAR,
         NOTIFY_MODE_NONE
     };
 

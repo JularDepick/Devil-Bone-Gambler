@@ -97,8 +97,13 @@ public final class CommandRunner
 
             try
             {
+                /*
+                 * Output is suppressed so that a prize command never echoes its own vanilla feedback into the chat box:
+                 * the chat box carries exactly one line per draw, the mod result notice, and nothing else.
+                 */
                 CommandSourceStack source = trigger.createCommandSourceStack()
-                        .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL);
+                        .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL)
+                        .withSuppressedOutput();
                 server.getCommands().performPrefixedCommand(source, command);
                 executed++;
             }

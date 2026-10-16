@@ -96,9 +96,51 @@ public final class RegionSelector
         return above != null ? above : below;
     }
 
+    /**
+     * Whether a region holds at least one selectable entry with a positive weight.
+     * The colour is ignored on purpose here, because a region that an admin edited down to a single colour can still
+     * be drawn from, and usability must not depend on the colour that happens to be announced.
+     */
     public static boolean isUsable(PrizeRegion region)
     {
-        return region != null && totalWeight(region, true, 0) > 0.0D;
+        if (region == null)
+        {
+            return false;
+        }
+
+        for (PrizeEntry entry : region.entriesOrEmpty())
+        {
+            if (entry.isSelectable() && entry.weightOrZero() > 0.0D)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the announced colour owns a usable pool in this region.
+     * The colour owns the pool so that a black point never hands out a red entry and the other way round, which keeps
+     * the promise of the announced colour. A region without any entry of that colour falls back to every selectable
+     * entry, so a degenerate admin configuration still draws instead of failing.
+     */
+    private static boolean colorOwnsPool(PrizeRegion region, boolean redPoint)
+    {
+        for (PrizeEntry entry : region.entriesOrEmpty())
+        {
+            if (entry.isSelectable() && entry.weightOrZero() > 0.0D && entry.isRed() == redPoint)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isCandidate(PrizeEntry entry, boolean redPoint, boolean colorOwned)
+    {
+        return entry.isSelectable() && (!colorOwned || entry.isRed() == redPoint);
     }
 
     /**
@@ -123,11 +165,16 @@ public final class RegionSelector
 
     public static double totalWeight(PrizeRegion region, boolean redPoint, int overflow)
     {
+        return totalWeight(region, redPoint, overflow, colorOwnsPool(region, redPoint));
+    }
+
+    private static double totalWeight(PrizeRegion region, boolean redPoint, int overflow, boolean colorOwned)
+    {
         double result = 0.0D;
 
         for (PrizeEntry entry : region.entriesOrEmpty())
         {
-            if (entry.isSelectable())
+            if (isCandidate(entry, redPoint, colorOwned))
             {
                 result += effectiveWeight(entry, redPoint, overflow);
             }
@@ -141,7 +188,8 @@ public final class RegionSelector
      */
     public static PrizeEntry pick(RandomSource random, PrizeRegion region, boolean redPoint, int overflow)
     {
-        double weightSum = totalWeight(region, redPoint, overflow);
+        boolean colorOwned = colorOwnsPool(region, redPoint);
+        double weightSum = totalWeight(region, redPoint, overflow, colorOwned);
 
         if (weightSum <= 0.0D)
         {
@@ -153,7 +201,7 @@ public final class RegionSelector
 
         for (PrizeEntry entry : region.entriesOrEmpty())
         {
-            if (!entry.isSelectable())
+            if (!isCandidate(entry, redPoint, colorOwned))
             {
                 continue;
             }
