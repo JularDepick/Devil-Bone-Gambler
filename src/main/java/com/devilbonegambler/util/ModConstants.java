@@ -45,7 +45,7 @@ public final class ModConstants
     /*
      * Value table
      */
-    public static final int DEFAULT_ITEM_VALUE = 10;
+    public static final int DEFAULT_ITEM_VALUE = 20;
     public static final int DEFAULT_ENTITY_VALUE = 10;
     public static final int DEFAULT_ENCHANT_VALUE = 100;
     public static final long MAX_TOTAL_VALUE = 100000000L;
@@ -134,7 +134,11 @@ public final class ModConstants
      * Value table book
      */
     public static final String VALUE_TABLE_TAG = "DevilBoneGamblerValueTable";
-    public static final int VALUE_TABLE_PAGE_ENTRIES = 8;
+    /*
+     * Entries per value table page. A vanilla written book holds about 14 wrapped lines, so this count only pays
+     * off while the namespace of the vanilla ids is dropped from the line text.
+     */
+    public static final int VALUE_TABLE_PAGE_ENTRIES = 14;
 
     /*
      * Placeholders
@@ -211,6 +215,62 @@ public final class ModConstants
     public static final int DEALER_BET_SLOTS = 9;
     public static final int DEALER_BUSY_TIMEOUT_TICKS = 200;
     public static final int TICKS_PER_SECOND = 20;
+    public static final int DEALER_PARTICLE_COUNT = 8;
+    public static final float DEALER_SOUND_VOLUME = 0.6F;
+
+    /*
+     * Random pools: the sample space of the random prize tokens, rebuilt from the registries on every world load.
+     */
+    public static final String RANDOM_POOL_FILE = "random_pools.json";
+    public static final String RANDOM_POOL_ITEM = "item";
+    public static final String RANDOM_POOL_EFFECT = "effect";
+    public static final String RANDOM_POOL_ENTITY = "entity";
+    public static final String RANDOM_POOL_ENCHANTMENT = "enchantment";
+    public static final String RANDOM_POOL_POTION = "potion";
+    public static final String[] RANDOM_POOLS = {
+        RANDOM_POOL_ITEM,
+        RANDOM_POOL_EFFECT,
+        RANDOM_POOL_ENTITY,
+        RANDOM_POOL_ENCHANTMENT,
+        RANDOM_POOL_POTION
+    };
+    /*
+     * One sample id per pool, aligned with RANDOM_POOLS, so that a random token still parses during syntax checks.
+     */
+    public static final String[] RANDOM_POOL_SAMPLES = {
+        "minecraft:stone",
+        "minecraft:speed",
+        "minecraft:pig",
+        "minecraft:sharpness",
+        "minecraft:water"
+    };
+    public static final String RANDOM_TOKEN_OPEN = "${random:";
+    public static final String RANDOM_TOKEN_CLOSE = "}";
+    public static final String RANDOM_AIR_ID = "minecraft:air";
+
+    /**
+     * Pool name at the given index, or null when the index is outside the table.
+     */
+    public static String randomPoolAt(int index)
+    {
+        return index < 0 || index >= RANDOM_POOLS.length ? null : RANDOM_POOLS[index];
+    }
+
+    /**
+     * Sample id of one pool, or null when the pool name is unknown.
+     */
+    public static String randomSampleOf(String pool)
+    {
+        for (int index = 0; index < RANDOM_POOLS.length; index++)
+        {
+            if (RANDOM_POOLS[index].equals(pool))
+            {
+                return RANDOM_POOL_SAMPLES[index];
+            }
+        }
+
+        return null;
+    }
 
     private ModConstants()
     {

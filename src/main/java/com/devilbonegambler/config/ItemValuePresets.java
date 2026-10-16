@@ -1090,7 +1090,7 @@ public final class ItemValuePresets
         putItem(result, "crimson_hanging_sign", 29);
         putItem(result, "crimson_pressure_plate", 6);
         putItem(result, "cut_red_sandstone_slab", 1);
-        putItem(result, "cut_standstone_slab", 1);
+        putItem(result, "cut_sandstone_slab", 1);
         putItem(result, "cyan_banner", 39);
         putItem(result, "cyan_bed", 14);
         putItem(result, "cyan_candle", 21);
