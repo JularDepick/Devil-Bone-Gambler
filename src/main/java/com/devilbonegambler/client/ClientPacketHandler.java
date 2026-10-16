@@ -124,7 +124,7 @@ public final class ClientPacketHandler
 
     public static void handleOpenValueTable(OpenValueTablePacket message)
     {
-        ClientActions.openValueTableScreen(message.title(), message.author(), message.pages());
+        ClientActions.openValueTableScreen(message.author(), message.pages());
     }
 
     public static void handlePointDisplay(PointDisplayPacket message)

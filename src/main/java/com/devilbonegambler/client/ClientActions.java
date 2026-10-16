@@ -21,6 +21,7 @@ import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.ValueTableBook;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -37,6 +38,11 @@ import net.minecraftforge.registries.ForgeRegistries;
  */
 public final class ClientActions
 {
+    /*
+     * Vanilla rejects a book tag whose title is longer than this, and the same string is used as the item name.
+     */
+    private static final int BOOK_TITLE_MAX_LENGTH = 32;
+
     private static int sequence = 0;
     private static boolean altarInRange = false;
     private static long altarValue = 0L;
@@ -165,11 +171,15 @@ public final class ClientActions
         ModNetwork.sendToServer(new AdminPanelRequestPacket(nextSequence()));
     }
 
-    public static void openValueTableScreen(String titleJson, String author, List<String> pages)
+    /**
+     * The vanilla book tag takes a plain title of at most 32 characters and that title also becomes the item name, so
+     * it is resolved here in the language of the client instead of being stored on the server side stack.
+     */
+    public static void openValueTableScreen(String author, List<String> pages)
     {
         ItemStack display = new ItemStack(ModItems.OFFERING_VALUE_TABLE.get());
         CompoundTag tag = display.getOrCreateTag();
-        tag.putString(WrittenBookItem.TAG_TITLE, titleJson);
+        tag.putString(WrittenBookItem.TAG_TITLE, bookTitle());
         tag.putString(WrittenBookItem.TAG_AUTHOR, author);
         ListTag pageTags = new ListTag();
 
@@ -216,6 +226,12 @@ public final class ClientActions
         }
 
         minecraft.gui.setOverlayMessage(text, false);
+    }
+
+    private static String bookTitle()
+    {
+        String title = Component.translatable(ValueTableBook.BOOK_TITLE_KEY).getString();
+        return title.length() <= BOOK_TITLE_MAX_LENGTH ? title : title.substring(0, BOOK_TITLE_MAX_LENGTH);
     }
 
     public static String devilsDiceId()

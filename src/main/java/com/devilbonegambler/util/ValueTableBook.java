@@ -7,6 +7,7 @@
 package com.devilbonegambler.util;
 
 import com.devilbonegambler.config.ItemValueConfig;
+import com.devilbonegambler.config.ItemValuePresets;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
@@ -39,7 +40,11 @@ public final class ValueTableBook
     private static final String TAG_ITEMS = "items";
     private static final String TAG_ENTITIES = "entities";
 
-    private static final String TITLE_KEY = "gui." + ModConstants.MOD_ID + ".value.book_title";
+    /**
+     * The vanilla book title is a plain string of at most 32 characters and it also overrides the item name, so the
+     * client resolves it from this key and the server never writes a component JSON into the tag.
+     */
+    public static final String BOOK_TITLE_KEY = "gui." + ModConstants.MOD_ID + ".value.book_title";
     private static final String PAGE_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_header";
     private static final String PAGE_ITEM_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_item_header";
     private static final String PAGE_ENTITY_HEADER_KEY = "gui." + ModConstants.MOD_ID + ".value.page_entity_header";
@@ -64,11 +69,11 @@ public final class ValueTableBook
             return;
         }
 
-        String titleJson = Component.Serializer.toJson(Component.translatable(TITLE_KEY));
         List<String> pages = buildPages(config);
 
         CompoundTag tag = stack.getOrCreateTag();
-        tag.putString(WrittenBookItem.TAG_TITLE, titleJson);
+        /* No title tag: a component JSON would break the 32 character limit of the book tag validation. */
+        tag.remove(WrittenBookItem.TAG_TITLE);
         tag.putString(WrittenBookItem.TAG_AUTHOR, AuthorInfo.AUTHOR_NAME);
 
         ListTag pageTags = new ListTag();
@@ -83,7 +88,7 @@ public final class ValueTableBook
         tag.putBoolean(WrittenBookItem.TAG_RESOLVED, true);
         tag.put(ModConstants.VALUE_TABLE_TAG, buildSnapshotTag(config));
 
-        ModNetwork.sendToPlayer(player, new OpenValueTablePacket(titleJson, AuthorInfo.AUTHOR_NAME, pages));
+        ModNetwork.sendToPlayer(player, new OpenValueTablePacket(AuthorInfo.AUTHOR_NAME, pages));
     }
 
     /**
@@ -213,7 +218,7 @@ public final class ValueTableBook
                 entriesOnPage = 0;
             }
 
-            lines.add(Component.translatable(PAGE_LINE_KEY, entry.getKey(),
+            lines.add(Component.translatable(PAGE_LINE_KEY, shortId(entry.getKey()),
                     Integer.valueOf(config.itemValueOf(entry.getKey()))));
             entriesOnPage++;
         }
@@ -243,7 +248,7 @@ public final class ValueTableBook
                     entriesOnPage = 0;
                 }
 
-                lines.add(Component.translatable(PAGE_LINE_KEY, entry.getKey(),
+                lines.add(Component.translatable(PAGE_LINE_KEY, shortId(entry.getKey()),
                         Integer.valueOf(config.entityValueOf(entry.getKey()))));
                 entriesOnPage++;
             }
@@ -260,6 +265,17 @@ public final class ValueTableBook
         }
 
         return pages;
+    }
+
+    /**
+     * Drops the vanilla namespace of a line, which keeps the line short enough for a higher page density.
+     * Modded ids keep their namespace because that is what makes them unique.
+     */
+    private static String shortId(String id)
+    {
+        return id.startsWith(ItemValuePresets.VANILLA_NAMESPACE + ":")
+                ? id.substring(ItemValuePresets.VANILLA_NAMESPACE.length() + 1)
+                : id;
     }
 
     private static String buildPage(List<Component> lines)

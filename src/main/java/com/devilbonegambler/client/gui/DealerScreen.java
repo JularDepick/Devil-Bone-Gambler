@@ -189,7 +189,12 @@ public class DealerScreen extends Screen
     private void drawDealerCell(GuiGraphics graphics, int x, int y)
     {
         this.drawCellFrame(graphics, x, y);
-        graphics.blit(VILLAGER_TEXTURE, x + 1, y + 1, 8, 8, 32, 32, 64, 64);
+        /*
+         * The villager head is an 8x10x8 box at texture offset (0,0), so its front face sits at (8,8) with a source
+         * size of 8x10. The scalable blit overload is required: the plain (u, v, width, height) overload treats the
+         * width and height as the source region too, which sampled a 32x32 quarter of the texture sheet.
+         */
+        graphics.blit(VILLAGER_TEXTURE, x + 4, y + 1, 26, 32, 8.0F, 8.0F, 8, 10, 64, 64);
         float health = this.panel.dealerMaxHealth() <= 0.0F ? 0.0F
                 : this.panel.dealerHealth() / this.panel.dealerMaxHealth();
         float satiety = this.panel.dealerMaxSatiety() <= 0 ? 0.0F

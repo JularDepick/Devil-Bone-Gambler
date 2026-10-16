@@ -24,20 +24,13 @@ public class OpenValueTablePacket
     private static final int MAX_PAGE = 32767;
     private static final int MAX_PAGES = 100;
 
-    private final String title;
     private final String author;
     private final List<String> pages;
 
-    public OpenValueTablePacket(String title, String author, List<String> pages)
+    public OpenValueTablePacket(String author, List<String> pages)
     {
-        this.title = title == null ? "" : title;
         this.author = author == null ? "" : author;
         this.pages = pages == null ? new ArrayList<String>() : pages;
-    }
-
-    public String title()
-    {
-        return this.title;
     }
 
     public String author()
@@ -52,7 +45,6 @@ public class OpenValueTablePacket
 
     public static void encode(OpenValueTablePacket message, FriendlyByteBuf buffer)
     {
-        buffer.writeUtf(message.title, 64);
         buffer.writeUtf(message.author, 64);
         buffer.writeVarInt(message.pages.size());
 
@@ -64,7 +56,6 @@ public class OpenValueTablePacket
 
     public static OpenValueTablePacket decode(FriendlyByteBuf buffer)
     {
-        String title = buffer.readUtf(64);
         String author = buffer.readUtf(64);
         int size = Math.min(buffer.readVarInt(), MAX_PAGES);
         List<String> pages = new ArrayList<String>(size);
@@ -74,7 +65,7 @@ public class OpenValueTablePacket
             pages.add(buffer.readUtf(MAX_PAGE));
         }
 
-        return new OpenValueTablePacket(title, author, pages);
+        return new OpenValueTablePacket(author, pages);
     }
 
     public static void handle(OpenValueTablePacket message, Supplier<NetworkEvent.Context> contextSupplier)
