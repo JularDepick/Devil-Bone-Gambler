@@ -7,6 +7,7 @@
 package com.devilbonegambler.registry;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.block.DealerGlowBlock;
 import com.devilbonegambler.block.DevilsAltarBlock;
 import com.devilbonegambler.item.DevilsAltarItem;
 import com.devilbonegambler.util.ModConstants;
@@ -41,6 +42,12 @@ public final class ModBlocks
                     .sound(SoundType.STONE)
                     .noOcclusion()
                     .lightLevel(state -> ModConstants.ALTAR_LIGHT_LEVEL)));
+
+    /*
+     * The dealer glow is registered as a block and never as an item, so no player can hold it and no creative tab
+     * offers it; it only ever exists in the world under a dealer.
+     */
+    public static final RegistryObject<Block> DEALER_GLOW = BLOCKS.register("dealer_glow", DealerGlowBlock::new);
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",
             () -> new DevilsAltarItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));
