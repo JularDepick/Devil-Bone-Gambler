@@ -10,9 +10,9 @@ import com.devilbonegambler.client.ClientActions;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.manual.ManualKind;
 import com.devilbonegambler.util.ModConstants;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,6 +23,9 @@ import net.minecraftforge.fml.DistExecutor;
 /**
  * A manual: a book shaped item whose whole content is client side, so opening it never needs a server round trip.
  * The item itself only carries which manual it is; the text lives in the shipped markdown.
+ * A bound manual may never leave its holder as a dropped item. This refusal covers the hotbar drop key, which is the
+ * one path that asks the item before the stack leaves the inventory; every other drop path takes the stack out first
+ * and is caught by the manual service on the toss event, where the thrower is known for certain.
  */
 public class ManualItem extends Item
 {
@@ -42,9 +45,8 @@ public class ManualItem extends Item
     }
 
     /**
-     * A bound manual belongs to a role and never leaves its holder as a dropped item.
-     * This refusal covers the drop key; the paths that throw a hovered slot or skip this hook are caught by the manual
-     * service, which removes the item entity and puts the manual straight back.
+     * Refuses the hotbar drop key before the stack leaves the inventory, so that path never produces a dropped manual
+     * in the first place. The other drop paths are refused on the toss event by the manual service.
      */
     @Override
     public boolean onDroppedByPlayer(ItemStack stack, Player player)

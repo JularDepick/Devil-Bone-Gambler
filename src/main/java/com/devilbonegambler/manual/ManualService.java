@@ -11,9 +11,13 @@ import com.devilbonegambler.config.AccessConfig;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.registry.ModItems;
+import com.devilbonegambler.util.InventoryHandover;
 import com.devilbonegambler.util.ModConstants;
+import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
@@ -22,7 +26,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -32,16 +36,23 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 
 /**
  * Keeps the manuals of a player in step with the role of that player.
- * Every join compares the inventory against the role instead of remembering a first grant, so a lost manual is handed
- * out again and a manual the role no longer earns is taken back. The gameplay manual is free to keep, store or throw
- * away, while the creator and the admin manual follow the role: a drop is refused, and an item entity of one is
- * removed from the world and put back into the inventory of its holder right away.
+ * The service never needs to know who dropped a manual or where it went: on a fixed interval it compares what a player
+ * owns with what the role entitles them to, grants a manual that is missing and clears every copy beyond the first.
+ * A manual that sits on the cursor of an open screen, in the crafting grid or in a container that is open counts as
+ * owned, so picking one up with the mouse is never mistaken for having lost it, and a copy left in a chest is not
+ * replaced by a second one.
+ * The gameplay manual is free to keep, store or throw away and is handed out on every join and every respawn.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class ManualService
 {
     private static final String KEY_RECEIVED = "gui." + ModConstants.MOD_ID + ".manual.received";
-    private static final String KEY_KEPT = "gui." + ModConstants.MOD_ID + ".manual.kept";
+
+    /*
+     * Ticks between two calibration passes over the online players, which is also the delay after which a bound manual
+     * that was dropped is gone from the world and back in the inventory of its holder.
+     */
+    private static int countdown;
 
     private ManualService()
     {
@@ -55,163 +66,75 @@ public final class ManualService
     {
         if (event.getEntity() instanceof ServerPlayer player)
         {
-            syncRole(player);
+            welcome(player);
         }
     }
 
     /**
-     * Brings the manuals of one player in line with the role: the gameplay manual is topped up when it is missing, and
-     * the creator or the admin manual is granted when it is deserved and taken back when it is not.
+     * A respawn is a fresh inventory as far as the manuals are concerned, so it is treated like a join.
      */
-    public static void syncRole(ServerPlayer player)
+    @SubscribeEvent
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event)
     {
-        String playerName = player.getGameProfile().getName();
-        boolean creator = isCreator(playerName);
-        boolean admin = !creator && ServerConfigManager.isManager(playerName);
-
-        giveIfMissing(player, ManualKind.GAMEPLAY);
-
-        if (creator)
+        if (event.getEntity() instanceof ServerPlayer player)
         {
-            takeBack(player, ManualKind.ADMIN);
-            giveIfMissing(player, ManualKind.CREATOR);
-        }
-        else if (admin)
-        {
-            takeBack(player, ManualKind.CREATOR);
-            giveIfMissing(player, ManualKind.ADMIN);
-        }
-        else
-        {
-            takeBack(player, ManualKind.CREATOR);
-            takeBack(player, ManualKind.ADMIN);
+            welcome(player);
         }
     }
 
     /**
-     * Called after the access file changed: an online player is synced on the spot, and a player who is away is synced
-     * on the next join because the login check never remembers a first grant.
+     * One calibration pass over the online players and one sweep over the bound manuals that lie in a loaded chunk,
+     * every {@link ModConstants#MANUAL_CALIBRATION_INTERVAL_TICKS} game ticks.
      */
-    public static void onRoleChanged(String playerName)
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
     {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (event.phase != TickEvent.Phase.END)
+        {
+            return;
+        }
+
+        if (++countdown < ModConstants.MANUAL_CALIBRATION_INTERVAL_TICKS)
+        {
+            return;
+        }
+
+        countdown = 0;
+        MinecraftServer server = event.getServer();
 
         if (server == null)
         {
             return;
         }
 
-        ServerPlayer player = server.getPlayerList().getPlayerByName(playerName);
+        discardBoundManuals(server);
 
-        if (player != null)
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
         {
-            syncRole(player);
+            calibrate(player);
         }
     }
 
     /**
-     * Grants one manual when the inventory does not hold it any more. A bound manual may not be stored in a container,
-     * so the inventory is the only place it can be, and the ender chest is deliberately not counted.
-     */
-    public static void giveIfMissing(ServerPlayer player, ManualKind kind)
-    {
-        if (count(player, kind) > 0)
-        {
-            return;
-        }
-
-        if (kind.bound())
-        {
-            /*
-             * A copy left in the ender chest by an older version would otherwise become a second manual next to the
-             * fresh one, so it is dropped there before the grant.
-             */
-            remove(player.getEnderChestInventory(), kind);
-        }
-
-        ItemStack stack = new ItemStack(ModItems.manualOf(kind));
-        boolean stored = player.getInventory().add(stack);
-
-        if (!stored)
-        {
-            /*
-             * Nothing is taken from the player here: the manual simply waits for a later join with room to spare,
-             * which keeps a bound manual out of the world instead of dropping it.
-             */
-            DevilBoneGambler.LOGGER.warn("No room for the {} of {}, it is granted again on a later join", kind.itemId(),
-                    player.getGameProfile().getName());
-            return;
-        }
-
-        NotifySender.sendChat(player, KEY_RECEIVED, stack.getHoverName());
-    }
-
-    /**
-     * Takes every manual of one kind back out of the inventory and the ender chest and reports how many were removed.
-     */
-    public static int takeBack(ServerPlayer player, ManualKind kind)
-    {
-        return remove(player.getInventory(), kind) + remove(player.getEnderChestInventory(), kind);
-    }
-
-    /**
-     * A bound manual may never exist as a dropped item: the entity is stopped before it joins the level and its owner
-     * gets the manual back when that owner still holds the role.
+     * Death never leaves a bound manual behind: the copies are taken out before the death drops are collected, so
+     * nothing falls on the ground, and the next calibration grants them again.
      */
     @SubscribeEvent
-    public static void onEntityJoinLevel(EntityJoinLevelEvent event)
+    public static void onPlayerDeath(LivingDeathEvent event)
     {
-        if (event.getLevel().isClientSide() || !(event.getEntity() instanceof ItemEntity item))
+        if (!(event.getEntity() instanceof ServerPlayer player))
         {
             return;
         }
 
-        ManualKind kind = kindOf(item.getItem());
-
-        if (kind == null || !kind.bound())
-        {
-            return;
-        }
-
-        event.setCanceled(true);
-        recover(item, kind);
+        clear(copies(player, ManualKind.CREATOR));
+        clear(copies(player, ManualKind.ADMIN));
     }
 
     /**
-     * Safety net for every drop path that does not pass the drop refusal of the item, such as throwing a hovered slot
-     * out of a container screen: a bound manual that is not in the inventory and not on the carried stack is granted
-     * again, so a manual can never stay lost for longer than one check interval.
-     */
-    @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event)
-    {
-        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player))
-        {
-            return;
-        }
-
-        if (player.tickCount % ModConstants.MANUAL_RECHECK_INTERVAL_TICKS != 0 || !player.isAlive()
-                || player.getInventory().getFreeSlot() < 0)
-        {
-            return;
-        }
-
-        ItemStack carried = player.containerMenu.getCarried();
-
-        for (ManualKind kind : ManualKind.values())
-        {
-            if (kind.bound() && holdsRole(player, kind) && count(player, kind) == 0
-                    && !carried.is(ModItems.manualOf(kind)))
-            {
-                giveIfMissing(player, kind);
-            }
-        }
-    }
-
-    /**
-     * A bound manual may not be stored in a container: whatever the player left in one of the container slots when the
-     * screen closes goes back into the inventory. A full inventory keeps the manual where it is and the next close
-     * tries again, so the manual is never destroyed.
+     * A bound manual may not stay in a container, because a copy waiting in a chest is invisible to the calibration
+     * pass and would be replaced by a second one. Whatever is left in a container slot when the screen closes goes back
+     * into the inventory; a full inventory keeps it where it is and the next close tries again.
      */
     @SubscribeEvent
     public static void onContainerClosed(PlayerContainerEvent.Close event)
@@ -221,11 +144,9 @@ public final class ManualService
             return;
         }
 
-        AbstractContainerMenu menu = event.getContainer();
-
-        for (Slot slot : menu.slots)
+        for (Slot slot : event.getContainer().slots)
         {
-            if (slot.container == player.getInventory())
+            if (slot.container == player.getInventory() || slot.container == player.getEnderChestInventory())
             {
                 continue;
             }
@@ -250,82 +171,179 @@ public final class ManualService
     }
 
     /**
-     * Hands a recovered bound manual back: first to the player who dropped it, then to the one online holder of the
-     * role, and otherwise nowhere, because the next join grants it again.
+     * Called after the access file changed, so a role that was granted or revoked online shows at once instead of on
+     * the next calibration pass.
      */
-    private static void recover(ItemEntity item, ManualKind kind)
+    public static void onRoleChanged(String playerName)
     {
-        MinecraftServer server = item.level().getServer();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
 
         if (server == null)
         {
             return;
         }
 
-        ServerPlayer holder = null;
-        Entity owner = item.getOwner();
+        ServerPlayer player = server.getPlayerList().getPlayerByName(playerName);
 
-        if (owner instanceof ServerPlayer candidate && holdsRole(candidate, kind))
+        if (player != null)
         {
-            holder = candidate;
+            calibrate(player);
         }
-
-        if (holder == null)
-        {
-            holder = findRoleHolder(server, kind);
-        }
-
-        if (holder == null)
-        {
-            return;
-        }
-
-        ItemStack restored = item.getItem().copy();
-
-        if (holder.getInventory().add(restored))
-        {
-            NotifySender.sendChat(holder, KEY_KEPT, restored.getHoverName());
-            return;
-        }
-
-        DevilBoneGambler.LOGGER.warn("Recovered {} had no room in {}, it is granted again once there is room",
-                restored.getHoverName().getString(), holder.getGameProfile().getName());
     }
 
     /**
-     * The one online player the manual belongs to, used when the thrower is unknown or lost the role meanwhile.
+     * Join and respawn both hand out the gameplay manual, whether one is already there or not, and calibrate the bound
+     * manuals on the spot instead of on the next pass.
      */
-    private static ServerPlayer findRoleHolder(MinecraftServer server, ManualKind kind)
+    private static void welcome(ServerPlayer player)
     {
-        if (kind == ManualKind.CREATOR)
-        {
-            for (ServerPlayer player : server.getPlayerList().getPlayers())
-            {
-                if (isCreator(player.getGameProfile().getName()))
-                {
-                    return player;
-                }
-            }
+        Component name = grant(player, ManualKind.GAMEPLAY);
 
-            return null;
+        if (name != null)
+        {
+            NotifySender.sendChat(player, KEY_RECEIVED, name);
         }
 
-        List<ServerPlayer> admins = server.getPlayerList().getPlayers().stream()
-                .filter(player -> holdsRole(player, ManualKind.ADMIN))
-                .toList();
-        return admins.size() == 1 ? admins.get(0) : null;
+        calibrate(player);
     }
 
-    private static boolean holdsRole(ServerPlayer player, ManualKind kind)
+    /**
+     * Compares what one player owns with what the current role entitles them to.
+     */
+    private static void calibrate(ServerPlayer player)
     {
         String playerName = player.getGameProfile().getName();
+        boolean creator = isCreator(playerName);
 
-        if (kind == ManualKind.CREATOR)
+        hold(player, ManualKind.CREATOR, creator);
+        hold(player, ManualKind.ADMIN, !creator && ServerConfigManager.isManager(playerName));
+    }
+
+    /**
+     * One kind of bound manual: nothing to do when the player owns exactly one, one granted when there is none, and
+     * every copy beyond the first cleared when there are more, and all of them when the role does not earn any.
+     */
+    private static void hold(ServerPlayer player, ManualKind kind, boolean entitled)
+    {
+        List<Runnable> copies = copies(player, kind);
+
+        if (!entitled)
         {
-            return isCreator(playerName);
+            clear(copies);
+            return;
         }
 
-        return kind == ManualKind.ADMIN && !isCreator(playerName) && ServerConfigManager.isManager(playerName);
+        if (copies.isEmpty())
+        {
+            Component name = grant(player, kind);
+
+            if (name != null)
+            {
+                NotifySender.sendChat(player, KEY_RECEIVED, name);
+            }
+
+            return;
+        }
+
+        /* The cursor is first in the list, so the copy the player is holding with the mouse is the one that stays. */
+        clear(copies.subList(1, copies.size()));
+    }
+
+    /**
+     * Every place a bound manual can sit while the player owns it, together with the action that empties that place.
+     * The cursor of the open screen comes first, then the inventory, the ender chest and finally the slots of the open
+     * screen that belong to neither, for example a chest or the crafting grid.
+     */
+    private static List<Runnable> copies(ServerPlayer player, ManualKind kind)
+    {
+        List<Runnable> found = new ArrayList<Runnable>();
+        AbstractContainerMenu menu = player.containerMenu;
+
+        if (kindOf(menu.getCarried()) == kind)
+        {
+            found.add(() -> menu.setCarried(ItemStack.EMPTY));
+        }
+
+        collect(found, player.getInventory(), kind);
+        collect(found, player.getEnderChestInventory(), kind);
+
+        for (Slot slot : menu.slots)
+        {
+            if (slot.container != player.getInventory() && slot.container != player.getEnderChestInventory()
+                    && kindOf(slot.getItem()) == kind)
+            {
+                found.add(() -> slot.set(ItemStack.EMPTY));
+            }
+        }
+
+        return found;
+    }
+
+    private static void collect(List<Runnable> found, Container container, ManualKind kind)
+    {
+        for (int index = 0; index < container.getContainerSize(); index++)
+        {
+            final int slot = index;
+
+            if (kindOf(container.getItem(slot)) == kind)
+            {
+                found.add(() -> container.setItem(slot, ItemStack.EMPTY));
+            }
+        }
+    }
+
+    private static void clear(List<Runnable> copies)
+    {
+        for (Runnable copy : copies)
+        {
+            copy.run();
+        }
+    }
+
+    /**
+     * Removes every bound manual that lies in a loaded chunk of any level, which is what keeps a dropped copy out of the
+     * hands of a player who is not entitled to it.
+     */
+    private static void discardBoundManuals(MinecraftServer server)
+    {
+        List<ItemEntity> found = new ArrayList<ItemEntity>();
+
+        for (ServerLevel level : server.getAllLevels())
+        {
+            for (Entity entity : level.getAllEntities())
+            {
+                if (entity instanceof ItemEntity item && !item.isRemoved() && isBoundManual(item.getItem()))
+                {
+                    found.add(item);
+                }
+            }
+        }
+
+        for (ItemEntity item : found)
+        {
+            item.discard();
+        }
+    }
+
+    /**
+     * Puts one manual into the inventory and reports its name, or null when there is no room for it.
+     * The name comes from the shared hand over helper, which reads it before the inventory can empty the stack.
+     */
+    private static Component grant(ServerPlayer player, ManualKind kind)
+    {
+        Component name = InventoryHandover.handOver(player, new ItemStack(ModItems.manualOf(kind)));
+
+        if (name == null)
+        {
+            /*
+             * Nothing is taken from the player here: the manual simply waits for a later pass with room to spare,
+             * which keeps a bound manual out of the world instead of dropping it.
+             */
+            DevilBoneGambler.LOGGER.warn("No room for the {} of {}, it is granted on a later pass",
+                    kind.itemId(), player.getGameProfile().getName());
+        }
+
+        return name;
     }
 
     private static boolean isCreator(String playerName)
@@ -333,6 +351,12 @@ public final class ManualService
         AccessConfig access = ServerConfigManager.access();
         String creator = access == null ? "" : access.creatorOrEmpty();
         return !creator.isEmpty() && creator.equalsIgnoreCase(playerName);
+    }
+
+    private static boolean isBoundManual(ItemStack stack)
+    {
+        ManualKind kind = kindOf(stack);
+        return kind != null && kind.bound();
     }
 
     private static ManualKind kindOf(ItemStack stack)
@@ -351,47 +375,5 @@ public final class ManualService
         }
 
         return null;
-    }
-
-    private static int count(ServerPlayer player, ManualKind kind)
-    {
-        return count(player.getInventory(), kind);
-    }
-
-    private static int count(Container container, ManualKind kind)
-    {
-        int total = 0;
-
-        for (int slot = 0; slot < container.getContainerSize(); slot++)
-        {
-            ItemStack stack = container.getItem(slot);
-
-            if (!stack.isEmpty() && kindOf(stack) == kind)
-            {
-                total += stack.getCount();
-            }
-        }
-
-        return total;
-    }
-
-    private static int remove(Container container, ManualKind kind)
-    {
-        int removed = 0;
-
-        for (int slot = 0; slot < container.getContainerSize(); slot++)
-        {
-            ItemStack stack = container.getItem(slot);
-
-            if (stack.isEmpty() || kindOf(stack) != kind)
-            {
-                continue;
-            }
-
-            removed += stack.getCount();
-            container.setItem(slot, ItemStack.EMPTY);
-        }
-
-        return removed;
     }
 }
