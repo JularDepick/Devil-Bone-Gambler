@@ -15,15 +15,18 @@ import com.devilbonegambler.draw.DrawEngine;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.menu.DealerBetMenu;
 import com.devilbonegambler.mob.GamblersDealer;
+import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -179,6 +182,12 @@ public final class DealerWagerService
         if (isInAnyWager(player))
         {
             NotifySender.sendFailure(player, "dealer_in_other_wager");
+            return;
+        }
+
+        if (RequestGuard.isSettling(player))
+        {
+            NotifySender.sendFailure(player, "settling");
             return;
         }
 
@@ -467,6 +476,18 @@ public final class DealerWagerService
             session.setLastSecond(remaining);
             dealer.showRecruitText(Math.max(0, remaining));
             sendPanels(server, session, dealer);
+
+            /*
+             * The chime rings only when the wager opens and again in its last seconds, never once per second for the
+             * whole recruit.
+             */
+            int elapsed = ModConstants.DEALER_WAGER_RECRUIT_SECONDS - remaining;
+
+            if (elapsed < ModConstants.DEALER_WAGER_CHIME_HEAD_SECONDS
+                    || remaining <= ModConstants.DEALER_WAGER_CHIME_TAIL_SECONDS)
+            {
+                dealer.dealingParticles();
+            }
         }
 
         if (remaining <= ModConstants.DEALER_WAGER_REMIND_SECONDS)
@@ -718,7 +739,47 @@ public final class DealerWagerService
         SESSIONS.remove(session.dealerId());
         session.members().clear();
         dealer.setHosting(false);
-        refreshIdlePanels(server, dealer, settled);
+        closePanels(server, dealer, settled);
+    }
+
+    /**
+     * A session that ends tells every member and every player near the dealer to drop the dealer panel, so a recruit
+     * that times out never leaves a stale screen open.
+     */
+    private static void closePanels(MinecraftServer server, GamblersDealer dealer, List<UUID> memberIds)
+    {
+        Set<UUID> told = new HashSet<UUID>(memberIds);
+        DealerPanelPacket closing = DealerPanelPacket.closing(dealer == null ? -1 : dealer.getId());
+
+        for (UUID memberId : memberIds)
+        {
+            ServerPlayer member = server.getPlayerList().getPlayer(memberId);
+
+            if (member != null)
+            {
+                ModNetwork.sendToPlayer(member, closing);
+            }
+        }
+
+        if (dealer == null)
+        {
+            return;
+        }
+
+        double reach = ModConstants.DEALER_WAGER_RADIUS * ModConstants.DEALER_WAGER_RADIUS;
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+        {
+            if (player.level() != dealer.level() || told.contains(player.getUUID()))
+            {
+                continue;
+            }
+
+            if (dealer.distanceToSqr(player) <= reach)
+            {
+                ModNetwork.sendToPlayer(player, closing);
+            }
+        }
     }
 
     /**
@@ -776,7 +837,9 @@ public final class DealerWagerService
         {
             dealer.setHosting(false);
             dealer.clearRecruitText();
-            refreshIdlePanels(server, dealer, members);
+            /* A refused wager ends with the villager "no", so the dealer answers every outcome out loud. */
+            dealer.playSound(net.minecraft.sounds.SoundEvents.VILLAGER_NO, 1.0F, 1.0F);
+            closePanels(server, dealer, members);
         }
 
         DevilBoneGambler.LOGGER.info("Dealer wager ended, dealer={} members={} reason={}", session.dealerId(),

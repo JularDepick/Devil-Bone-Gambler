@@ -10,6 +10,7 @@ import com.devilbonegambler.client.ClientActions;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.util.ModConstants;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
@@ -31,8 +32,8 @@ import net.minecraft.world.item.Items;
 public class DealerScreen extends Screen
 {
     private static final String LANG = "gui." + ModConstants.MOD_ID + ".dealer.";
-    private static final ResourceLocation VILLAGER_TEXTURE =
-            ResourceLocation.tryParse("minecraft:textures/entity/villager/villager.png");
+    private static final ResourceLocation DEALER_TEXTURE =
+            ResourceLocation.tryParse("devil_bone_gambler:textures/entity/gamblers_dealer.png");
 
     private static final int PANEL_WIDTH = 200;
     private static final int PANEL_HEIGHT = 210;
@@ -40,6 +41,12 @@ public class DealerScreen extends Screen
     private static final int GRID = CELL * 3;
     private static final int GRID_TOP = 32;
     private static final int CHEST_SIZE = 14;
+    /* The head of the dealer texture is an 8x8x8 box at (0,0), so its front face sits at (8,8). */
+    private static final int TEXTURE_SIZE = 64;
+    private static final int HEAD_U = 8;
+    private static final int HEAD_V = 8;
+    private static final int HEAD_SOURCE = 8;
+    private static final int PORTRAIT_SIZE = 24;
     private static final int BAR_HEIGHT = 3;
     private static final int AUTHOR_OFFSET_Y = 198;
     private static final int STATUS_OFFSET_Y = 20;
@@ -64,6 +71,11 @@ public class DealerScreen extends Screen
     };
 
     private DealerPanelPacket panel;
+
+    /**
+     * Hover tooltip of the nine grid cells, held back for the shared hover delay like every other cell of the mod.
+     */
+    private final DelayedTooltip tooltip = new DelayedTooltip();
     private int leftPos;
     private int topPos;
 
@@ -76,6 +88,7 @@ public class DealerScreen extends Screen
     public void applyPanel(DealerPanelPacket updated)
     {
         this.panel = updated;
+        this.tooltip.reset();
         this.rebuildButtons();
     }
 
@@ -197,17 +210,20 @@ public class DealerScreen extends Screen
     {
         this.drawCellFrame(graphics, x, y);
         /*
-         * The villager head is an 8x10x8 box at texture offset (0,0), so its front face sits at (8,8) with a source
-         * size of 8x10. The scalable blit overload is required: the plain (u, v, width, height) overload treats the
-         * width and height as the source region too, which sampled a 32x32 quarter of the texture sheet.
+         * The portrait is cut straight out of the dealer texture, so the panel shows the same face as the entity.
+         * The blit overload takes the source region and the texture size, so the 8x8 head face is scaled to the cell.
          */
-        graphics.blit(VILLAGER_TEXTURE, x + 4, y + 1, 26, 32, 8.0F, 8.0F, 8, 10, 64, 64);
+        graphics.blit(DEALER_TEXTURE, x + 4, y + 1, PORTRAIT_SIZE, PORTRAIT_SIZE, HEAD_U, HEAD_V, HEAD_SOURCE,
+                HEAD_SOURCE, TEXTURE_SIZE, TEXTURE_SIZE);
         float health = this.panel.dealerMaxHealth() <= 0.0F ? 0.0F
                 : this.panel.dealerHealth() / this.panel.dealerMaxHealth();
         float satiety = this.panel.dealerMaxSatiety() <= 0 ? 0.0F
                 : this.panel.dealerSatiety() / (float) this.panel.dealerMaxSatiety();
-        this.drawBar(graphics, x + 1, y + CELL - 9, 32, health, HEALTH_COLOR);
-        this.drawBar(graphics, x + 1, y + CELL - 5, 32, satiety, SATIETY_COLOR);
+        /* Both bars sit under the portrait, so the two states stay readable next to the face. */
+        int barX = x + 1;
+        int barWidth = CELL - 2;
+        this.drawBar(graphics, barX, y + 1 + PORTRAIT_SIZE, barWidth, health, HEALTH_COLOR);
+        this.drawBar(graphics, barX, y + 1 + PORTRAIT_SIZE + BAR_HEIGHT + 1, barWidth, satiety, SATIETY_COLOR);
     }
 
     private void drawMemberCell(GuiGraphics graphics, int x, int y, DealerPanelPacket.MemberEntry entry)
@@ -278,23 +294,19 @@ public class DealerScreen extends Screen
             if (mouseX >= x && mouseX < x + CELL - 2 && mouseY >= y && mouseY < y + CELL - 2)
             {
                 DealerPanelPacket.MemberEntry entry = members.get(index);
+                List<Component> lines = new ArrayList<Component>();
                 /*
                  * A member who went offline is shown under the name the session knows; a session that never saw the
                  * name shows the offline wording instead of any identifier.
                  */
-                Component memberName = entry.name().isEmpty()
+                lines.add(entry.name().isEmpty()
                         ? Component.translatable(LANG + "offline_member")
-                        : Component.literal(entry.name());
-                Component hint = Component.translatable(entry.playerId().equals(this.selfId())
-                        ? LANG + "open_hint" : LANG + "open_hint_others");
-                Component text = memberName.copy()
-                        .append(Component.literal("\n"))
-                        .append(Component.translatable(LANG + "bet_value", Long.valueOf(entry.betValue())))
-                        .append(Component.literal("\n"))
-                        .append(Component.translatable(LANG + "bet_count", Integer.valueOf(entry.betCount())))
-                        .append(Component.literal("\n"))
-                        .append(hint);
-                graphics.renderTooltip(this.font, text, mouseX, mouseY);
+                        : Component.literal(entry.name()));
+                lines.add(Component.translatable(LANG + "bet_value", Long.valueOf(entry.betValue())));
+                lines.add(Component.translatable(LANG + "bet_count", Integer.valueOf(entry.betCount())));
+                lines.add(Component.translatable(entry.playerId().equals(this.selfId())
+                        ? LANG + "open_hint" : LANG + "open_hint_others"));
+                this.tooltip.render(graphics, this.font, "member:" + index, lines, mouseX, mouseY);
                 return;
             }
         }
@@ -304,15 +316,18 @@ public class DealerScreen extends Screen
 
         if (mouseX >= dealerX && mouseX < dealerX + CELL - 2 && mouseY >= dealerY && mouseY < dealerY + CELL - 2)
         {
-            Component text = Component.translatable(LANG + "health",
+            List<Component> lines = new ArrayList<Component>();
+            lines.add(Component.translatable(LANG + "health",
                     Integer.valueOf((int) this.panel.dealerHealth()),
-                    Integer.valueOf((int) this.panel.dealerMaxHealth()))
-                    .copy()
-                    .append(Component.literal("\n"))
-                    .append(Component.translatable(LANG + "satiety", Integer.valueOf(this.panel.dealerSatiety()),
-                            Integer.valueOf(this.panel.dealerMaxSatiety())));
-            graphics.renderTooltip(this.font, text, mouseX, mouseY);
+                    Integer.valueOf((int) this.panel.dealerMaxHealth())));
+            lines.add(Component.translatable(LANG + "satiety", Integer.valueOf(this.panel.dealerSatiety()),
+                    Integer.valueOf(this.panel.dealerMaxSatiety())));
+            this.tooltip.render(graphics, this.font, "dealer", lines, mouseX, mouseY);
+            return;
         }
+
+        /* A pointer that left the grid releases the timer, so the next cell waits again. */
+        this.tooltip.render(graphics, this.font, null, null, mouseX, mouseY);
     }
 
     /**

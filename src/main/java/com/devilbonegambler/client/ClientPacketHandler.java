@@ -70,6 +70,20 @@ public final class ClientPacketHandler
     {
         Minecraft minecraft = Minecraft.getInstance();
 
+        /*
+         * A session that ended closes the panel it opened: the client never keeps a screen whose wager is gone, so a
+         * recruit that times out cannot leave a stale panel behind.
+         */
+        if (message.closeScreen())
+        {
+            if (minecraft.screen instanceof DealerScreen)
+            {
+                minecraft.setScreen(null);
+            }
+
+            return;
+        }
+
         if (minecraft.screen instanceof DealerScreen dealerScreen)
         {
             dealerScreen.applyPanel(message);

@@ -6,6 +6,7 @@
 
 package com.devilbonegambler.network.packet;
 
+import com.devilbonegambler.menu.DealerBetMenu;
 import com.devilbonegambler.client.ClientPacketHandler;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,12 +77,31 @@ public class DealerPanelPacket
     private final boolean canCreate;
     private final boolean canStart;
     private final boolean openScreen;
+    private final boolean closeScreen;
     private final List<MemberEntry> members;
 
     public DealerPanelPacket(int dealerEntityId, float dealerHealth, float dealerMaxHealth, int dealerSatiety,
             int dealerMaxSatiety, boolean hasWager, int phase, int remainingSeconds, UUID ownerId,
             boolean selfIsOwner, boolean selfIsMember, boolean canCreate, boolean canStart, boolean openScreen,
             List<MemberEntry> members)
+    {
+        this(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety, hasWager, phase,
+                remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate, canStart, openScreen, false, members);
+    }
+
+    /**
+     * A panel that only tells the client to drop the dealer screen, used when the session behind it has ended.
+     */
+    public static DealerPanelPacket closing(int dealerEntityId)
+    {
+        return new DealerPanelPacket(dealerEntityId, 0.0F, 0.0F, 0, 0, false, DealerBetMenu.PHASE_NONE, 0, null, false,
+                false, false, false, false, true, java.util.Collections.<MemberEntry>emptyList());
+    }
+
+    private DealerPanelPacket(int dealerEntityId, float dealerHealth, float dealerMaxHealth, int dealerSatiety,
+            int dealerMaxSatiety, boolean hasWager, int phase, int remainingSeconds, UUID ownerId,
+            boolean selfIsOwner, boolean selfIsMember, boolean canCreate, boolean canStart, boolean openScreen,
+            boolean closeScreen, List<MemberEntry> members)
     {
         this.dealerEntityId = dealerEntityId;
         this.dealerHealth = dealerHealth;
@@ -97,6 +117,7 @@ public class DealerPanelPacket
         this.canCreate = canCreate;
         this.canStart = canStart;
         this.openScreen = openScreen;
+        this.closeScreen = closeScreen;
         this.members = members;
     }
 
@@ -118,6 +139,11 @@ public class DealerPanelPacket
      * True only for the answer to an explicit interaction, so periodic pushes never reopen a closed screen.
      */
     public boolean openScreen() { return this.openScreen; }
+
+    /**
+     * True when the session behind the screen has ended and the client must drop the screen.
+     */
+    public boolean closeScreen() { return this.closeScreen; }
     public List<MemberEntry> members() { return this.members; }
 
     public static void encode(DealerPanelPacket message, FriendlyByteBuf buffer)
@@ -142,6 +168,7 @@ public class DealerPanelPacket
         buffer.writeBoolean(message.canCreate);
         buffer.writeBoolean(message.canStart);
         buffer.writeBoolean(message.openScreen);
+        buffer.writeBoolean(message.closeScreen);
         buffer.writeVarInt(message.members.size());
 
         for (MemberEntry entry : message.members)
@@ -170,6 +197,7 @@ public class DealerPanelPacket
         boolean canCreate = buffer.readBoolean();
         boolean canStart = buffer.readBoolean();
         boolean openScreen = buffer.readBoolean();
+        boolean closeScreen = buffer.readBoolean();
         int memberCount = buffer.readVarInt();
         List<MemberEntry> members = new ArrayList<MemberEntry>();
 
@@ -184,7 +212,7 @@ public class DealerPanelPacket
 
         return new DealerPanelPacket(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety,
                 hasWager, phase, remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate, canStart, openScreen,
-                members);
+                closeScreen, members);
     }
 
     public static void handle(DealerPanelPacket message, Supplier<NetworkEvent.Context> contextSupplier)
