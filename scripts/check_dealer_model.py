@@ -326,12 +326,54 @@ def check_attack_cadence():
     constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
         encoding="utf-8")
     found = re.search(r"DEALER_TERRITORY_ATTACK_INTERVAL_TICKS\s*=\s*(\d+)", constants)
-    check("领地攻击间隔不少于两秒", bool(found) and int(found.group(1)) >= 40,
+    check("领地攻击间隔为一秒", bool(found) and int(found.group(1)) == 20,
           "取值 " + (found.group(1) if found else "缺失"))
 
 
 # 面板头像与招募提示音口径: 面板头像必须取自荷官贴图的头部 UV, 提示音只在开局与末尾响。
 # 音效口径: 荷官使用村民音效, 环境音/受击/死亡三条都必须覆盖。
+def check_dealer_habits():
+    """The dealer's daily business: paying for swings, eating only hungry and only its own dice, ignoring players while
+    it fights, keeping the idle name private and fumbling dice when struck."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(
+        encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
+        encoding="utf-8")
+
+    check("挥击以饱食度支付", "DEALER_TERRITORY_SWINGS_PER_SATIETY" in dealer
+          and "this.satiety - 1" in dealer)
+    check("饱食度为空时不出手", "this.satiety <= 0" in dealer and "return;" in dealer)
+    check("只在六成以下才进食", "DEALER_FEED_THRESHOLD" in dealer and "hungry" in dealer)
+    check("只吃赌徒的骰子", "ModItems.GAMBLERS_DICE.get()" in dealer and "DEVILS_DICE" not in dealer)
+    check("进食冷却为两秒", re.search(r"DEALER_FEED_INTERVAL_TICKS\s*=\s*40", constants) is not None)
+    check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
+    check("追击速度已放慢", re.search(r"DEALER_TERRITORY_CHASE_SPEED\s*=\s*0\.9D", constants) is not None)
+    check("待机名只对看向它的玩家显示", "shouldShowName" in dealer and "isLookingAtMe" in dealer)
+    check("主持与招募名不受影响", "showNameToEveryone" in dealer)
+    check("受击有几率掉骰子", "dropHurtDice" in dealer and "DEALER_HURT_DROP_CHANCE_ONE" in dealer)
+    check("受击掉落不影响死亡掉落", "isDeadOrDying()" in dealer)
+
+
+
+def check_dealer_glow():
+    """The dealer carries half a torch: a light block kept under its feet, and a leftover copy puts itself out."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(
+        encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
+        encoding="utf-8")
+    glow = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "block" / "DealerGlowBlock.java")
+    blocks = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "registry" / "ModBlocks.java").read_text(
+        encoding="utf-8")
+
+    check("荷官自带光照强度", glow.exists() and "DEALER_LIGHT_LEVEL" in constants)
+    check("亮度为火把的一半", re.search(r"DEALER_LIGHT_LEVEL\s*=\s*7\b", constants) is not None
+          and re.search(r"ALTAR_LIGHT_LEVEL\s*=\s*14\b", constants) is not None)
+    check("光照块已注册且没有物品", "DEALER_GLOW" in blocks and "BLOCK_ITEMS.register(\"dealer_glow\"" not in blocks)
+    check("光照跟着荷官走", "tickGlow" in dealer and "clearGlow" in dealer)
+    check("荷官消失时收走光照", "public void remove(Entity.RemovalReason" in dealer and "clearGlow()" in dealer)
+    check("遗留的光照会自行熄灭", glow.exists() and "randomTick" in glow.read_text(encoding="utf-8"))
+
+
 def check_dealer_sounds():
     mob_file = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java"
     text = mob_file.read_text(encoding="utf-8")
@@ -381,6 +423,8 @@ def main():
     check_java_matches()
     check_head_rule()
     check_attack_cadence()
+    check_dealer_habits()
+    check_dealer_glow()
     check_panel_and_chime()
     check_dealer_sounds()
     check_death_drops()

@@ -6,6 +6,12 @@
 
 package com.devilbonegambler.mob;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
@@ -34,6 +40,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Gambler's Dealer: a villager shaped host that owns one wager at a time.
@@ -50,10 +57,17 @@ public class GamblersDealer extends PathfinderMob
     private GamblersDealer rival;
     private int territoryCheckTicks;
     private int territoryAttackTicks;
+    /* Swings since the last satiety point was spent on the fight. */
+    private int territorySwings;
+    /* The block the dealer is currently lighting, and the countdown until the next look at it. */
+    private BlockPos glowAt;
+    private int glowTicks;
     private int satiety = ModConstants.DEALER_MAX_SATIETY;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
     private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
     private boolean hosting;
+    /* Business names (hosting, recruiting) are shown to everyone, the idle name only to the player who looks at it. */
+    private boolean showNameToEveryone;
 
     public GamblersDealer(EntityType<? extends GamblersDealer> type, Level level)
     {
@@ -142,9 +156,25 @@ public class GamblersDealer extends PathfinderMob
             return;
         }
 
+        /*
+         * A swing is paid for with the bar: every second swing eats one satiety point, and an empty bar leaves the
+         * dealer standing in front of its rival without attacking, so a long fight slows down and then stops.
+         */
+        if (this.satiety <= 0)
+        {
+            return;
+        }
+
         this.territoryAttackTicks = ModConstants.DEALER_TERRITORY_ATTACK_INTERVAL_TICKS;
         this.swing(InteractionHand.MAIN_HAND);
         this.rival.hurt(this.damageSources().mobAttack(this), this.rollTerritoryDamage());
+        this.territorySwings++;
+
+        if (this.territorySwings >= ModConstants.DEALER_TERRITORY_SWINGS_PER_SATIETY)
+        {
+            this.territorySwings = 0;
+            this.satiety = Math.max(0, this.satiety - 1);
+        }
     }
 
     /**
@@ -174,6 +204,81 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
+     * The dealer carries its own glow, so the block under its feet is kept lit and the block it left behind goes dark
+     * again. The check runs on an interval rather than every tick, because a dealer rarely leaves a block behind and
+     * the light engine only needs to be told once per move.
+     */
+    private void tickGlow()
+    {
+        if (this.level().isClientSide)
+        {
+            return;
+        }
+
+        if (this.glowTicks > 0)
+        {
+            this.glowTicks--;
+            return;
+        }
+
+        this.glowTicks = ModConstants.DEALER_GLOW_INTERVAL_TICKS;
+        BlockPos standing = this.blockPosition();
+
+        if (!this.isAlive())
+        {
+            this.clearGlow();
+            return;
+        }
+
+        if (standing.equals(this.glowAt))
+        {
+            return;
+        }
+
+        this.clearGlow();
+        BlockState current = this.level().getBlockState(standing);
+
+        /*
+         * Only empty space is taken: a glow never pushes a block out of the world, and a block that is solid enough to
+         * stand on simply stays, because the dealer is lit by whatever is around it there anyway.
+         */
+        if (current.isAir() || current.canBeReplaced())
+        {
+            this.level().setBlock(standing, ModBlocks.DEALER_GLOW.get().defaultBlockState(), Block.UPDATE_NONE);
+            this.glowAt = standing.immutable();
+        }
+    }
+
+    /**
+     * Puts the last lit block out. Only a block that is still the own glow is removed, so a player who placed
+     * something there keeps it.
+     */
+    private void clearGlow()
+    {
+        if (this.glowAt == null)
+        {
+            return;
+        }
+
+        if (this.level().getBlockState(this.glowAt).is(ModBlocks.DEALER_GLOW.get()))
+        {
+            this.level().setBlock(this.glowAt, Blocks.AIR.defaultBlockState(), Block.UPDATE_NONE);
+        }
+
+        this.glowAt = null;
+    }
+
+    /**
+     * The glow is not part of the loot and never outlives its dealer.
+     */
+    @Override
+    public void remove(Entity.RemovalReason reason)
+    {
+        this.clearGlow();
+        super.remove(reason);
+    }
+
+    /**
      * Damage of one territory hit, somewhere between zero and five points.
      * The seed mixes the timestamp with the own health, satiety and position, so every hit rolls its own number and
      * the fight decides a winner instead of ending with both dealers dead.
@@ -198,6 +303,7 @@ public class GamblersDealer extends PathfinderMob
     {
         super.customServerAiStep();
         this.tickTerritory();
+        this.tickGlow();
 
         if (this.feedCooldown > 0)
         {
@@ -224,7 +330,14 @@ public class GamblersDealer extends PathfinderMob
      */
     private void tryFeed()
     {
-        if (this.getHealth() >= this.getMaxHealth() && this.satiety >= ModConstants.DEALER_MAX_SATIETY)
+        /*
+         * A dealer only reaches for a dice when one of its bars fell under the share, and it only eats the gambler's
+         * dice; the devil's dice is not food and is left where it lies.
+         */
+        boolean hungry = this.getHealth() < this.getMaxHealth() * ModConstants.DEALER_FEED_THRESHOLD
+                || this.satiety < ModConstants.DEALER_MAX_SATIETY * ModConstants.DEALER_FEED_THRESHOLD;
+
+        if (!hungry)
         {
             return;
         }
@@ -292,18 +405,47 @@ public class GamblersDealer extends PathfinderMob
 
     /**
      * The recruit counter on the name tag. It never makes a sound of its own, because the panel and the dealer would
-     * otherwise chirp once per second for the whole recruit.
+     * otherwise chirp once per second for the whole recruit. A business name stays over the head for everyone.
      */
     public void showRecruitText(int seconds)
     {
         this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(seconds)));
         this.setCustomNameVisible(true);
+        this.showNameToEveryone = true;
     }
 
     public void clearRecruitText()
     {
         this.setCustomName(Component.translatable(KEY_IDLE_NAME));
         this.setCustomNameVisible(true);
+        this.showNameToEveryone = false;
+    }
+
+    /**
+     * The idle name is private business: it is readable only for a player who stands close and looks at the dealer.
+     * The hosting and recruiting names are set through the methods above and stay visible for everyone.
+     */
+    @Override
+    public boolean shouldShowName()
+    {
+        if (this.showNameToEveryone || this.getCustomName() == null)
+        {
+            return super.shouldShowName();
+        }
+
+        Player viewer = this.level().getNearestPlayer(this, ModConstants.DEALER_NAME_REVEAL_RANGE);
+        return viewer != null && viewer.isAlive() && this.isLookingAtMe(viewer);
+    }
+
+    /**
+     * True when the viewer has the dealer inside the cone in front of it, so a name does not appear for a player who
+     * happens to walk past with the dealer behind their back.
+     */
+    private boolean isLookingAtMe(Player viewer)
+    {
+        Vec3 toDealer = this.position().subtract(viewer.position()).normalize();
+        Vec3 sight = viewer.getLookAngle().normalize();
+        return toDealer.dot(sight) > ModConstants.DEALER_NAME_LOOK_DOT;
     }
 
     /**
@@ -354,7 +496,8 @@ public class GamblersDealer extends PathfinderMob
 
     /**
      * An empty hand right click opens the panel or joins the running recruit. A filled hand keeps the vanilla
-     * behaviour, so placing a block against the dealer is untouched.
+     * behaviour, so placing a block against the dealer is untouched, and a dealer that is busy with a rival ignores
+     * everyone, because it has other business on its mind.
      */
     @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand)
@@ -367,6 +510,12 @@ public class GamblersDealer extends PathfinderMob
         if (this.level().isClientSide)
         {
             return InteractionResult.SUCCESS;
+        }
+
+        if (this.isDefendingTerritory() || this.rival != null)
+        {
+            this.playSound(SoundEvents.VILLAGER_NO, 1.0F, 1.0F);
+            return InteractionResult.CONSUME;
         }
 
         /* The dealer answers with the villager voice, the same family as its ambient and hurt sounds. */
@@ -389,6 +538,48 @@ public class GamblersDealer extends PathfinderMob
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);
         int count = this.deathDiceDrops();
+
+        if (count > 0)
+        {
+            this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), count));
+        }
+    }
+
+    /**
+     * A struck dealer fumbles dice out of its pockets, once per hit and never on top of the death loot, which stays the
+     * only guaranteed handful. Most hits free nothing at all, so a fight over a dealer is not a dice farm.
+     */
+    @Override
+    public boolean hurt(DamageSource source, float amount)
+    {
+        boolean taken = super.hurt(source, amount);
+
+        if (taken && !this.isDeadOrDying())
+        {
+            this.dropHurtDice();
+        }
+
+        return taken;
+    }
+
+    private void dropHurtDice()
+    {
+        double roll = this.level().getRandom().nextDouble();
+        int count = 0;
+
+        if (roll < ModConstants.DEALER_HURT_DROP_CHANCE_THREE)
+        {
+            count = ModConstants.DEALER_HURT_DROP_THREE;
+        }
+        else if (roll < ModConstants.DEALER_HURT_DROP_CHANCE_THREE + ModConstants.DEALER_HURT_DROP_CHANCE_TWO)
+        {
+            count = ModConstants.DEALER_HURT_DROP_TWO;
+        }
+        else if (roll < ModConstants.DEALER_HURT_DROP_CHANCE_THREE + ModConstants.DEALER_HURT_DROP_CHANCE_TWO
+                + ModConstants.DEALER_HURT_DROP_CHANCE_ONE)
+        {
+            count = ModConstants.DEALER_HURT_DROP_ONE;
+        }
 
         if (count > 0)
         {
