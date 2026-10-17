@@ -89,6 +89,7 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
     private static final int TITLE_Y = 6;
     private static final int SUMMARY_Y = 18;
     private static final int ESTIMATE_Y = 28;
+    private static final int ALTAR_VALUE_Y = 38;
 
     /*
      * Middle column: the offering grid above and the real player inventory below, both positioned by the menu.
@@ -273,6 +274,7 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
                 SUMMARY_Y, TEXT_COLOR, false);
         graphics.drawString(this.font, clip(Component.translatable(key("altar.estimate"),
                 Long.valueOf(estimatedValue())).getString(), MOB_WIDTH), MOB_X, ESTIMATE_Y, ESTIMATE_COLOR, false);
+        drawAltarValue(graphics);
         graphics.drawString(this.font, Component.translatable(key("altar.altar")), AltarMenu.OFFERING_X,
                 OFFERING_LABEL_Y, LABEL_COLOR, false);
         graphics.drawString(this.font, Component.translatable(key("altar.backpack")), AltarMenu.INVENTORY_X,
@@ -283,6 +285,23 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
         graphics.drawString(this.font, clip(this.status, STATUS_WIDTH), STATUS_X, STATUS_Y, STATUS_COLOR, false);
         graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"), AUTHOR_X,
                 AUTHOR_Y, AUTHOR_COLOR, false);
+    }
+
+    /**
+     * The accumulated value of the altar the screen belongs to, read from the status the server pushes, so the player
+     * sees what this altar is worth while choosing what to offer. Without a governing altar the line stays away
+     * instead of showing a zero that looks like a verdict.
+     */
+    private void drawAltarValue(GuiGraphics graphics)
+    {
+        if (!ClientActions.hasAltar())
+        {
+            return;
+        }
+
+        graphics.drawString(this.font, clip(Component.translatable(key("altar.altar_value"),
+                Long.valueOf(ClientActions.altarValue())).getString(), MOB_WIDTH), MOB_X, ALTAR_VALUE_Y,
+                TEXT_COLOR, false);
     }
 
     /**

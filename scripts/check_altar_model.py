@@ -267,5 +267,32 @@ print("blockstate model: %s" % model_id)
 check(item.get("parent") == BLOCK_MODEL_ID, "the item model does not point at the block model")
 check(model_id == BLOCK_MODEL_ID, "the blockstate does not point at the block model")
 
+
+# The altar writes its own offering value over its head while a player stands close and looks at it,
+# and the offering screen carries the same number.
+LABEL_RENDERER = os.path.join(ROOT, "src", "main", "java", "com", "devilbonegambler", "client", "render",
+                              "AltarValueLabelRenderer.java")
+ALTAR_SCREEN = os.path.join(ROOT, "src", "main", "java", "com", "devilbonegambler", "client", "gui",
+                            "AltarScreen.java")
+CONSTANTS = os.path.join(ROOT, "src", "main", "java", "com", "devilbonegambler", "util", "ModConstants.java")
+
+label_source = open(LABEL_RENDERER, encoding="utf-8").read() if os.path.exists(LABEL_RENDERER) else ""
+screen_source = open(ALTAR_SCREEN, encoding="utf-8").read()
+constants_source = open(CONSTANTS, encoding="utf-8").read()
+
+check(os.path.exists(LABEL_RENDERER), "the altar value label renderer is missing")
+check("ClientActions.altarPosition()" in label_source and "isInAltarRange()" in label_source,
+      "the label does not follow the altar that governs the player")
+check("ALTAR_LABEL_RANGE" in label_source and "ALTAR_LABEL_LOOK_DOT" in label_source,
+      "the label does not require the player to be close and facing the altar")
+check("rotationY" in label_source and "rotationX" in label_source,
+      "the label does not face the viewer")
+check("drawAltarValue" in screen_source and "altar.altar_value" in screen_source,
+      "the offering screen does not show the altar offering value")
+check("if (!ClientActions.hasAltar())" in screen_source,
+      "the offering screen shows a zero when no altar governs the player")
+check("ALTAR_LABEL_RANGE" in constants_source and "ALTAR_LABEL_LOOK_DOT" in constants_source,
+      "the altar label constants are missing")
+
 print("RESULT: %s" % ("OK" if not failures else "%d failure(s)" % len(failures)))
 sys.exit(0 if not failures else 1)
