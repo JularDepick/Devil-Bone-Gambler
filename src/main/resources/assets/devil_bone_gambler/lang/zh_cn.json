@@ -7,8 +7,6 @@
   "item.devil_bone_gambler.admin_manual": "管理员手册",
   "item.devil_bone_gambler.creator_manual": "创建者手册",
   "block.devil_bone_gambler.devils_altar": "恶魔的祭坛",
-
-
   "gui.devil_bone_gambler.author": "作者: JularDepick",
   "gui.devil_bone_gambler.manual.close": "关闭",
   "gui.devil_bone_gambler.manual.missing": "手册内容缺失",
@@ -42,7 +40,8 @@
   "gui.devil_bone_gambler.altar.intrusion": "你佩戴的祭坛侵入了其他祭坛的范围, 立刻离开",
   "gui.devil_bone_gambler.altar.offered_total": "本次献祭折算价值 %s",
   "gui.devil_bone_gambler.altar.estimate": "预估价值 %s, 实际以献祭结算为准",
-
+  "gui.devil_bone_gambler.altar.altar_value": "祭坛献祭值 %s",
+  "gui.devil_bone_gambler.altar.value_label": "献祭值 %s",
   "gui.devil_bone_gambler.value.line": "祭品价值: %s",
   "gui.devil_bone_gambler.value.subtotal": "祭品价值: %s 单价, %s 件, 小计 %s",
   "gui.devil_bone_gambler.value.book_title": "祭品价值表",
@@ -55,7 +54,6 @@
   "gui.devil_bone_gambler.value.chapter_all": "全部",
   "gui.devil_bone_gambler.value.chapter_item": "物品",
   "gui.devil_bone_gambler.value.chapter_entity": "生物",
-
   "gui.devil_bone_gambler.admin.title": "恶魔骨赌 配置面板",
   "gui.devil_bone_gambler.admin.tab_prize": "奖池配置",
   "gui.devil_bone_gambler.admin.tab_value": "祭品价值",
@@ -94,13 +92,11 @@
   "gui.devil_bone_gambler.admin.role_admin": "管理员",
   "gui.devil_bone_gambler.admin.admin_exists": "该玩家已在名单中",
   "gui.devil_bone_gambler.admin.value_unregistered": "该条目未在配置表中登记",
-
   "gui.devil_bone_gambler.dice.point": "骰子点数 %s",
   "gui.devil_bone_gambler.dice.color.red": "红色",
   "gui.devil_bone_gambler.dice.color.black": "黑色",
   "gui.devil_bone_gambler.dice.overflow": "溢出 %s",
   "gui.devil_bone_gambler.major_event": "%s 触发了重大事件",
-
   "gui.devil_bone_gambler.wager.no_player": "附近无玩家",
   "gui.devil_bone_gambler.wager.created": "附近的 %s 玩家发起了赌徒的赌局, 靠近并连续蹲起两次即可加入该赌局(%s 秒后开始)",
   "gui.devil_bone_gambler.wager.countdown": "%s 发起的赌局还有 %s 秒开始",
@@ -117,7 +113,6 @@
   "gui.devil_bone_gambler.wager.no_candidate": "本次赌局无人被选中",
   "gui.devil_bone_gambler.wager.finished": "%s 创建的赌局结束了",
   "gui.devil_bone_gambler.wager.aborted": "赌局已中止",
-
   "gui.devil_bone_gambler.admin.status_idle": "选择一行后编辑字段",
   "gui.devil_bone_gambler.admin.status_waiting": "正在提交, 请稍候",
   "gui.devil_bone_gambler.admin.status_saved": "已保存",
@@ -133,12 +128,9 @@
   "gui.devil_bone_gambler.admin.label_command": "指令文本",
   "gui.devil_bone_gambler.admin.label_notify_text": "展示文本",
   "gui.devil_bone_gambler.admin.label_value": "价值点",
-
   "gui.devil_bone_gambler.notify.default": "命运已定",
-
   "gui.devil_bone_gambler.notify.mode.tellraw": "聊天栏",
   "gui.devil_bone_gambler.notify.mode.none": "不提示",
-
   "gui.devil_bone_gambler.notify.bread_ration": "四块面包",
   "gui.devil_bone_gambler.notify.torch_bundle": "一叠火把",
   "gui.devil_bone_gambler.notify.stone_haul": "三十二块圆石",
@@ -164,7 +156,6 @@
   "gui.devil_bone_gambler.notify.enchanted_apple_gift": "一颗附魔金苹果",
   "gui.devil_bone_gambler.notify.shulker_gift": "四片潜影壳",
   "gui.devil_bone_gambler.notify.elytra_gift": "一副鞘翅",
-
   "gui.devil_bone_gambler.reason.identity_mismatch": "请求与当前身份不符",
   "gui.devil_bone_gambler.reason.item_mismatch": "请求与当前物品不符",
   "gui.devil_bone_gambler.reason.not_enough_items": "物品不足",
@@ -190,7 +181,6 @@
   "gui.devil_bone_gambler.reason.altar_range_overlap_both": "附近既有已放置的祭坛, 也有玩家佩戴了祭坛, 范围不能重叠, 该祭坛已被破坏并掉落",
   "gui.devil_bone_gambler.reason.no_altar": "附近没有可用的祭坛",
   "gui.devil_bone_gambler.reason.unknown": "未知原因",
-
   "item.devil_bone_gambler.gamblers_dealer_spawn_egg": "赌徒的荷官生物蛋",
   "entity.devil_bone_gambler.gamblers_dealer": "赌徒的荷官",
   "gui.devil_bone_gambler.dealer.title": "赌徒的荷官",
@@ -235,10 +225,8 @@
   "gui.devil_bone_gambler.reason.dealer_wager_exists": "该荷官已有进行中的赌局",
   "gui.devil_bone_gambler.reason.dealer_not_owner": "只有赌局发起者可以开启赌局",
   "gui.devil_bone_gambler.reason.dealer_bet_full": "赌注箱已满",
-
   "key.categories.devil_bone_gambler": "恶魔的骰子",
   "key.devil_bone_gambler.admin_panel": "恶魔骨赌设置",
-
   "entry.devil_bone_gambler.bread_ration": "面包配给",
   "entry.devil_bone_gambler.torch_bundle": "火把捆",
   "entry.devil_bone_gambler.stone_haul": "圆石堆",
