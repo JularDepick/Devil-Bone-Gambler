@@ -9,6 +9,7 @@ package com.devilbonegambler.commands;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.network.ServerRequestHandler;
 import com.devilbonegambler.util.ModConstants;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
@@ -28,6 +29,7 @@ import net.minecraftforge.fml.common.Mod;
 public final class ModCommands
 {
     private static final String ROOT_LITERAL = "devilbonegambler";
+    private static final String SHORT_LITERAL = "dbgr";
     private static final String CONFIG_LITERAL = "config";
     private static final String RELOAD_LITERAL = "reload";
 
@@ -35,16 +37,26 @@ public final class ModCommands
     {
     }
 
+    /**
+     * The full name and the short name both hang off the same tree, so the two commands accept exactly the same
+     * sub commands and the permission rule is written once.
+     */
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event)
     {
-        event.getDispatcher().register(Commands.literal(ROOT_LITERAL)
+        event.getDispatcher().register(tree(ROOT_LITERAL));
+        event.getDispatcher().register(tree(SHORT_LITERAL));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> tree(String name)
+    {
+        return Commands.literal(name)
                 .then(Commands.literal(CONFIG_LITERAL)
                         .requires(ModCommands::mayManage)
                         .executes(ModCommands::openPanel))
                 .then(Commands.literal(RELOAD_LITERAL)
                         .requires(ModCommands::mayManage)
-                        .executes(ModCommands::reload)));
+                        .executes(ModCommands::reload));
     }
 
     /**
