@@ -75,7 +75,8 @@ public class AdminConfigScreen extends Screen
      * A sub page is opaque and dims the page behind it, so both layers stay readable instead of mixing.
      */
     private static final int WINDOW_COLOR = 0xFF141414;
-    private static final int SUBPAGE_SCRIM_COLOR = 0xB0101010;
+    /* Fully opaque, so nothing of the page behind a sub page can show through its text. */
+    private static final int SUBPAGE_SCRIM_COLOR = 0xFF0E0E0E;
     private static final int WINDOW_BORDER_COLOR = 0xFF707070;
     private static final int TITLE_COLOR = 0xFFFFFF;
     private static final int LABEL_COLOR = 0xA0A0A0;
@@ -112,6 +113,21 @@ public class AdminConfigScreen extends Screen
     private boolean valueTab;
     private boolean waiting;
     private int pendingSequence = -1;
+
+    /*
+     * Field values of the primary row as they were loaded into the panel. A shared field is spread over the whole
+     * selection only when it really differs from this baseline, so picking a second row never rewrites its weight,
+     * its colour or its value.
+     */
+    private boolean entryBaselineReady;
+    private double baselineWeight;
+    private boolean baselineRed;
+    private boolean baselineMajor;
+    private boolean baselineEnabled;
+    private String baselineCommand = "";
+    private String baselineNotifyText = "";
+    private boolean valueBaselineReady;
+    private int baselineValue;
     private String status = "";
     private boolean widgetsReady;
     private TableLayout prizeLayout;
@@ -370,8 +386,8 @@ public class AdminConfigScreen extends Screen
         }
 
         /* The status line is painted above the scrim, so a rejection of a sub page stays readable. */
-        graphics.drawString(this.font, this.status, this.leftPos + 8, this.topPos + PANEL_HEIGHT - 36, STATUS_COLOR,
-                false);
+        graphics.drawString(this.font, this.font.plainSubstrByWidth(this.status, EDIT_X - 16), this.leftPos + 8,
+                this.topPos + PANEL_HEIGHT - 36, STATUS_COLOR, false);
 
         super.render(graphics, mouseX, mouseY, partialTick);
 
@@ -381,7 +397,11 @@ public class AdminConfigScreen extends Screen
             drawFieldLabels(graphics);
         }
 
-        drawRowTooltip(graphics, mouseX, mouseY);
+        /* The page behind a sub page owns no pointer, so its hover tooltips never paint over the sub page. */
+        if (!subpageOpen())
+        {
+            drawRowTooltip(graphics, mouseX, mouseY);
+        }
     }
 
     /** Dims the page behind a sub page so the two layers never read as one surface. */
@@ -1082,6 +1102,17 @@ public class AdminConfigScreen extends Screen
                     ? "admin.toggle_red" : "admin.toggle_black")));
             this.majorEventButton.setMessage(Component.translatable(key(entryRow.entry.isMajorEvent()
                     ? "admin.major_event_on" : "admin.major_event_off")));
+            this.baselineWeight = entryRow.entry.weightOrZero();
+            this.baselineRed = entryRow.entry.isRed();
+            this.baselineMajor = entryRow.entry.isMajorEvent();
+            this.baselineEnabled = entryRow.entry.isEnabled();
+            this.baselineCommand = escapeLines(entryRow.entry.commandOrEmpty());
+            this.baselineNotifyText = entryRow.entry.notifyOrDefault().textOrEmpty();
+            this.entryBaselineReady = true;
+        }
+        else
+        {
+            this.entryBaselineReady = false;
         }
 
         if (this.valueTab)
@@ -1089,6 +1120,12 @@ public class AdminConfigScreen extends Screen
             this.chapterButton.setMessage(Component.translatable(key(this.entityChapter
                     ? "admin.chapter_entity" : "admin.chapter_item")));
             this.fieldValue.setValue(Integer.toString(selectedValue()));
+            this.baselineValue = selectedValue();
+            this.valueBaselineReady = true;
+        }
+        else
+        {
+            this.valueBaselineReady = false;
         }
 
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
@@ -1187,26 +1224,78 @@ public class AdminConfigScreen extends Screen
             String command = unescapeLines(this.fieldCommand.getValue());
             String notifyText = this.fieldNotifyText.getValue();
             String mode = entryRow.entry.notifyOrDefault().modeOrDefault();
+            /*
+             * Only a field the admin really edited is spread over the rest of the selection: the others keep whatever
+             * they had, so a multiple selection never unifies weight, colour or command of untouched rows.
+             */
+            boolean weightEdited = !this.entryBaselineReady || Math.abs(weight - this.baselineWeight) > 1e-9D;
+            boolean commandEdited = !this.entryBaselineReady || !command.equals(this.baselineCommand);
+            boolean notifyEdited = !this.entryBaselineReady || !notifyText.equals(this.baselineNotifyText);
+            boolean colorEdited = this.entryBaselineReady && entryRow.entry.isRed() != this.baselineRed;
+            boolean majorEdited = this.entryBaselineReady && entryRow.entry.isMajorEvent() != this.baselineMajor;
+            boolean enabledEdited = this.entryBaselineReady && entryRow.entry.isEnabled() != this.baselineEnabled;
 
             for (EntryRow selected : selectedEntryRows())
             {
-                selected.entry.weight = Double.valueOf(weight);
-                selected.entry.color = entryRow.entry.colorOrDefault();
-                selected.entry.majorEvent = Boolean.valueOf(entryRow.entry.isMajorEvent());
-                selected.entry.enabled = Boolean.valueOf(entryRow.entry.isEnabled());
-                selected.entry.command = command;
-                selected.entry.notify = new NotifyConfig(mode, notifyText);
+                boolean primary = selected == entryRow;
+
+                if (primary || weightEdited)
+                {
+                    selected.entry.weight = Double.valueOf(weight);
+                }
+
+                if (primary || colorEdited)
+                {
+                    selected.entry.color = entryRow.entry.colorOrDefault();
+                }
+
+                if (primary || majorEdited)
+                {
+                    selected.entry.majorEvent = Boolean.valueOf(entryRow.entry.isMajorEvent());
+                }
+
+                if (primary || enabledEdited)
+                {
+                    selected.entry.enabled = Boolean.valueOf(entryRow.entry.isEnabled());
+                }
+
+                if (primary || commandEdited)
+                {
+                    selected.entry.command = command;
+                }
+
+                if (primary || notifyEdited)
+                {
+                    selected.entry.notify = new NotifyConfig(mode, notifyText);
+                }
             }
+
+            this.baselineWeight = weight;
+            this.baselineRed = entryRow.entry.isRed();
+            this.baselineMajor = entryRow.entry.isMajorEvent();
+            this.baselineEnabled = entryRow.entry.isEnabled();
+            this.baselineCommand = command;
+            this.baselineNotifyText = notifyText;
+            this.entryBaselineReady = true;
         }
 
         if (this.valueTab)
         {
             int value = Math.max(0, parseInt(this.fieldValue.getValue(), 0));
 
-            for (String key : selectedValueKeys())
+            /*
+             * The value of the primary row is only written over the selection when the admin typed a different number.
+             */
+            if (!this.valueBaselineReady || value != this.baselineValue)
             {
-                setValueOfKey(key, value);
+                for (String key : selectedValueKeys())
+                {
+                    setValueOfKey(key, value);
+                }
             }
+
+            this.baselineValue = value;
+            this.valueBaselineReady = true;
         }
 
         reportCommandStatus();
