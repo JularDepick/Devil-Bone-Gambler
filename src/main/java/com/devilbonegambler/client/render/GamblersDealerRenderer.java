@@ -25,6 +25,7 @@ public class GamblersDealerRenderer extends MobRenderer<GamblersDealer, Gamblers
     public GamblersDealerRenderer(EntityRendererProvider.Context context)
     {
         super(context, new GamblersDealerModel(context.bakeLayer(ModModelLayers.GAMBLERS_DEALER)), 0.5F);
+        this.addLayer(new DiceSightLayer(this));
     }
 
     @Override
