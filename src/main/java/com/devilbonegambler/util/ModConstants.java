@@ -41,6 +41,14 @@ public final class ModConstants
      */
     public static final String MANUAL_RESOURCE_DIR = "manuals/";
     public static final String MANUAL_RESOURCE_EXTENSION = ".md";
+    /* A bound manual that leaves the inventory by any path is granted again within this many ticks. */
+    public static final int MANUAL_RECHECK_INTERVAL_TICKS = 5;
+    /* A held dice reveals what it belongs to: how far it reaches, how often the altar spots are rescanned, colour. */
+    public static final double DICE_SIGHT_ALTAR_RADIUS = 24.0D;
+    public static final double DICE_SIGHT_DEALER_RADIUS = 24.0D;
+    public static final int DICE_SIGHT_SCAN_INTERVAL_TICKS = 10;
+    public static final int DICE_SIGHT_ALTAR_COLOR = 0xE0B040;
+    public static final int DICE_SIGHT_DEALER_COLOR = 0x40D0FF;
 
     /*
      * Luck
@@ -136,6 +144,8 @@ public final class ModConstants
      * Requests and permissions
      */
     public static final long MIN_REQUEST_INTERVAL_MS = 250L;
+    /* A settlement that never reports back is treated as finished after this, so a stuck draw cannot lock the dice. */
+    public static final long DRAW_SETTLEMENT_TIMEOUT_MS = 10000L;
 
     public static final int DRAW_COMMAND_PERMISSION_LEVEL = 4;
 
@@ -201,6 +211,8 @@ public final class ModConstants
      */
     public static final int DEALER_MAX_HEALTH = 40;
     public static final int DEALER_MAX_SATIETY = 40;
+    /* A dealer leaves this many gambler dice at full satiety, and nothing when starving. */
+    public static final int DEALER_DEATH_DICE_DROPS = 4;
     public static final int DEALER_SATIETY_PER_HEALTH = 2;
     public static final int DEALER_STAY_SECONDS = 30;
     public static final int DEALER_FEED_RADIUS = 2;
@@ -221,7 +233,9 @@ public final class ModConstants
     public static final double DEALER_TERRITORY_RADIUS = 6.0D;
     public static final double DEALER_TERRITORY_ATTACK_REACH = 2.5D;
     public static final int DEALER_TERRITORY_CHECK_INTERVAL_TICKS = 10;
-    public static final int DEALER_TERRITORY_ATTACK_INTERVAL_TICKS = 20;
+    public static final int DEALER_TERRITORY_ATTACK_INTERVAL_TICKS = 40;
+    /* Two dealers push each other apart, so the aim vector flips near zero distance and is not updated there. */
+    public static final double DEALER_TERRITORY_LOOK_MIN_SQR = 0.5D;
     public static final double DEALER_TERRITORY_CHASE_SPEED = 1.2D;
     public static final float DEALER_TERRITORY_MAX_DAMAGE = 5.0F;
     public static final int DEALER_SPAWN_RADIUS = 6;
@@ -241,6 +255,9 @@ public final class ModConstants
      */
     public static final int DEALER_WAGER_RECRUIT_SECONDS = 120;
     public static final int DEALER_WAGER_REMIND_SECONDS = 30;
+    /* The recruit chime only rings at the start of a wager and again shortly before it begins. */
+    public static final int DEALER_WAGER_CHIME_HEAD_SECONDS = 3;
+    public static final int DEALER_WAGER_CHIME_TAIL_SECONDS = 10;
     public static final int DEALER_WAGER_PULL_SECONDS = 5;
     public static final int DEALER_WAGER_PULL_TICKS = 40;
     public static final int DEALER_WAGER_MAX_PLAYERS = 8;
