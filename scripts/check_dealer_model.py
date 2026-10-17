@@ -312,6 +312,62 @@ def render_views(img):
                 print("   " + row)
 
 
+# 头部动画口径: 头部转向与受击动画全部交给父类, 模型只保留偏航限制, 因此头部不会转到背后或抖动。
+def check_head_rule():
+    text = MODEL_JAVA.read_text(encoding="utf-8")
+    check("头部偏航有限幅", "MAX_HEAD_YAW" in text and "Mth.clamp(this.head.yRot" in text)
+    check("模型不做受击抖动动画", "HURT_HEAD_SHAKE" not in text and "Math.sin(entity.hurtTime" not in text)
+    check("受击时头部只做阻尼", "HURT_HEAD_DAMPING" in text)
+    check("模型不自行驱动待机头部摆动", "IDLE_HEAD" not in text)
+    check("头部偏航做了非有限值回退", "Float.isFinite(this.head.yRot)" in text)
+
+
+def check_attack_cadence():
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
+        encoding="utf-8")
+    found = re.search(r"DEALER_TERRITORY_ATTACK_INTERVAL_TICKS\s*=\s*(\d+)", constants)
+    check("领地攻击间隔不少于两秒", bool(found) and int(found.group(1)) >= 40,
+          "取值 " + (found.group(1) if found else "缺失"))
+
+
+# 面板头像与招募提示音口径: 面板头像必须取自荷官贴图的头部 UV, 提示音只在开局与末尾响。
+# 音效口径: 荷官使用村民音效, 环境音/受击/死亡三条都必须覆盖。
+def check_dealer_sounds():
+    mob_file = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java"
+    text = mob_file.read_text(encoding="utf-8")
+    for name in ("VILLAGER_AMBIENT", "VILLAGER_HURT", "VILLAGER_DEATH", "VILLAGER_YES"):
+        check("荷官使用村民音效 " + name, name in text)
+
+
+# 死亡掉落口径: 满饱食度掉 4 个赌徒的骰子, 空饱食度不掉, 中间线性且向下取整。
+def check_death_drops():
+    mob_file = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java"
+    text = mob_file.read_text(encoding="utf-8")
+    check("荷官死亡掉落走原版死亡掉落钩子", "dropCustomDeathLoot" in text)
+    check("死亡掉落按饱食度线性且向下取整", "deathDiceDrops" in text and "(int) (ModConstants.DEALER_DEATH_DICE_DROPS" in text)
+
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
+        encoding="utf-8")
+    drops = re.search(r"DEALER_DEATH_DICE_DROPS\s*=\s*(\d+)", constants)
+    check("满饱食度掉落 4 个", bool(drops) and drops.group(1) == "4",
+          drops.group(1) if drops else "缺失")
+
+
+def check_panel_and_chime():
+    screen = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "DealerScreen.java"
+    text = screen.read_text(encoding="utf-8")
+    check("荷官面板头像取自荷官贴图", "textures/entity/gamblers_dealer.png" in text and "villager.png" not in text)
+    check("荷官面板头像按头部 UV 截取", "HEAD_U = 8" in text and "HEAD_V = 8" in text)
+    check("荷官面板显示生命与饱食状态条", "HEALTH_COLOR" in text and "SATIETY_COLOR" in text)
+
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
+        encoding="utf-8")
+    head = re.search(r"DEALER_WAGER_CHIME_HEAD_SECONDS\s*=\s*(\d+)", constants)
+    tail = re.search(r"DEALER_WAGER_CHIME_TAIL_SECONDS\s*=\s*(\d+)", constants)
+    check("招募提示音只在开局 3 秒与末尾 10 秒", bool(head) and bool(tail) and head.group(1) == "3"
+          and tail.group(1) == "10", (head.group(1) if head else "缺失") + "/" + (tail.group(1) if tail else "缺失"))
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -323,6 +379,11 @@ def main():
     check_texture_properties(img)
     check_uv_regions()
     check_java_matches()
+    check_head_rule()
+    check_attack_cadence()
+    check_panel_and_chime()
+    check_dealer_sounds()
+    check_death_drops()
 
     print("")
     print("调色板清单:")

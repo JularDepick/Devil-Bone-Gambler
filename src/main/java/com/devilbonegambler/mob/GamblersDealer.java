@@ -14,6 +14,7 @@ import java.util.Random;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -31,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
 
 /**
@@ -57,6 +59,8 @@ public class GamblersDealer extends PathfinderMob
     {
         super(type, level);
         this.setPersistenceRequired();
+        /* Every dealer carries its idle name from the start, no matter how it was created. */
+        this.showIdleName();
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -113,7 +117,15 @@ public class GamblersDealer extends PathfinderMob
             return;
         }
 
-        this.getLookControl().setLookAt(this.rival, 30.0F, 30.0F);
+        /*
+         * Two dealers inside reach push each other apart, so the aim vector flips between opposite directions while
+         * they overlap; the aim is left untouched there instead of making the head spin every tick.
+         */
+        if (this.distanceToSqr(this.rival) > ModConstants.DEALER_TERRITORY_LOOK_MIN_SQR)
+        {
+            this.getLookControl().setLookAt(this.rival, 30.0F, 30.0F);
+        }
+
         double reach = ModConstants.DEALER_TERRITORY_ATTACK_REACH;
 
         if (this.distanceToSqr(this.rival) > reach * reach)
@@ -278,11 +290,14 @@ public class GamblersDealer extends PathfinderMob
         this.stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
     }
 
+    /**
+     * The recruit counter on the name tag. It never makes a sound of its own, because the panel and the dealer would
+     * otherwise chirp once per second for the whole recruit.
+     */
     public void showRecruitText(int seconds)
     {
         this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(seconds)));
         this.setCustomNameVisible(true);
-        this.dealingParticles();
     }
 
     public void clearRecruitText()
@@ -354,12 +369,63 @@ public class GamblersDealer extends PathfinderMob
             return InteractionResult.SUCCESS;
         }
 
+        /* The dealer answers with the villager voice, the same family as its ambient and hurt sounds. */
+        this.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
+
         if (player instanceof ServerPlayer serverPlayer)
         {
             DealerWagerService.open(serverPlayer, this.getId());
         }
 
         return InteractionResult.CONSUME;
+    }
+
+    /**
+     * A well fed dealer leaves gambler dice behind: the count scales with the satiety left, a starving dealer leaves
+     * nothing and a full one leaves the whole handful.
+     */
+    @Override
+    protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
+    {
+        super.dropCustomDeathLoot(source, looting, recentlyHit);
+        int count = this.deathDiceDrops();
+
+        if (count > 0)
+        {
+            this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), count));
+        }
+    }
+
+    /**
+     * Linear in the satiety and rounded down, so half a bar leaves half the handful.
+     */
+    public int deathDiceDrops()
+    {
+        int clamped = Math.max(0, Math.min(ModConstants.DEALER_MAX_SATIETY, this.satiety));
+        return (int) (ModConstants.DEALER_DEATH_DICE_DROPS
+                * (clamped / (double) ModConstants.DEALER_MAX_SATIETY));
+    }
+
+    /*
+     * The dealer speaks with the villager voice set: ambient, hurt and death are the vanilla ones, so a dealer sounds
+     * like the village host it is meant to be.
+     */
+    @Override
+    protected SoundEvent getAmbientSound()
+    {
+        return SoundEvents.VILLAGER_AMBIENT;
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source)
+    {
+        return SoundEvents.VILLAGER_HURT;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound()
+    {
+        return SoundEvents.VILLAGER_DEATH;
     }
 
     @Override

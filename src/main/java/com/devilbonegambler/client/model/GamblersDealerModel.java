@@ -50,19 +50,15 @@ public class GamblersDealerModel extends HumanoidModel<GamblersDealer>
     private static final float IDLE_ARM_Z = 0.055F;
 
     /**
-     * Head nod amplitude while idling, in radians.
+     * The head never turns further than this against the body, in radians.
+     * The inherited animation would otherwise push it to a half turn when the body does not follow.
      */
-    private static final float IDLE_HEAD_PITCH = 0.055F;
+    private static final float MAX_HEAD_YAW = (float) Math.toRadians(60.0D);
 
     /**
-     * Head sway amplitude while idling, in radians.
+     * On the hurt frames the head only follows a fraction of the turn, so a hit never reads as a shaking head.
      */
-    private static final float IDLE_HEAD_YAW = 0.075F;
-
-    /**
-     * Hit reaction amplitude, in radians, scaled by the remaining hurt time.
-     */
-    private static final float HURT_HEAD_SHAKE = 0.45F;
+    private static final float HURT_HEAD_DAMPING = 0.35F;
 
     public GamblersDealerModel(ModelPart root)
     {
@@ -159,14 +155,21 @@ public class GamblersDealerModel extends HumanoidModel<GamblersDealer>
         this.rightArm.zRot = -IDLE_ARM_Z * idle;
         this.leftArm.zRot = IDLE_ARM_Z * idle;
 
-        this.head.xRot += IDLE_HEAD_PITCH * Mth.sin(ageInTicks * 0.07F) * idle;
-        this.head.yRot += IDLE_HEAD_YAW * Mth.sin(ageInTicks * 0.05F) * idle;
-
-        if (entity.hurtTime > 0.0F)
+        /*
+         * The head takes no extra animation of its own: the inherited turn and hit animations stay in charge, and the
+         * yaw is only clamped so the face can never end up pointing out of the back of the body.
+         */
+        if (!Float.isFinite(this.head.yRot) || !Float.isFinite(this.head.xRot))
         {
-            float hurt = entity.hurtTime / (float) entity.hurtDuration;
-            this.head.zRot += HURT_HEAD_SHAKE * hurt * Mth.sin(entity.hurtTime * 1.7F);
-            this.head.xRot -= HURT_HEAD_SHAKE * 0.5F * hurt;
+            this.head.yRot = 0.0F;
+            this.head.xRot = 0.0F;
+        }
+
+        this.head.yRot = Mth.clamp(this.head.yRot, -MAX_HEAD_YAW, MAX_HEAD_YAW);
+
+        if (entity.hurtTime > 0)
+        {
+            this.head.yRot *= HURT_HEAD_DAMPING;
         }
     }
 }
