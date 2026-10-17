@@ -23,7 +23,13 @@ LANG_ROOT = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler
 LANGUAGES = ("zh_cn.json", "en_us.json")
 MOD_ID = "devil_bone_gambler"
 
-FULL_KEY_PATTERN = re.compile(r'"(?P<key>(?:gui|item|block|entity|key|itemGroup|entry)\.' + MOD_ID + r'(?:\.[A-Za-z0-9_]+)*)"')
+FULL_KEY_PATTERN = re.compile(r'"(?P<key>(?:gui|item|block|entity|key|itemGroup|entry|tooltip)\.' + MOD_ID
+                              + r'(?:\.[A-Za-z0-9_]+)*)"')
+ITEM_REGISTER_PATTERN = re.compile(r'(?:ITEMS|BLOCK_ITEMS)\.register\("(?P<id>[a-z0-9_]+)"')
+MANUAL_KIND_PATTERN = re.compile(r'\("(?P<id>[a-z0-9_]+_manual)"\)')
+MOD_ITEMS = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "registry" / "ModItems.java"
+MOD_BLOCKS = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "registry" / "ModBlocks.java"
+MANUAL_KIND = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "manual" / "ManualKind.java"
 CONCAT_PATTERN = re.compile(r'"gui\."\s*\+\s*ModConstants\.MOD_ID\s*\+\s*"\.(?P<suffix>[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)"')
 HELPER_PATTERN = re.compile(r'"gui\."\s*\+\s*ModConstants\.MOD_ID\s*\+\s*"\."\s*\+\s*suffix')
 HELPER_CALL_PATTERN = re.compile(r'\bkey\("(?P<suffix>[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)"\)')
@@ -67,6 +73,20 @@ def referenced_keys() -> tuple:
                 dynamic.add(line.strip())
 
     return static, dynamic
+
+
+def registered_items() -> set:
+    """Item ids of this mod: the explicit registrations plus the manual ids of the manual kind table."""
+    items = set()
+
+    for path, pattern in ((MOD_ITEMS, ITEM_REGISTER_PATTERN), (MOD_BLOCKS, ITEM_REGISTER_PATTERN),
+                          (MANUAL_KIND, MANUAL_KIND_PATTERN)):
+        if not path.is_file():
+            continue
+
+        items.update(match.group("id") for match in pattern.finditer(path.read_text(encoding="utf-8")))
+
+    return items
 
 
 def main() -> int:
@@ -113,6 +133,13 @@ def main() -> int:
     for key in sorted(static):
         if key not in first:
             problems.append("referenced but not defined: " + key)
+
+    for item_id in sorted(registered_items()):
+        for name in LANGUAGES:
+            key = "tooltip." + MOD_ID + "." + item_id
+
+            if key not in languages[name]:
+                problems.append("item without a tooltip key in " + name + ": " + key)
 
     unused = sorted(set(first) - static)
     print("language keys: %d" % len(first))
