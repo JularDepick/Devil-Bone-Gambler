@@ -50,8 +50,8 @@ Empty directories are kept in git through a `.gitkeep` placeholder
 
 | Command | Permission level | Description |
 |:---:|:---:|:---:|
-| `/devilbonegambler config` | 2 | Sends both config domains to the caller and opens the config panel |
-| `/devilbonegambler reload` | 2 | Reloads both config domains from disk |
+| `/devilbonegambler config` or `/dbgr config` | 2 | Sends both config domains to the caller and opens the config panel |
+| `/devilbonegambler reload` or `/dbgr reload` | 2 | Reloads both config domains from disk |
 
 ## Version Number and Placeholders
 

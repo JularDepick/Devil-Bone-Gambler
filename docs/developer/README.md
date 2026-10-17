@@ -52,8 +52,8 @@
 
 | 命令 | 权限 | 说明 |
 |:---:|:---:|:---:|
-| `/devilbonegambler config` | 创建者与管理员 | 向执行者下发两份配置并打开配置面板 |
-| `/devilbonegambler reload` | 创建者与管理员 | 从磁盘重新加载两份配置 |
+| `/devilbonegambler config` 或 `/dbgr config` | 创建者与管理员 | 向执行者下发两份配置并打开配置面板 |
+| `/devilbonegambler reload` 或 `/dbgr reload` | 创建者与管理员 | 从磁盘重新加载两份配置 |
 
 游戏内的管理入口还有 Shift 加 D 键位, 与命令共用同一判定, 键位显示名为中性文案 |
 
