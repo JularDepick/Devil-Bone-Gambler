@@ -44,7 +44,10 @@
 │   │   └── GamblersDealerModel.java # 荷官人形模型, 9 个长方体与原版肩髋挂点
 │   └── render/                      # 客户端渲染
 │       ├── AltarTintHandler.java    # 祭坛范围的屏幕空间后处理红色遮罩
-│       └── GamblersDealerRenderer.java # 荷官渲染, 使用自建模型与自绘制服贴图
+│       ├── DiceSightLayer.java      # 荷官透视的几何采集层, 只在实体动画已就位时记录
+│       ├── DiceSightRenderer.java   # 骰子的透视亮影, 祭坛与荷官的白色半透明剪影
+│       ├── GamblersDealerRenderer.java # 荷官渲染, 使用自建模型与自绘制服贴图
+│       └── WhiteSilhouette.java     # 白色亮影批次, 关闭深度测试的即时模式绘制
 ├── commands/                        # 命令注册
 │   ├── CommandRunner.java           # 奖池条目指令执行与语法校验
 │   ├── ModCommands.java             # 管理员命令入口

@@ -38,7 +38,10 @@ src/main/java/com/devilbonegambler/
 │   │   └── GamblersDealerModel.java # Dealer humanoid model, nine cuboids on the vanilla shoulder and hip pivots
 │   └── render/                      # Client rendering
 │       ├── AltarTintHandler.java    # Screen space red tint over the altar range
-│       └── GamblersDealerRenderer.java # Dealer renderer, using the mod owned model and the dealer uniform texture
+│       ├── DiceSightLayer.java      # Dealer sight geometry capture, runs only once the entity animation is placed
+│       ├── DiceSightRenderer.java   # Dice sight white silhouette of altars and dealers
+│       ├── GamblersDealerRenderer.java # Dealer renderer, using the mod owned model and the dealer uniform texture
+│       └── WhiteSilhouette.java     # White silhouette batch drawn in immediate mode without a depth test
 ├── commands/                        # Command registration
 │   ├── CommandRunner.java           # Prize entry command execution and syntax validation
 │   ├── ModCommands.java             # Admin command entry
