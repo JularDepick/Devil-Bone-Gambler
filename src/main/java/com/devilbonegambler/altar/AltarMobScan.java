@@ -9,6 +9,7 @@ package com.devilbonegambler.altar;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.OfferEligibility;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -64,7 +65,8 @@ public final class AltarMobScan
         List<LivingEntity> found = new ArrayList<LivingEntity>();
 
         for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class, area,
-                candidate -> !(candidate instanceof Player) && candidate.isAlive()))
+                candidate -> !(candidate instanceof Player) && candidate.isAlive()
+                        && !OfferEligibility.excluded(candidate)))
         {
             if (entity.distanceToSqr(centre) <= limit)
             {

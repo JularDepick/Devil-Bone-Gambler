@@ -450,7 +450,21 @@ public final class ServerConfigManager
                 itemValues.defaultItemValueOrDefault(), false);
         changed |= scanChapter(itemValues.entities, ForgeRegistries.ENTITY_TYPES.getKeys(),
                 itemValues.defaultEntityValueOrDefault(), true);
+        changed |= pruneOwnNamespace(itemValues.items);
+        changed |= pruneOwnNamespace(itemValues.entities);
         return changed;
+    }
+
+    /**
+     * Drops the value entries that carry the namespace of this mod, so a config written before the offering rule
+     * changed is cleaned up once instead of keeping values that can never be used.
+     */
+    private static boolean pruneOwnNamespace(Map<String, Number> target)
+    {
+        return target.keySet().removeIf(id -> {
+            ResourceLocation key = ResourceLocation.tryParse(id);
+            return key != null && ModConstants.MOD_ID.equals(key.getNamespace());
+        });
     }
 
     private static boolean scanChapter(Map<String, Number> target, Set<ResourceLocation> keys, int fallback,
@@ -462,7 +476,8 @@ public final class ServerConfigManager
         {
             String id = key.toString();
 
-            if (target.containsKey(id))
+            /* The items and mobs of this mod are never offerings, so they never get a value entry either. */
+            if (ModConstants.MOD_ID.equals(key.getNamespace()) || target.containsKey(id))
             {
                 continue;
             }

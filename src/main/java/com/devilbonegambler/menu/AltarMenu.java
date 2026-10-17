@@ -8,6 +8,7 @@ package com.devilbonegambler.menu;
 
 import com.devilbonegambler.draw.OfferingBundle;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.OfferEligibility;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
@@ -110,9 +111,27 @@ public class AltarMenu extends AbstractContainerMenu
         {
             for (int column = 0; column < OFFERING_COLUMNS; column++)
             {
-                addSlot(new Slot(this.offerings, column + row * OFFERING_COLUMNS, OFFERING_X + column * SLOT_SIZE,
-                        OFFERING_Y + row * SLOT_SIZE));
+                addSlot(new OfferingSlot(this.offerings, column + row * OFFERING_COLUMNS,
+                        OFFERING_X + column * SLOT_SIZE, OFFERING_Y + row * SLOT_SIZE));
             }
+        }
+    }
+
+    /**
+     * The offering grid refuses the items of this mod: they are not goods, and offering one would hand it back through
+     * a reward. The gate sits on the slot, so placing, shift moving and dragging are all refused the same way.
+     */
+    private static final class OfferingSlot extends Slot
+    {
+        private OfferingSlot(Container container, int index, int x, int y)
+        {
+            super(container, index, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack)
+        {
+            return !OfferEligibility.excluded(stack);
         }
     }
 
