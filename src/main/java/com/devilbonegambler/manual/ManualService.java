@@ -18,8 +18,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -37,6 +41,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 public final class ManualService
 {
     private static final String KEY_RECEIVED = "gui." + ModConstants.MOD_ID + ".manual.received";
+    private static final String KEY_KEPT = "gui." + ModConstants.MOD_ID + ".manual.kept";
 
     private ManualService()
     {
@@ -105,8 +110,8 @@ public final class ManualService
     }
 
     /**
-     * Grants one manual when neither the inventory nor the ender chest holds it any more, so a manual that was stored
-     * away or carried is never duplicated while a lost one comes back.
+     * Grants one manual when the inventory does not hold it any more. A bound manual may not be stored in a container,
+     * so the inventory is the only place it can be, and the ender chest is deliberately not counted.
      */
     public static void giveIfMissing(ServerPlayer player, ManualKind kind)
     {
@@ -115,8 +120,17 @@ public final class ManualService
             return;
         }
 
+        if (kind.bound())
+        {
+            /*
+             * A copy left in the ender chest by an older version would otherwise become a second manual next to the
+             * fresh one, so it is dropped there before the grant.
+             */
+            remove(player.getEnderChestInventory(), kind);
+        }
+
         ItemStack stack = new ItemStack(ModItems.manualOf(kind));
-        boolean stored = player.getInventory().add(stack) || store(player.getEnderChestInventory(), stack);
+        boolean stored = player.getInventory().add(stack);
 
         if (!stored)
         {
@@ -164,6 +178,78 @@ public final class ManualService
     }
 
     /**
+     * Safety net for every drop path that does not pass the drop refusal of the item, such as throwing a hovered slot
+     * out of a container screen: a bound manual that is not in the inventory and not on the carried stack is granted
+     * again, so a manual can never stay lost for longer than one check interval.
+     */
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        if (player.tickCount % ModConstants.MANUAL_RECHECK_INTERVAL_TICKS != 0 || !player.isAlive()
+                || player.getInventory().getFreeSlot() < 0)
+        {
+            return;
+        }
+
+        ItemStack carried = player.containerMenu.getCarried();
+
+        for (ManualKind kind : ManualKind.values())
+        {
+            if (kind.bound() && holdsRole(player, kind) && count(player, kind) == 0
+                    && !carried.is(ModItems.manualOf(kind)))
+            {
+                giveIfMissing(player, kind);
+            }
+        }
+    }
+
+    /**
+     * A bound manual may not be stored in a container: whatever the player left in one of the container slots when the
+     * screen closes goes back into the inventory. A full inventory keeps the manual where it is and the next close
+     * tries again, so the manual is never destroyed.
+     */
+    @SubscribeEvent
+    public static void onContainerClosed(PlayerContainerEvent.Close event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        AbstractContainerMenu menu = event.getContainer();
+
+        for (Slot slot : menu.slots)
+        {
+            if (slot.container == player.getInventory())
+            {
+                continue;
+            }
+
+            ManualKind kind = kindOf(slot.getItem());
+
+            if (kind == null || !kind.bound())
+            {
+                continue;
+            }
+
+            ItemStack taken = slot.getItem().copy();
+            slot.set(ItemStack.EMPTY);
+
+            if (!player.getInventory().add(taken))
+            {
+                slot.set(taken);
+                DevilBoneGambler.LOGGER.warn("{} has no room for the {} taken back out of a container",
+                        player.getGameProfile().getName(), kind.itemId());
+            }
+        }
+    }
+
+    /**
      * Hands a recovered bound manual back: first to the player who dropped it, then to the one online holder of the
      * role, and otherwise nowhere, because the next join grants it again.
      */
@@ -195,13 +281,15 @@ public final class ManualService
         }
 
         ItemStack restored = item.getItem().copy();
-        boolean stored = holder.getInventory().add(restored) || store(holder.getEnderChestInventory(), restored);
 
-        if (!stored)
+        if (holder.getInventory().add(restored))
         {
-            DevilBoneGambler.LOGGER.warn("Recovered {} had no room in {}, it is granted again on the next join",
-                    restored.getHoverName().getString(), holder.getGameProfile().getName());
+            NotifySender.sendChat(holder, KEY_KEPT, restored.getHoverName());
+            return;
         }
+
+        DevilBoneGambler.LOGGER.warn("Recovered {} had no room in {}, it is granted again once there is room",
+                restored.getHoverName().getString(), holder.getGameProfile().getName());
     }
 
     /**
@@ -265,26 +353,9 @@ public final class ManualService
         return null;
     }
 
-    /**
-     * Stores one stack into the first empty slot of a plain container, used for the ender chest which has no add.
-     */
-    private static boolean store(Container container, ItemStack stack)
-    {
-        for (int slot = 0; slot < container.getContainerSize(); slot++)
-        {
-            if (container.getItem(slot).isEmpty())
-            {
-                container.setItem(slot, stack.copy());
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static int count(ServerPlayer player, ManualKind kind)
     {
-        return count(player.getInventory(), kind) + count(player.getEnderChestInventory(), kind);
+        return count(player.getInventory(), kind);
     }
 
     private static int count(Container container, ManualKind kind)

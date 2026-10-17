@@ -5,7 +5,11 @@ Checks the shipped markdown of the three manuals:
   1. every manual has a file for the Simplified Chinese and the English content,
   2. each file is non empty, starts with a level one heading and keeps the heading count of its language pair in step,
   3. the creator manual ends with the exact admin manual content, because that half is reused verbatim,
-  4. no manual describes an internal rule that must never reach a player, currently the silent spawn rule.
+  4. no manual describes an internal rule that must never reach a player, currently the silent spawn rule, except for
+     the creator manual above its separator, where that rule is published on purpose,
+  5. no manual reveals a manual the reader is not supposed to know about,
+  6. every content line uses one of the markdown constructs the book screen renders,
+  7. heading levels never skip a level and no manual repeats a heading.
 
 Exit code 0 means the check passed.
 """
@@ -25,6 +29,20 @@ SEPARATOR = "---"
 
 # Wording that would leak an internal rule, which the modules must never publish into a shipped manual.
 FORBIDDEN = ("日出", "日落", "sunrise", "sunset")
+
+# A manual may not reveal the manuals of a higher role: the gameplay manual knows only itself, the admin manual
+# knows itself but never the creator manual, and the creator manual is free to name the admin manual it reuses.
+HIDDEN_MANUALS = {
+    "gameplay_manual": (("管理员手册", "admin manual"), ("创建者手册", "creator manual")),
+    "admin_manual": (("创建者手册", "creator manual"),),
+    "creator_manual": (),
+}
+
+# The markdown constructs the book screen renders: three heading levels, a dash bullet, a numbered item, a rule and a
+# plain paragraph. Anything else would fall back to a paragraph, so it is rejected here instead of looking broken.
+LEADING_MARKERS = ("* ", "+ ", "> ", "|", "![", "```", "#", ">")
+BULLET = "- "
+RULE = "---"
 
 
 def read(manual: str, language: str) -> list:
@@ -61,6 +79,70 @@ def suffixed_by(lines: list, source: list) -> bool:
     return tail[len(tail) - len(source):] == source
 
 
+def unsupported(line: str) -> str:
+    """Reason the line is not one of the supported constructs, or an empty string when it is fine."""
+
+    stripped = line.strip()
+
+    if not stripped:
+        return ""
+
+    if stripped == RULE:
+        return ""
+
+    if stripped.startswith("### ") or stripped.startswith("## ") or stripped.startswith("# "):
+        return ""
+
+    if stripped.startswith(BULLET):
+        return ""
+
+    if stripped.startswith("* ") or stripped.startswith("+ "):
+        return "the bullet uses %r instead of %r" % (stripped[:2], BULLET)
+
+    for marker in LEADING_MARKERS:
+        if marker in ("#", ">") and stripped.startswith(marker):
+            return "unsupported markdown marker %r" % marker
+
+        if marker not in ("#", ">") and stripped.startswith(marker):
+            return "unsupported markdown marker %r" % marker
+
+    if line[:1].isspace():
+        return "the line is indented"
+
+    number = stripped.split(".", 1)
+
+    if len(number) == 2 and number[0].isdigit() and number[1].startswith(" "):
+        return ""
+
+    return ""
+
+
+def heading_levels(lines: list) -> list:
+    levels = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        if stripped.startswith("### "):
+            levels.append(3)
+        elif stripped.startswith("## "):
+            levels.append(2)
+        elif stripped.startswith("# "):
+            levels.append(1)
+
+    return levels
+
+
+def separator_index(lines: list) -> int:
+    """Index of the separator that introduces the reused content, or the end of the file when there is none."""
+
+    for index, line in enumerate(lines):
+        if line.strip() == SEPARATOR:
+            return index
+
+    return len(lines)
+
+
 def main() -> int:
     problems = []
     tables = {}
@@ -79,13 +161,46 @@ def main() -> int:
             if not first.startswith("# "):
                 problems.append("content does not start with a level one heading: %s_%s.md" % (manual, language))
 
-            for line in lines:
+            # The silent spawn rule is published to the creator only: it may appear in the part of the creator
+            # manual before the separator, while every manual is still checked against the reused admin tail.
+            checked = lines if manual != REUSED_MANUAL else lines[separator_index(lines):]
+
+            for line in checked:
                 for word in FORBIDDEN:
                     if word in line and not line.lstrip().startswith("<!--"):
                         problems.append("internal rule wording %r in %s_%s.md" % (word, manual, language))
 
             if not any(line.strip() == SEPARATOR for line in lines) and manual == REUSED_MANUAL:
                 problems.append("the creator manual has no separator before the reused content")
+
+            for words in HIDDEN_MANUALS[manual]:
+                for word in words:
+                    if any(word in line for line in lines):
+                        problems.append("%s mentions %r, which it must not reveal" % (manual, word))
+
+            for line in lines:
+                reason = unsupported(line)
+
+                if reason:
+                    problems.append("%s_%s.md: %s in %r" % (manual, language, reason, line.strip()[:40]))
+
+            levels = heading_levels(lines)
+            seen = set()
+
+            for index, line in enumerate(lines):
+                stripped = line.strip()
+
+                if stripped.startswith("#") and " " in stripped:
+                    text = stripped.split(" ", 1)[1]
+
+                    if text in seen:
+                        problems.append("%s_%s.md repeats the heading %r" % (manual, language, text))
+
+                    seen.add(text)
+
+            for before, after in zip(levels, levels[1:]):
+                if after > before + 1:
+                    problems.append("%s_%s.md skips a heading level (%d then %d)" % (manual, language, before, after))
 
         chinese = headings(tables[(manual, "zh_cn")])
         english = headings(tables[(manual, "en_us")])

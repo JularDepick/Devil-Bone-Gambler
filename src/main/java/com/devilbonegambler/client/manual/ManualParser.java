@@ -8,6 +8,7 @@ package com.devilbonegambler.client.manual;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.minecraft.client.gui.Font;
@@ -23,6 +24,7 @@ public final class ManualParser
 {
     private static final Pattern NUMBERED = Pattern.compile("^(\\d+)\\.\\s+(.*)$");
     private static final String BULLET_MARKER = "- ";
+    private static final String BULLET_GLYPH = "\u2022";
 
     private ManualParser()
     {
@@ -53,19 +55,19 @@ public final class ManualParser
 
             if (line.startsWith("### "))
             {
-                lines.add(ManualLine.of(ManualLine.Block.MINOR, "", inline(line.substring(4))));
+                lines.add(ManualLine.of(ManualLine.Block.MINOR, "", emphasized(inline(line.substring(4)))));
                 continue;
             }
 
             if (line.startsWith("## "))
             {
-                lines.add(ManualLine.of(ManualLine.Block.SUBHEADING, "", inline(line.substring(3))));
+                lines.add(ManualLine.of(ManualLine.Block.SUBHEADING, "", emphasized(inline(line.substring(3)))));
                 continue;
             }
 
             if (line.startsWith("# "))
             {
-                lines.add(ManualLine.of(ManualLine.Block.HEADING, "", inline(line.substring(2))));
+                lines.add(ManualLine.of(ManualLine.Block.HEADING, "", emphasized(inline(line.substring(2)))));
                 continue;
             }
 
@@ -88,6 +90,22 @@ public final class ManualParser
         }
 
         return lines;
+    }
+
+    /**
+     * A heading is drawn bold as a whole, so its runs are marked bold while parsing and the wrap measures the same
+     * width the page draws.
+     */
+    private static List<ManualText> emphasized(List<ManualText> parts)
+    {
+        List<ManualText> bold = new ArrayList<ManualText>();
+
+        for (ManualText part : parts)
+        {
+            bold.add(new ManualText(part.text(), ManualText.Style.BOLD));
+        }
+
+        return bold;
     }
 
     /**
@@ -145,9 +163,17 @@ public final class ManualParser
     }
 
     /**
-     * Wraps parsed lines into the rows of a page.
+     * Wraps parsed lines into the rows of a page, measuring every run the way it is drawn.
      */
     public static List<ManualRow> layout(List<ManualLine> lines, Font font, int width)
+    {
+        return layout(lines, run -> run.width(font), width);
+    }
+
+    /**
+     * Same wrapping over a caller supplied advance function, so the layout can be checked without a font.
+     */
+    public static List<ManualRow> layout(List<ManualLine> lines, ToIntFunction<ManualText> advance, int width)
     {
         List<ManualRow> rows = new ArrayList<ManualRow>();
 
@@ -165,16 +191,17 @@ public final class ManualParser
                 continue;
             }
 
-            wrap(line, font, Math.max(1, width), rows);
+            wrap(line, advance, Math.max(1, width), rows);
         }
 
         return rows;
     }
 
-    private static void wrap(ManualLine line, Font font, int width, List<ManualRow> rows)
+    private static void wrap(ManualLine line, ToIntFunction<ManualText> advance, int width, List<ManualRow> rows)
     {
-        String marker = markerOf(line, font);
-        int markerWidth = marker.isEmpty() ? 0 : font.width(marker) + font.width(" ");
+        String marker = markerOf(line);
+        int markerWidth = marker.isEmpty() ? 0
+                : advance.applyAsInt(new ManualText(marker + " ", ManualText.Style.BODY));
         ManualRow current = ManualRow.of(line.block(), marker, 0, new ArrayList<ManualText>());
         int available = width - markerWidth;
 
@@ -184,8 +211,8 @@ public final class ManualParser
 
             while (!text.isEmpty())
             {
-                int room = available - widthOf(current, font);
-                String fit = fitPrefix(text, room, font);
+                int room = available - widthOf(current, advance);
+                String fit = fitPrefix(text, room, advance, part.style());
 
                 if (fit.isEmpty())
                 {
@@ -219,11 +246,15 @@ public final class ManualParser
         }
     }
 
-    private static String markerOf(ManualLine line, Font font)
+    private static String markerOf(ManualLine line)
     {
         if (line.block() == ManualLine.Block.BULLET)
         {
-            return "-";
+            /*
+             * The page shows a real bullet instead of the markdown dash, and every continuation row is indented by the
+             * width of that glyph, so a wrapped item stays aligned under its own text.
+             */
+            return BULLET_GLYPH;
         }
 
         if (line.block() == ManualLine.Block.NUMBER)
@@ -234,13 +265,13 @@ public final class ManualParser
         return "";
     }
 
-    private static int widthOf(ManualRow row, Font font)
+    private static int widthOf(ManualRow row, ToIntFunction<ManualText> advance)
     {
         int width = 0;
 
         for (ManualText text : row.texts())
         {
-            width += font.width(text.text());
+            width += advance.applyAsInt(text);
         }
 
         return width;
@@ -249,14 +280,15 @@ public final class ManualParser
     /**
      * Longest prefix of the text that still fits the room, preferring the last space so Latin words stay whole.
      */
-    private static String fitPrefix(String text, int room, Font font)
+    private static String fitPrefix(String text, int room, ToIntFunction<ManualText> advance,
+            ManualText.Style style)
     {
         if (room <= 0)
         {
             return "";
         }
 
-        if (font.width(text) <= room)
+        if (advance.applyAsInt(new ManualText(text, style)) <= room)
         {
             return text;
         }
@@ -266,7 +298,7 @@ public final class ManualParser
 
         for (int index = 0; index < text.length(); index++)
         {
-            int characterWidth = font.width(String.valueOf(text.charAt(index)));
+            int characterWidth = advance.applyAsInt(new ManualText(String.valueOf(text.charAt(index)), style));
 
             if (width + characterWidth > room)
             {

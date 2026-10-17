@@ -35,9 +35,17 @@ public class ManualScreen extends Screen
     private static final int ROW_HEIGHT = 10;
     private static final int TITLE_Y = 8;
     private static final int CONTENT_Y = 24;
-    private static final int FOOTER_HEIGHT = 22;
     private static final int BUTTON_WIDTH = 60;
     private static final int BUTTON_HEIGHT = 16;
+
+    /*
+     * The footer band holds the close button and the author line, and the page area stops above it.
+     * Both are derived from the same baseline, so the button can never cover the last rows of text again.
+     */
+    private static final int FOOTER_Y = PANEL_HEIGHT - PADDING - BUTTON_HEIGHT;
+    private static final int FOOTER_GAP = 4;
+    private static final int CONTENT_BOTTOM = FOOTER_Y - FOOTER_GAP;
+    private static final int VISIBLE_ROWS = (CONTENT_BOTTOM - CONTENT_Y) / ROW_HEIGHT;
 
     private static final int PANEL_COLOR = 0xF01A1410;
     private static final int BORDER_COLOR = 0xFF7A5C34;
@@ -60,7 +68,6 @@ public class ManualScreen extends Screen
     private int leftPos;
     private int topPos;
     private int contentWidth;
-    private int visibleRows;
 
     public ManualScreen(ManualKind kind)
     {
@@ -75,20 +82,14 @@ public class ManualScreen extends Screen
         this.leftPos = (this.width - PANEL_WIDTH) / 2;
         this.topPos = (this.height - PANEL_HEIGHT) / 2;
         this.contentWidth = PANEL_WIDTH - PADDING * 2 - ModConstants.TABLE_SCROLL_WIDTH - 2;
-        this.visibleRows = visibleRows();
         this.rows = ManualParser.layout(ManualContent.lines(this.kind), this.font, this.contentWidth);
         this.scrollBar.setBounds(this.leftPos + PANEL_WIDTH - PADDING - ModConstants.TABLE_SCROLL_WIDTH,
-                this.topPos + CONTENT_Y, this.visibleRows * ROW_HEIGHT);
-        this.scrollBar.setRange(Math.max(0, this.rows.size() - this.visibleRows), this.visibleRows);
+                this.topPos + CONTENT_Y, VISIBLE_ROWS * ROW_HEIGHT);
+        this.scrollBar.setRange(Math.max(0, this.rows.size() - VISIBLE_ROWS), VISIBLE_ROWS);
         this.scrollBar.setValue(0);
         this.addRenderableWidget(Button.builder(Component.translatable(LANG + "close"), button -> this.onClose())
-                .bounds(this.leftPos + (PANEL_WIDTH - BUTTON_WIDTH) / 2,
-                        this.topPos + PANEL_HEIGHT - PADDING - BUTTON_HEIGHT, BUTTON_WIDTH, BUTTON_HEIGHT).build());
-    }
-
-    private int visibleRows()
-    {
-        return Math.max(1, (PANEL_HEIGHT - CONTENT_Y - FOOTER_HEIGHT) / ROW_HEIGHT);
+                .bounds(this.leftPos + (PANEL_WIDTH - BUTTON_WIDTH) / 2, this.topPos + FOOTER_Y, BUTTON_WIDTH,
+                        BUTTON_HEIGHT).build());
     }
 
     @Override
@@ -119,7 +120,7 @@ public class ManualScreen extends Screen
     private void drawPage(GuiGraphics graphics)
     {
         int pageTop = this.topPos + CONTENT_Y;
-        int pageBottom = this.topPos + CONTENT_Y + this.visibleRows * ROW_HEIGHT;
+        int pageBottom = this.topPos + CONTENT_BOTTOM;
         graphics.enableScissor(this.leftPos + PADDING, pageTop, this.leftPos + PANEL_WIDTH - PADDING, pageBottom);
 
         if (this.rows.isEmpty())
@@ -130,7 +131,7 @@ public class ManualScreen extends Screen
         }
         else
         {
-            for (int line = 0; line < this.visibleRows; line++)
+            for (int line = 0; line < VISIBLE_ROWS; line++)
             {
                 int index = this.scrollBar.value() + line;
 
@@ -188,7 +189,7 @@ public class ManualScreen extends Screen
                 graphics.drawString(this.font, part.text(), x, y, color);
             }
 
-            x += this.font.width(part.text());
+            x += part.width(this.font);
         }
     }
 

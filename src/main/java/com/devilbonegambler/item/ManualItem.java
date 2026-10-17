@@ -7,9 +7,12 @@
 package com.devilbonegambler.item;
 
 import com.devilbonegambler.client.ClientActions;
+import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.manual.ManualKind;
+import com.devilbonegambler.util.ModConstants;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,6 +26,8 @@ import net.minecraftforge.fml.DistExecutor;
  */
 public class ManualItem extends Item
 {
+    private static final String KEY_KEPT = "gui." + ModConstants.MOD_ID + ".manual.kept";
+
     private final ManualKind kind;
 
     public ManualItem(ManualKind kind, Item.Properties properties)
@@ -37,13 +42,24 @@ public class ManualItem extends Item
     }
 
     /**
-     * A bound manual belongs to a role and never leaves its holder as a dropped item. Any path that still spawns an
-     * item entity of one is caught by the manual service, which puts the manual straight back.
+     * A bound manual belongs to a role and never leaves its holder as a dropped item.
+     * This refusal covers the drop key; the paths that throw a hovered slot or skip this hook are caught by the manual
+     * service, which removes the item entity and puts the manual straight back.
      */
     @Override
     public boolean onDroppedByPlayer(ItemStack stack, Player player)
     {
-        return !this.kind.bound();
+        if (!this.kind.bound())
+        {
+            return true;
+        }
+
+        if (player instanceof ServerPlayer serverPlayer)
+        {
+            NotifySender.sendChat(serverPlayer, KEY_KEPT, stack.getHoverName());
+        }
+
+        return false;
     }
 
     @Override
