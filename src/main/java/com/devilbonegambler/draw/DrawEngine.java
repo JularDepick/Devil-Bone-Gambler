@@ -20,6 +20,7 @@ import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.commands.CommandRunner;
+import com.devilbonegambler.util.InventoryHandover;
 import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.OfferEligibility;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -579,10 +581,11 @@ public final class DrawEngine
         }
 
         ItemStack stack = new ItemStack(dice);
+        Component name = player == null ? null : InventoryHandover.handOver(player, stack);
 
-        if (player != null && player.getInventory().add(stack))
+        if (name != null)
         {
-            NotifySender.sendChat(player, KEY_DICE_REFUNDED, stack.getHoverName());
+            NotifySender.sendChat(player, KEY_DICE_REFUNDED, name);
             return;
         }
 
