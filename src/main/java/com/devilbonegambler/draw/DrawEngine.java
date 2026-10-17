@@ -22,6 +22,7 @@ import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.OfferEligibility;
 import com.devilbonegambler.util.Placeholders;
 import com.devilbonegambler.util.ServerScheduler;
 import java.util.List;
@@ -50,6 +51,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class DrawEngine
 {
     private static final double FOOD_LEVEL_MAX = 20.0D;
+    private static final String KEY_DICE_REFUNDED = "gui." + ModConstants.MOD_ID + ".draw.refunded";
 
     private DrawEngine()
     {
@@ -82,6 +84,11 @@ public final class DrawEngine
         {
             /* Nothing really left the altar container, so there is nothing to sacrifice. */
             return DrawResult.failure("not_enough_items");
+        }
+
+        if (hasExcludedOffering(player, offeringBundle))
+        {
+            return DrawResult.failure("offering_not_allowed");
         }
 
         PrizePoolConfig pool = ServerConfigManager.prizePool();
@@ -117,6 +124,21 @@ public final class DrawEngine
 
         double weightSum = RegionSelector.totalWeight(region, roll.isRed(), overflow);
 
+        /*
+         * The dice is paid for before the result is scheduled, so a player who stores or drops it during the point
+         * display cannot get the entry for free. A settlement that fails afterwards hands the dice back.
+         */
+        if (!RequestGuard.beginSettlement(player))
+        {
+            return DrawResult.failure("settling");
+        }
+
+        if (!deductItem(player, dice, 1))
+        {
+            RequestGuard.endSettlement(player);
+            return DrawResult.failure("item_mismatch");
+        }
+
         ModNetwork.sendToPlayer(player, new PointDisplayPacket(sequence, roll.point(), roll.isRed(), overflow));
         RequestGuard.markBusy(player, ModConstants.POINT_DISPLAY_TICKS);
 
@@ -138,6 +160,35 @@ public final class DrawEngine
     }
 
     /**
+     * True when the player holds at least one dice of the given item, so a flow can refuse before it charges.
+     */
+    public static boolean hasDice(ServerPlayer player, String itemId)
+    {
+        Item dice = resolveItem(itemId);
+        return dice != null && countItem(player, dice) > 0;
+    }
+
+    /**
+     * Hands one dice of the given item back, used when the flow that charged for it then failed.
+     */
+    public static void refundOneDice(ServerPlayer player, String itemId)
+    {
+        Item dice = resolveItem(itemId);
+
+        if (dice == null)
+        {
+            return;
+        }
+
+        ItemStack stack = new ItemStack(dice);
+
+        if (!player.getInventory().add(stack))
+        {
+            Block.popResource(player.serverLevel(), player.blockPosition(), stack);
+        }
+    }
+
+    /**
      * Second half of the draw, running after the point display delay. An offline player costs nothing.
      */
     private static void resolve(MinecraftServer server, PendingDraw pending)
@@ -149,6 +200,8 @@ public final class DrawEngine
             DevilBoneGambler.LOGGER.info("Draw aborted, the player left before the result, player={}",
                     pending.playerId);
             dropTaken(pending);
+            refundDice(pending, null);
+            RequestGuard.endSettlement(pending.playerId);
             return;
         }
 
@@ -159,38 +212,31 @@ public final class DrawEngine
             audit(player, pending, commandResult, false, 0L);
             NotifySender.sendFailure(player, "command_failed");
             returnTaken(player, pending.bundle);
+            refundDice(pending, player);
+            RequestGuard.endSettlement(player);
             ModNetwork.sendToPlayer(player, new DrawResultPacket(pending.sequence, false, "command_failed",
                     pending.itemId, 1));
             return;
         }
 
-        Item dice = resolveItem(pending.itemId);
-        boolean consumed = dice != null && deductItem(player, dice, 1);
+        /*
+         * The dice was taken when the request was accepted, so it is only counted as used once the entry really ran.
+         */
+        DealerRewardService.recordDiceUse(player);
+        boolean offeringsTaken = deductOfferings(player, pending.bundle);
+        long extraValue = offeringsTaken ? collectDropValue(player, pending.bundle) : 0L;
 
-        if (consumed)
-        {
-            DealerRewardService.recordDiceUse(player);
-        }
-
-        long extraValue = 0L;
-
-        if (consumed)
-        {
-            consumed = deductOfferings(player, pending.bundle);
-            extraValue = collectDropValue(player, pending.bundle);
-        }
-
-        if (!consumed)
+        if (!offeringsTaken)
         {
             DevilBoneGambler.LOGGER.error(
-                    "Deduction failed after a successful draw, player={} item={} value={} entry={}",
+                    "Offering deduction failed after a successful draw, player={} item={} value={} entry={}",
                     player.getGameProfile().getName(), pending.itemId, Long.valueOf(pending.totalValue),
                     pending.hit.id);
         }
 
         NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault());
 
-        if (consumed)
+        if (offeringsTaken)
         {
             settleOfferingValue(player, pending.totalValue);
 
@@ -206,7 +252,8 @@ public final class DrawEngine
             NotifySender.broadcastMajorEvent(player, pending.hit);
         }
 
-        audit(player, pending, commandResult, consumed, extraValue);
+        audit(player, pending, commandResult, offeringsTaken, extraValue);
+        RequestGuard.endSettlement(player);
         ModNetwork.sendToPlayer(player, new DrawResultPacket(pending.sequence, true, "", pending.itemId, 1));
     }
 
@@ -310,6 +357,33 @@ public final class DrawEngine
     {
         ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
         return key == null ? "" : key.toString();
+    }
+
+    /**
+     * True when the bundle carries an offering of this mod, which may never be offered.
+     * The altar grid already refuses those items, so this is the server side gate behind it.
+     */
+    private static boolean hasExcludedOffering(ServerPlayer player, OfferingBundle bundle)
+    {
+        for (Offering offering : bundle.items())
+        {
+            if (OfferEligibility.excludedRegistryId(offering.itemId()))
+            {
+                return true;
+            }
+        }
+
+        for (UUID mobId : bundle.mobs())
+        {
+            Entity entity = player.serverLevel().getEntity(mobId);
+
+            if (entity != null && OfferEligibility.excluded(entity))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static boolean hasOfferings(ServerPlayer player, OfferingBundle bundle)
@@ -489,6 +563,33 @@ public final class DrawEngine
         }
 
         bundle.takenStacks().clear();
+    }
+
+    /**
+     * Hands a dice that was paid up front back after a failed settlement: into the inventory of the player, or on the
+     * ground where the sacrifice was made when the player left before the result.
+     */
+    private static void refundDice(PendingDraw pending, ServerPlayer player)
+    {
+        Item dice = resolveItem(pending.itemId);
+
+        if (dice == null)
+        {
+            return;
+        }
+
+        ItemStack stack = new ItemStack(dice);
+
+        if (player != null && player.getInventory().add(stack))
+        {
+            NotifySender.sendChat(player, KEY_DICE_REFUNDED, stack.getHoverName());
+            return;
+        }
+
+        if (pending.level != null)
+        {
+            Block.popResource(pending.level, pending.position, stack);
+        }
     }
 
     /**

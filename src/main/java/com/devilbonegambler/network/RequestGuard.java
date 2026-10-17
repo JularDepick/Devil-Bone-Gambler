@@ -20,6 +20,8 @@ import net.minecraft.server.level.ServerPlayer;
 public final class RequestGuard
 {
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
+    /* Players whose settlement is still running: the claim carries the start time so a stuck one can expire. */
+    private static final Map<UUID, Long> SETTLING = new ConcurrentHashMap<UUID, Long>();
 
     private RequestGuard()
     {
@@ -44,9 +46,54 @@ public final class RequestGuard
         state.busyUntil = System.currentTimeMillis() + delayTicks * 50L;
     }
 
+    /**
+     * Claims the only settlement slot of a player, so a second draw cannot start while the first still runs.
+     * A claim that fails costs nothing, because the caller checks it before it takes any dice.
+     */
+    public static boolean beginSettlement(ServerPlayer player)
+    {
+        long now = System.currentTimeMillis();
+        Long started = SETTLING.putIfAbsent(player.getUUID(), Long.valueOf(now));
+
+        if (started == null)
+        {
+            return true;
+        }
+
+        if (now - started.longValue() < ModConstants.DRAW_SETTLEMENT_TIMEOUT_MS)
+        {
+            return false;
+        }
+
+        /* The earlier settlement never reported back, so it is over and the slot is taken again. */
+        SETTLING.put(player.getUUID(), Long.valueOf(now));
+        return true;
+    }
+
+    public static void endSettlement(ServerPlayer player)
+    {
+        endSettlement(player.getUUID());
+    }
+
+    /**
+     * Release by id, used when the player left before the delayed result ran.
+     */
+    public static void endSettlement(UUID playerId)
+    {
+        SETTLING.remove(playerId);
+    }
+
+    public static boolean isSettling(ServerPlayer player)
+    {
+        Long started = SETTLING.get(player.getUUID());
+        return started != null && System.currentTimeMillis() - started.longValue()
+                < ModConstants.DRAW_SETTLEMENT_TIMEOUT_MS;
+    }
+
     public static void clear()
     {
         STATES.clear();
+        SETTLING.clear();
     }
 
     private static String check(ServerPlayer player, int sequence, boolean throttled)

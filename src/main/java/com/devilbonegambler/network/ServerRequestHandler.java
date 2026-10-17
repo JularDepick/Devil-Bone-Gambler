@@ -384,6 +384,17 @@ public final class ServerRequestHandler
             return failure;
         }
 
+        /*
+         * One settlement at a time: while the previous draw still waits for its result every dice use is refused
+         * before anything is taken, so a refused use never costs a dice.
+         */
+        if (RequestGuard.isSettling(player))
+        {
+            DrawResult failure = DrawResult.failure("settling");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
+        }
+
         if (wagerAllowed && player.isShiftKeyDown())
         {
             return handleWager(player, sequence, itemId);
@@ -396,7 +407,8 @@ public final class ServerRequestHandler
 
     /**
      * A sneaking right click starts a wager instead of a single draw.
-     * The dice is consumed once the wager area is created, and the outcome is reported by the wager itself.
+     * The dice is taken before the wager is created and handed back when the creation fails, so a wager never starts
+     * unpaid and a failed start never costs the player a dice.
      */
     private static DrawResult handleWager(ServerPlayer player, int sequence, String itemId)
     {
@@ -407,18 +419,19 @@ public final class ServerRequestHandler
             return failure;
         }
 
-        if (!WagerService.startWager(player))
+        if (!DrawEngine.hasDice(player, itemId) || !DrawEngine.consumeDice(player, itemId))
         {
-            DrawResult failure = DrawResult.failure("wager_failed");
+            DrawResult failure = DrawResult.failure("item_mismatch");
             respondDraw(player, sequence, itemId, failure);
             return failure;
         }
 
-        if (!DrawEngine.consumeDice(player, itemId))
+        if (!WagerService.startWager(player))
         {
-            DevilBoneGambler.LOGGER.error("The wager started but the dice could not be consumed, player={}",
-                    player.getGameProfile().getName());
-            return DrawResult.failure("item_mismatch");
+            DrawEngine.refundOneDice(player, itemId);
+            DrawResult failure = DrawResult.failure("wager_failed");
+            respondDraw(player, sequence, itemId, failure);
+            return failure;
         }
 
         DealerRewardService.recordDiceUse(player);
