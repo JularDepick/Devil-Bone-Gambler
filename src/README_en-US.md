@@ -83,7 +83,7 @@ src/main/java/com/devilbonegambler/
 │   └── DealerBetMenu.java           # Bet box container, bet slots plus player slots and the layout constants
 ├── manual/                          # Manuals
 │   ├── ManualKind.java              # The three manual kinds, their content paths and the language mapping
-│   └── ManualService.java           # Hands the manuals out by role on the first join
+│   └── ManualService.java           # Keeps the manuals in step with the role on every join
 ├── mixin/                           # Mixin package, currently empty
 ├── mob/                             # Gambler's Dealer
 │   ├── DealerSpawnService.java      # Silent sunrise and sunset spawn

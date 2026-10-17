@@ -10,9 +10,9 @@ import com.devilbonegambler.util.ModConstants;
 
 /**
  * The three manuals of the mod.
- * A manual is a book shaped item with a fixed, non craftable and non stackable content: the gameplay manual explains
- * the mod to any player, the admin manual explains the configuration panel, and the creator manual repeats the admin
- * manual behind a creator only introduction.
+ * A manual is a book shaped item with fixed, never craftable content: the gameplay manual explains the mod to any
+ * player, the admin manual explains the configuration panel, and the creator manual repeats the admin manual behind a
+ * creator only introduction. The gameplay manual is an ordinary item, the other two follow a role.
  * The content is shipped as markdown next to the language files, one file per language.
  */
 public enum ManualKind
@@ -34,6 +34,15 @@ public enum ManualKind
     public String itemId()
     {
         return this.itemId;
+    }
+
+    /**
+     * True for the manuals that follow a role: they may never be dropped and are granted and taken back with the role.
+     * The gameplay manual is an ordinary item and may be kept, stored or thrown away.
+     */
+    public boolean bound()
+    {
+        return this != GAMEPLAY;
     }
 
     /**

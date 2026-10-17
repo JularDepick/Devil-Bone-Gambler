@@ -35,7 +35,6 @@ public final class ModConstants
      * Save data names
      */
     public static final String LUCK_DATA_NAME = "devil_bone_gambler_luck";
-    public static final String MANUAL_GRANT_DATA_NAME = "devil_bone_gambler_manual_grant";
 
     /*
      * Manuals: shipped markdown content, one file per manual and language, read only and never generated at runtime.
@@ -213,6 +212,18 @@ public final class ModConstants
     public static final double DEALER_LIQUID_WEIGHT = 3.0D;
     public static final double DEALER_DISTANCE_WEIGHT = 0.5D;
     public static final int DEALER_LIQUID_SCAN_RADIUS = 1;
+
+    /*
+     * Dealer territory: a dealer treats every other dealer inside its own radius as an intruder and fights it until
+     * one of them dies, so two dealers rarely share an area. The damage of one hit is rolled from zero to the maximum
+     * with a seed built out of the timestamp and the own state and position.
+     */
+    public static final double DEALER_TERRITORY_RADIUS = 6.0D;
+    public static final double DEALER_TERRITORY_ATTACK_REACH = 2.5D;
+    public static final int DEALER_TERRITORY_CHECK_INTERVAL_TICKS = 10;
+    public static final int DEALER_TERRITORY_ATTACK_INTERVAL_TICKS = 20;
+    public static final double DEALER_TERRITORY_CHASE_SPEED = 1.2D;
+    public static final float DEALER_TERRITORY_MAX_DAMAGE = 5.0F;
     public static final int DEALER_SPAWN_RADIUS = 6;
     public static final int DEALER_SPAWN_VERTICAL = 3;
     public static final int DEALER_SUNSET_TICK = 12000;

@@ -63,7 +63,6 @@
 ├── data/                            # 存档持久化
 │   ├── DealerUsageData.java         # 玩家骰子使用计数存档
 │   ├── LuckData.java                # 玩家运气值存档数据
-│   └── ManualGrantData.java         # 手册发放状态存档
 ├── dealer/                          # 荷官赌局与奖励
 │   ├── DealerBetBox.java            # 单名成员的赌注箱
 │   ├── DealerRewardService.java     # 骰子使用计数与生物蛋发放
@@ -90,7 +89,7 @@
 │   └── DealerBetMenu.java           # 赌注箱容器, 赌注格与玩家槽位与布局常量
 ├── manual/                          # 手册
 │   ├── ManualKind.java              # 三本手册的种类, 内容路径与语言映射
-│   └── ManualService.java           # 首次进入时按身份发放手册并提示
+│   └── ManualService.java           # 每次进入按身份校准手册, 绑定手册不可丢弃
 ├── mixin/                           # 混入类目录, 当前为空
 ├── mob/                             # 赌徒的荷官
 │   ├── DealerSpawnService.java      # 日出日落静默生成
@@ -133,7 +132,6 @@
 │   └── ModModelLayers.java          # 客户端模型层键
 ├── util/                            # 通用工具
 │   ├── AuthorInfo.java              # 作者信息常量
-│   ├── ManualKind.java              # 三本手册的种类, 内容路径与语言映射
 │   ├── CommandPlaceholders.java     # 条目指令占位符解析与范围随机坐标
 │   ├── ItemValuation.java           # 物品实例估值, 含附魔加成与耐久折算
 │   ├── ModConstants.java            # 设计细节常量集中定义

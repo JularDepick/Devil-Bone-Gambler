@@ -36,6 +36,16 @@ public class ManualItem extends Item
         return this.kind;
     }
 
+    /**
+     * A bound manual belongs to a role and never leaves its holder as a dropped item. Any path that still spawns an
+     * item entity of one is caught by the manual service, which puts the manual straight back.
+     */
+    @Override
+    public boolean onDroppedByPlayer(ItemStack stack, Player player)
+    {
+        return !this.kind.bound();
+    }
+
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand)
     {

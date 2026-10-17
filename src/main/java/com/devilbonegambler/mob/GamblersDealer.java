@@ -10,6 +10,7 @@ import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.List;
+import java.util.Random;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -44,6 +45,9 @@ public class GamblersDealer extends PathfinderMob
     private static final String KEY_RECRUITING = "gui." + ModConstants.MOD_ID + ".dealer.recruiting";
     private static final String KEY_IDLE_NAME = "gui." + ModConstants.MOD_ID + ".dealer.name_tag";
 
+    private GamblersDealer rival;
+    private int territoryCheckTicks;
+    private int territoryAttackTicks;
     private int satiety = ModConstants.DEALER_MAX_SATIETY;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
     private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
@@ -73,12 +77,115 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
+     * Whether the dealer is currently driving an intruder out of its territory.
+     */
+    public boolean isDefendingTerritory()
+    {
+        return this.rival != null;
+    }
+
+    /**
+     * A dealer claims the space around it: another dealer inside its own radius is chased and attacked until one of
+     * the two dies. The check runs on a fixed interval instead of every tick, and the pursuit itself runs every tick
+     * so a fight never stalls between two checks.
+     */
+    private void tickTerritory()
+    {
+        if (this.territoryCheckTicks > 0)
+        {
+            this.territoryCheckTicks--;
+        }
+        else
+        {
+            this.territoryCheckTicks = ModConstants.DEALER_TERRITORY_CHECK_INTERVAL_TICKS;
+            this.rival = this.findIntruder();
+        }
+
+        if (this.rival == null)
+        {
+            return;
+        }
+
+        if (!this.rival.isAlive() || this.rival.level() != this.level())
+        {
+            this.rival = null;
+            this.getNavigation().stop();
+            return;
+        }
+
+        this.getLookControl().setLookAt(this.rival, 30.0F, 30.0F);
+        double reach = ModConstants.DEALER_TERRITORY_ATTACK_REACH;
+
+        if (this.distanceToSqr(this.rival) > reach * reach)
+        {
+            this.getNavigation().moveTo(this.rival, ModConstants.DEALER_TERRITORY_CHASE_SPEED);
+            return;
+        }
+
+        this.getNavigation().stop();
+
+        if (this.territoryAttackTicks > 0)
+        {
+            this.territoryAttackTicks--;
+            return;
+        }
+
+        this.territoryAttackTicks = ModConstants.DEALER_TERRITORY_ATTACK_INTERVAL_TICKS;
+        this.swing(InteractionHand.MAIN_HAND);
+        this.rival.hurt(this.damageSources().mobAttack(this), this.rollTerritoryDamage());
+    }
+
+    /**
+     * Nearest other living dealer inside the own territory, or null when the territory is clear.
+     */
+    private GamblersDealer findIntruder()
+    {
+        List<GamblersDealer> others = this.level().getEntitiesOfClass(GamblersDealer.class,
+                this.getBoundingBox().inflate(ModConstants.DEALER_TERRITORY_RADIUS),
+                other -> other != this && other.isAlive());
+        double limit = ModConstants.DEALER_TERRITORY_RADIUS * ModConstants.DEALER_TERRITORY_RADIUS;
+        GamblersDealer nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+
+        for (GamblersDealer other : others)
+        {
+            double distance = this.distanceToSqr(other);
+
+            if (distance <= limit && distance < nearestDistance)
+            {
+                nearest = other;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    /**
+     * Damage of one territory hit, somewhere between zero and five points.
+     * The seed mixes the timestamp with the own health, satiety and position, so every hit rolls its own number and
+     * the fight decides a winner instead of ending with both dealers dead.
+     */
+    private float rollTerritoryDamage()
+    {
+        long seed = System.nanoTime()
+                ^ ((long) this.getHealth() << 40)
+                ^ ((long) this.satiety << 24)
+                ^ Double.doubleToLongBits(this.getX()) * 0x9E3779B97F4A7C15L
+                ^ Double.doubleToLongBits(this.getY()) * 0xC2B2AE3D27D4EB4FL
+                ^ Double.doubleToLongBits(this.getZ()) * 0x165667B19E3779F9L
+                ^ (long) this.getId();
+        return new Random(seed).nextFloat() * ModConstants.DEALER_TERRITORY_MAX_DAMAGE;
+    }
+
+    /**
      * Feeding and the stay countdown run next to the goal machine, so neither of them can be starved by a goal.
      */
     @Override
     protected void customServerAiStep()
     {
         super.customServerAiStep();
+        this.tickTerritory();
 
         if (this.feedCooldown > 0)
         {

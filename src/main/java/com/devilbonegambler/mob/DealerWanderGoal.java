@@ -34,7 +34,7 @@ public class DealerWanderGoal extends Goal
     @Override
     public boolean canUse()
     {
-        if (this.dealer.isHosting() || this.dealer.stayTicks() > 0)
+        if (this.dealer.isHosting() || this.dealer.stayTicks() > 0 || this.dealer.isDefendingTerritory())
         {
             return false;
         }
@@ -66,7 +66,8 @@ public class DealerWanderGoal extends Goal
     @Override
     public boolean canContinueToUse()
     {
-        return !this.dealer.isHosting() && this.runningTicks < ModConstants.DEALER_PATH_TIMEOUT_TICKS
+        return !this.dealer.isHosting() && !this.dealer.isDefendingTerritory()
+                && this.runningTicks < ModConstants.DEALER_PATH_TIMEOUT_TICKS
                 && !this.dealer.getNavigation().isDone();
     }
 

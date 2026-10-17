@@ -8,6 +8,7 @@ package com.devilbonegambler.config;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.commands.CommandRunner;
+import com.devilbonegambler.manual.ManualService;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.ValueTableSyncPacket;
@@ -187,11 +188,13 @@ public final class ServerConfigManager
         }
 
         writeAccess();
+        ManualService.onRoleChanged(playerName);
         return true;
     }
 
     /**
      * Revokes one admin name and writes the file. The creator can never be revoked.
+     * The role change also syncs the manuals of that player, which takes the admin manual back when it is online.
      */
     public static boolean removeAdmin(String playerName)
     {
@@ -201,6 +204,7 @@ public final class ServerConfigManager
         }
 
         writeAccess();
+        ManualService.onRoleChanged(playerName);
         return true;
     }
 

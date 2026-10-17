@@ -47,7 +47,6 @@
 | 骰子使用计数数据 | `<世界存档>/data/devil_bone_gambler_dealer_usage.dat` | 按玩家标识索引的赌徒的骰子使用计数, 用于发放赌徒的荷官生物蛋 |
 | 随机池 | `<世界存档>/serverconfig/devil_bone_gambler/random_pools.json` | 随机条目令牌的样本空间, 每次世界加载成功时由注册表扫描重建并覆盖写盘, 含物品, 效果, 实体, 附魔与药水五个池 |
 | 管理访问 | `<世界存档>/serverconfig/devil_bone_gambler/access.json` | 创建者与管理员名单, 只存玩家名字; 文件为空时首位进入服务器的玩家被记为创建者, 创建者与管理员可打开管理面板, 只有创建者能增减管理员 |
-| 手册发放 | `<世界存档>/data/devil_bone_gambler_manual_grant.dat` | 已领取手册的玩家标识; 玩家首次进入时按身份发放玩法手册与管理员手册或创建者手册, 每人只发放一次 |
 
 ## 管理员入口
 

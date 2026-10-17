@@ -40,13 +40,16 @@ public final class ModItems
             () -> new ForgeSpawnEggItem(ModEntities.GAMBLERS_DEALER, 0x4A3B2A, 0xC8A165, new Item.Properties()));
 
     /*
-     * The three manuals are book shaped, never craftable and never stackable, and their content ships as markdown.
+     * The three manuals are book shaped and never craftable. The gameplay manual is an ordinary book that may be
+     * stored away and stacks as usual, while the creator and the admin manual follow a role and never stack.
      */
-    public static final RegistryObject<Item> GAMEPLAY_MANUAL = registerManual(ManualKind.GAMEPLAY);
-    public static final RegistryObject<Item> ADMIN_MANUAL = registerManual(ManualKind.ADMIN);
-    public static final RegistryObject<Item> CREATOR_MANUAL = registerManual(ManualKind.CREATOR);
+    public static final RegistryObject<Item> GAMEPLAY_MANUAL = ITEMS.register(ManualKind.GAMEPLAY.itemId(),
+            () -> new ManualItem(ManualKind.GAMEPLAY, new Item.Properties().stacksTo(64)));
 
-    private static RegistryObject<Item> registerManual(ManualKind kind)
+    public static final RegistryObject<Item> ADMIN_MANUAL = registerBoundManual(ManualKind.ADMIN);
+    public static final RegistryObject<Item> CREATOR_MANUAL = registerBoundManual(ManualKind.CREATOR);
+
+    private static RegistryObject<Item> registerBoundManual(ManualKind kind)
     {
         return ITEMS.register(kind.itemId(), () -> new ManualItem(kind, new Item.Properties().stacksTo(1)));
     }
