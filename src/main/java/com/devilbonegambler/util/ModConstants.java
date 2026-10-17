@@ -41,14 +41,17 @@ public final class ModConstants
      */
     public static final String MANUAL_RESOURCE_DIR = "manuals/";
     public static final String MANUAL_RESOURCE_EXTENSION = ".md";
-    /* A bound manual that leaves the inventory by any path is granted again within this many ticks. */
-    public static final int MANUAL_RECHECK_INTERVAL_TICKS = 5;
-    /* A held dice reveals what it belongs to: how far it reaches, how often the altar spots are rescanned, colour. */
+    /*
+     * Interval of the calibration pass over the online players, in ticks: a bound manual is granted again, deduplicated
+     * or taken away, and a copy lying in a loaded chunk is cleared, at most this long after the fact.
+     */
+    public static final int MANUAL_CALIBRATION_INTERVAL_TICKS = 10;
+    /* A held dice reveals what it belongs to: the reach, the rescan interval and the white highlight both share. */
     public static final double DICE_SIGHT_ALTAR_RADIUS = 24.0D;
     public static final double DICE_SIGHT_DEALER_RADIUS = 24.0D;
     public static final int DICE_SIGHT_SCAN_INTERVAL_TICKS = 10;
-    public static final int DICE_SIGHT_ALTAR_COLOR = 0xE0B040;
-    public static final int DICE_SIGHT_DEALER_COLOR = 0x40D0FF;
+    public static final int DICE_SIGHT_HIGHLIGHT_COLOR = 0xFFFFFF;
+    public static final float DICE_SIGHT_HIGHLIGHT_ALPHA = 0.5F;
 
     /*
      * Luck
@@ -123,6 +126,20 @@ public final class ModConstants
      * Minecraft version cannot carry an emission, so the level is declared on the block itself.
      */
     public static final int ALTAR_LIGHT_LEVEL = 14;
+
+    /*
+     * The glow a dealer carries: half of a torch. A torch sits at fourteen, so the dealer sits at seven, and like the
+     * altar it has to be a block, because this Minecraft version gives no light to an entity.
+     */
+    public static final int DEALER_LIGHT_LEVEL = 7;
+    /* How often a dealer re-checks which block it is standing in, in ticks. */
+    public static final int DEALER_GLOW_INTERVAL_TICKS = 10;
+
+    /*
+     * The offering value written over an altar, shown only while a player stands in its range and looks at it.
+     */
+    public static final double ALTAR_LABEL_LOOK_DOT = 0.7D;
+    public static final double ALTAR_LABEL_RANGE = 6.0D;
 
     /*
      * Range exclusivity of the altar. An altar worn in the head slot counts as a placed altar, so two altar
@@ -216,7 +233,17 @@ public final class ModConstants
     public static final int DEALER_SATIETY_PER_HEALTH = 2;
     public static final int DEALER_STAY_SECONDS = 30;
     public static final int DEALER_FEED_RADIUS = 2;
-    public static final int DEALER_FEED_INTERVAL_TICKS = 20;
+    /*
+     * Eating: a dealer only reaches for a dropped dice when one of its bars is under the share of the maximum, and it
+     * waits between two meals. Only the gambler's dice is food, the devil's dice is left on the ground.
+     */
+    public static final double DEALER_FEED_THRESHOLD = 0.6D;
+    public static final int DEALER_FEED_INTERVAL_TICKS = 40;
+    /*
+     * Fight: every other swing of a territory fight costs one satiety point, and a dealer with an empty bar cannot
+     * swing at all, so a long fight slows down and finally stops instead of running forever.
+     */
+    public static final int DEALER_TERRITORY_SWINGS_PER_SATIETY = 2;
     public static final int DEALER_PATH_RADIUS = 8;
     public static final int DEALER_PATH_SAMPLES = 16;
     public static final int DEALER_PATH_TIMEOUT_TICKS = 400;
@@ -233,11 +260,29 @@ public final class ModConstants
     public static final double DEALER_TERRITORY_RADIUS = 6.0D;
     public static final double DEALER_TERRITORY_ATTACK_REACH = 2.5D;
     public static final int DEALER_TERRITORY_CHECK_INTERVAL_TICKS = 10;
-    public static final int DEALER_TERRITORY_ATTACK_INTERVAL_TICKS = 40;
+    /* One hit per second while both dealers stay inside reach. */
+    public static final int DEALER_TERRITORY_ATTACK_INTERVAL_TICKS = 20;
     /* Two dealers push each other apart, so the aim vector flips near zero distance and is not updated there. */
     public static final double DEALER_TERRITORY_LOOK_MIN_SQR = 0.5D;
-    public static final double DEALER_TERRITORY_CHASE_SPEED = 1.2D;
+    public static final double DEALER_TERRITORY_CHASE_SPEED = 0.9D;
     public static final float DEALER_TERRITORY_MAX_DAMAGE = 5.0F;
+    /*
+     * A struck dealer fumbles dice out of its pockets: the roll is made once per hit and never adds to the loot of a
+     * death, which keeps the death drop the only guaranteed handful.
+     */
+    public static final double DEALER_HURT_DROP_CHANCE_THREE = 0.05D;
+    public static final double DEALER_HURT_DROP_CHANCE_TWO = 0.10D;
+    public static final double DEALER_HURT_DROP_CHANCE_ONE = 0.15D;
+    public static final int DEALER_HURT_DROP_THREE = 3;
+    public static final int DEALER_HURT_DROP_TWO = 2;
+    public static final int DEALER_HURT_DROP_ONE = 1;
+    /*
+     * The idle name of a dealer is only readable up close and only for the player who looks at it, while the hosting
+     * and recruiting names are business and stay over its head for everyone.
+     */
+    public static final double DEALER_NAME_REVEAL_RANGE = 6.0D;
+    /* Half a right angle to each side of the direction the player looks at. */
+    public static final double DEALER_NAME_LOOK_DOT = 0.7D;
     public static final int DEALER_SPAWN_RADIUS = 6;
     public static final int DEALER_SPAWN_VERTICAL = 3;
     public static final int DEALER_SUNSET_TICK = 12000;
