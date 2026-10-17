@@ -85,10 +85,19 @@ public class DealerScreen extends Screen
         this.panel = panel;
     }
 
+    /**
+     * A panel push arrives once per second while a wager recruits, so the hover timer is only released when the panel
+     * belongs to another dealer; the hover key already follows the cell under the pointer and the lines are rebuilt
+     * from the live panel every frame, so a push must not restart the delay.
+     */
     public void applyPanel(DealerPanelPacket updated)
     {
+        if (this.panel == null || this.panel.dealerEntityId() != updated.dealerEntityId())
+        {
+            this.tooltip.reset();
+        }
+
         this.panel = updated;
-        this.tooltip.reset();
         this.rebuildButtons();
     }
 
@@ -306,7 +315,8 @@ public class DealerScreen extends Screen
                 lines.add(Component.translatable(LANG + "bet_count", Integer.valueOf(entry.betCount())));
                 lines.add(Component.translatable(entry.playerId().equals(this.selfId())
                         ? LANG + "open_hint" : LANG + "open_hint_others"));
-                this.tooltip.render(graphics, this.font, "member:" + index, lines, mouseX, mouseY);
+                /* The key carries the member, so a cell whose occupant changed waits again instead of reusing the delay. */
+                this.tooltip.render(graphics, this.font, "member:" + entry.playerId(), lines, mouseX, mouseY);
                 return;
             }
         }
