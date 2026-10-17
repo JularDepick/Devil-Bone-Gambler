@@ -48,23 +48,61 @@ public class AdminConfigScreen extends Screen
     private static final Gson GSON = new Gson();
 
     private static final int PANEL_WIDTH = 380;
-    private static final int PANEL_HEIGHT = 274;
+    /*
+     * The content keeps a frame of padding on every side. The panel used to end four pixels below its button row and
+     * eight below its title, and it was taller than the 480 by 270 GUI that a 1080p screen gets at the default scale,
+     * so the title and the bottom row were clipped by the edges; the content now fits that window and every edge keeps
+     * its distance.
+     */
+    private static final int PANEL_PADDING = 6;
     private static final int PANEL_COLOR = 0xC0101010;
+    private static final int PANEL_BORDER_COLOR = 0xF03C3C3C;
     private static final int ROW_COLOR = 0x20FFFFFF;
     private static final int ROW_SELECTED_COLOR = 0x60FFFFFF;
     private static final int HEADER_COLOR = 0x30FFFFFF;
 
+    private static final int TITLE_Y = 8;
+    private static final int ADMIN_BUTTON_Y = 18;
+    private static final int TAB_Y = 32;
     private static final int LIST_X = 8;
     private static final int LIST_WIDTH = 210;
-    private static final int LIST_VISIBLE_ROWS = 12;
     private static final int PRIZE_LIST_Y = 50;
     private static final int VALUE_LIST_Y = 72;
+    private static final int FILTER_Y = 54;
     private static final int SCROLL_GAP = 2;
 
     private static final int EDIT_X = 226;
     private static final int EDIT_WIDTH = 146;
     private static final int FIELD_HEIGHT = 14;
+    private static final int CONTENT_ROW_HEIGHT = 24;
     private static final int LABEL_GAP = 10;
+    private static final int TOGGLE_WIDTH = 70;
+    /*
+     * Rows of the right column. A text field is fourteen pixels tall and carries its label in the ten pixels above it,
+     * which is the rhythm of CONTENT_ROW_HEIGHT; a row of buttons is two pixels taller, so the row after it starts two
+     * pixels lower and its label still clears the buttons.
+     */
+    private static final int ROW_REGION_Y = 50;
+    private static final int ROW_COLOR_Y = 74;
+    private static final int ROW_NAME_Y = ROW_COLOR_Y + 26;
+    private static final int ROW_WEIGHT_Y = ROW_NAME_Y + CONTENT_ROW_HEIGHT;
+    private static final int ROW_COMMAND_Y = ROW_WEIGHT_Y + CONTENT_ROW_HEIGHT;
+    private static final int ROW_NOTIFY_Y = ROW_COMMAND_Y + CONTENT_ROW_HEIGHT;
+    private static final int ROW_TOGGLE_Y = ROW_NOTIFY_Y + CONTENT_ROW_HEIGHT;
+    private static final int COLUMN_BOTTOM = ROW_TOGGLE_Y + 16;
+
+    /*
+     * Footer and button row hang from the bottom of the content area, so the list is the only part that grows or
+     * shrinks with the window.
+     */
+    private static final int BUTTON_ROW_HEIGHT = 18;
+    private static final int BUTTON_ROW_MARGIN = 6;
+    private static final int BUTTON_ROW_FROM_BOTTOM = BUTTON_ROW_HEIGHT + BUTTON_ROW_MARGIN;
+    private static final int FOOTER_FROM_BOTTOM = BUTTON_ROW_FROM_BOTTOM + 14;
+    private static final int BASE_CONTENT_HEIGHT = COLUMN_BOTTOM + 4 + FOOTER_FROM_BOTTOM;
+    private static final int LIST_MIN_ROWS = 5;
+    private static final int LIST_MAX_ROWS = 10;
+    private static final int LIST_DEFAULT_ROWS = 9;
     private static final int COMMAND_FIELD_WIDTH = 126;
     private static final int COMMAND_WINDOW_X = 80;
     private static final int COMMAND_WINDOW_Y = 89;
@@ -254,29 +292,30 @@ public class AdminConfigScreen extends Screen
     protected void init()
     {
         super.init();
-        this.leftPos = (this.width - PANEL_WIDTH) / 2;
-        this.topPos = (this.height - PANEL_HEIGHT) / 2;
+        /* The padding stays visible even in a window too small for the whole content. */
+        this.leftPos = Math.max(PANEL_PADDING, (this.width - PANEL_WIDTH) / 2);
+        this.topPos = Math.max(PANEL_PADDING, (this.height - contentHeight()) / 2);
 
         this.tabPrizeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")),
-                button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + 32).size(88, 16).build());
+                button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + TAB_Y).size(88, 16).build());
         this.tabValueButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")),
-                button -> switchTab(true)).pos(this.leftPos + 100, this.topPos + 32).size(88, 16).build());
+                button -> switchTab(true)).pos(this.leftPos + 100, this.topPos + TAB_Y).size(88, 16).build());
 
-        this.fieldTier = addField(62, Component.translatable(key("admin.label_region")), 6);
+        this.fieldTier = addField(ROW_REGION_Y, Component.translatable(key("admin.label_region")), 6);
         this.colorButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleColor())
-                .pos(this.leftPos + EDIT_X, this.topPos + 88).size(70, 16).build());
+                .pos(this.leftPos + EDIT_X, this.topPos + ROW_COLOR_Y).size(70, 16).build());
         this.majorEventButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleMajorEvent())
-                .pos(this.leftPos + EDIT_X + 76, this.topPos + 88).size(70, 16).build());
-        this.fieldId = addField(114, Component.translatable(key("admin.label_entry_name")),
+                .pos(this.leftPos + EDIT_X + 76, this.topPos + ROW_COLOR_Y).size(70, 16).build());
+        this.fieldId = addField(ROW_NAME_Y, Component.translatable(key("admin.label_entry_name")),
                 ModConstants.MAX_ENTRY_ID_LENGTH);
-        this.fieldWeight = addField(140, Component.translatable(key("admin.label_weight")), 12);
-        this.fieldCommand = new EditBox(this.font, this.leftPos + EDIT_X, this.topPos + 166, COMMAND_FIELD_WIDTH,
+        this.fieldWeight = addField(ROW_WEIGHT_Y, Component.translatable(key("admin.label_weight")), 12);
+        this.fieldCommand = new EditBox(this.font, this.leftPos + EDIT_X, this.topPos + ROW_COMMAND_Y, COMMAND_FIELD_WIDTH,
                 FIELD_HEIGHT, Component.translatable(key("admin.label_command")));
         this.fieldCommand.setMaxLength(ModConstants.MAX_COMMAND_LENGTH);
         addRenderableWidget(this.fieldCommand);
         this.commandEditButton = addRenderableWidget(Button.builder(Component.literal("..."),
                 button -> openCommandEditor()).pos(this.leftPos + EDIT_X + COMMAND_FIELD_WIDTH + 2,
-                        this.topPos + 166).size(18, FIELD_HEIGHT).build());
+                        this.topPos + ROW_COMMAND_Y).size(18, FIELD_HEIGHT).build());
 
         this.commandEditor = new MultiLineEditBox(this.font, this.leftPos + COMMAND_WINDOW_X + 6,
                 this.topPos + COMMAND_WINDOW_Y + 18, COMMAND_WINDOW_WIDTH - 12, COMMAND_EDITOR_HEIGHT,
@@ -290,19 +329,21 @@ public class AdminConfigScreen extends Screen
         this.commandCancelButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.cancel")),
                 button -> closeCommandEditor(false)).pos(this.leftPos + COMMAND_WINDOW_X + 114,
                         this.topPos + COMMAND_WINDOW_Y + 74).size(100, 16).build());
-        this.fieldNotifyText = addField(192, Component.translatable(key("admin.label_notify_text")),
+        this.fieldNotifyText = addField(ROW_NOTIFY_Y, Component.translatable(key("admin.label_notify_text")),
                 ModConstants.MAX_NOTIFY_TEXT_LENGTH);
 
+        /* The two toggles share one row: the labels are short and the row was the tallest part of the column. */
         this.notifyModeButton = addRenderableWidget(Button.builder(Component.empty(), button -> cycleNotifyMode())
-                .pos(this.leftPos + EDIT_X, this.topPos + 216).size(EDIT_WIDTH, 16).build());
+                .pos(this.leftPos + EDIT_X, this.topPos + ROW_TOGGLE_Y).size(TOGGLE_WIDTH, 16).build());
         this.enabledButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleEnabled())
-                .pos(this.leftPos + EDIT_X, this.topPos + 234).size(EDIT_WIDTH, 16).build());
+                .pos(this.leftPos + EDIT_X + EDIT_WIDTH - TOGGLE_WIDTH, this.topPos + ROW_TOGGLE_Y)
+                .size(TOGGLE_WIDTH, 16).build());
 
-        this.fieldValue = addField(62, Component.translatable(key("admin.label_value")), 12);
+        this.fieldValue = addField(ROW_REGION_Y, Component.translatable(key("admin.label_value")), 12);
         this.chapterButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleChapter())
-                .pos(this.leftPos + EDIT_X, this.topPos + 88).size(EDIT_WIDTH, 16).build());
+                .pos(this.leftPos + EDIT_X, this.topPos + ROW_COLOR_Y).size(EDIT_WIDTH, 16).build());
 
-        this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + 54, LIST_WIDTH, FIELD_HEIGHT,
+        this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + FILTER_Y, LIST_WIDTH, FIELD_HEIGHT,
                 Component.translatable(key("admin.filter")));
         this.fieldFilter.setResponder(value -> {
             rebuildValueKeys();
@@ -310,7 +351,7 @@ public class AdminConfigScreen extends Screen
         });
         addRenderableWidget(this.fieldFilter);
 
-        int buttonY = this.topPos + PANEL_HEIGHT - 22;
+        int buttonY = this.topPos + contentHeight() - BUTTON_ROW_FROM_BOTTOM;
         this.addRegionButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")),
                 button -> addRegion()).pos(this.leftPos + 8, buttonY).size(68, 18).build());
         this.addEntryButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")),
@@ -327,7 +368,7 @@ public class AdminConfigScreen extends Screen
                 button -> onClose()).pos(this.leftPos + 320, buttonY).size(52, 18).build());
 
         this.adminButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_admins")),
-                button -> toggleAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + 18)
+                button -> toggleAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + ADMIN_BUTTON_Y)
                         .size(72, FIELD_HEIGHT + 2).build());
         this.fieldAdminName = new EditBox(this.font, this.leftPos + ADMIN_WINDOW_X + 6,
                 this.topPos + ADMIN_WINDOW_Y + ADMIN_FIELD_Y, ADMIN_FIELD_WIDTH, FIELD_HEIGHT,
@@ -357,22 +398,25 @@ public class AdminConfigScreen extends Screen
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
     {
         renderBackground(graphics);
-        graphics.fill(this.leftPos, this.topPos, this.leftPos + PANEL_WIDTH, this.topPos + PANEL_HEIGHT, PANEL_COLOR);
-        graphics.drawString(this.font, this.title, this.leftPos + 8, this.topPos + 8, TITLE_COLOR, false);
-        graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"),
-                this.leftPos + EDIT_X, this.topPos + PANEL_HEIGHT - 36, LABEL_COLOR, false);
+        graphics.fill(panelLeft() - 1, panelTop() - 1, panelRight() + 1, panelBottom() + 1, PANEL_BORDER_COLOR);
+        graphics.fill(panelLeft(), panelTop(), panelRight(), panelBottom(), PANEL_COLOR);
+        graphics.drawString(this.font, this.title, this.leftPos + 8, this.topPos + TITLE_Y, TITLE_COLOR, false);
 
         this.removeButton.tickConfirm();
         this.adminRemoveButton.tickConfirm();
-        drawList(graphics, mouseX, mouseY);
 
         /*
-         * A sub page is painted as one opaque layer: the page behind it is dimmed first and only then the frame, so
-         * the frame and its own widgets sit unambiguously above the page.
+         * The two layers are exclusive: while a sub page is open the page behind it is not drawn at all, so no text of
+         * the page can ever end up under or over the sub page. The scrim only keeps the cleared page dark, it does not
+         * cover anything that was drawn.
          */
         if (subpageOpen())
         {
             drawSubPageScrim(graphics);
+        }
+        else
+        {
+            drawList(graphics, mouseX, mouseY);
         }
 
         if (this.commandEditorOpen)
@@ -385,21 +429,22 @@ public class AdminConfigScreen extends Screen
             drawAdminWindow(graphics, mouseX, mouseY);
         }
 
-        /* The status line is painted above the scrim, so a rejection of a sub page stays readable. */
+        /*
+         * The footer belongs to both layers: the status on the left and the author on the right, truncated so the two
+         * never overlap, and painted after the sub page so a rejection of a sub page stays readable.
+         */
+        int footerY = this.topPos + contentHeight() - FOOTER_FROM_BOTTOM;
         graphics.drawString(this.font, this.font.plainSubstrByWidth(this.status, EDIT_X - 16), this.leftPos + 8,
-                this.topPos + PANEL_HEIGHT - 36, STATUS_COLOR, false);
+                footerY, STATUS_COLOR, false);
+        graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"),
+                this.leftPos + EDIT_X, footerY, LABEL_COLOR, false);
 
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        /* The page behind a sub page is hidden, so its field labels are hidden with it. */
+        /* Labels and hover tooltips belong to the page behind a sub page, which owns neither while it is open. */
         if (!subpageOpen())
         {
             drawFieldLabels(graphics);
-        }
-
-        /* The page behind a sub page owns no pointer, so its hover tooltips never paint over the sub page. */
-        if (!subpageOpen())
-        {
             drawRowTooltip(graphics, mouseX, mouseY);
         }
     }
@@ -407,8 +452,45 @@ public class AdminConfigScreen extends Screen
     /** Dims the page behind a sub page so the two layers never read as one surface. */
     private void drawSubPageScrim(GuiGraphics graphics)
     {
-        graphics.fill(this.leftPos, this.topPos, this.leftPos + PANEL_WIDTH, this.topPos + PANEL_HEIGHT,
-                SUBPAGE_SCRIM_COLOR);
+        graphics.fill(panelLeft(), panelTop(), panelRight(), panelBottom(), SUBPAGE_SCRIM_COLOR);
+    }
+
+    /* The panel frame, which is the content area grown by the padding on every side. */
+    private int panelLeft()
+    {
+        return this.leftPos - PANEL_PADDING;
+    }
+
+    private int panelTop()
+    {
+        return this.topPos - PANEL_PADDING;
+    }
+
+    private int panelRight()
+    {
+        return this.leftPos + PANEL_WIDTH + PANEL_PADDING;
+    }
+
+    private int panelBottom()
+    {
+        return this.topPos + contentHeight() + PANEL_PADDING;
+    }
+
+    /*
+     * Rows the list shows. The window height decides them and the content grows with them, so a tall window lists more
+     * entries while a short one still keeps the footer and the buttons inside the frame.
+     */
+    private int listRows()
+    {
+        int spare = this.height - 2 * PANEL_PADDING - BASE_CONTENT_HEIGHT;
+        int rows = LIST_DEFAULT_ROWS + spare / ModConstants.TABLE_ROW_HEIGHT;
+        return Math.max(LIST_MIN_ROWS, Math.min(LIST_MAX_ROWS, rows));
+    }
+
+    private int contentHeight()
+    {
+        return Math.max(BASE_CONTENT_HEIGHT,
+                BASE_CONTENT_HEIGHT + (listRows() - LIST_DEFAULT_ROWS) * ModConstants.TABLE_ROW_HEIGHT);
     }
 
     private void drawCommandWindow(GuiGraphics graphics)
@@ -434,8 +516,10 @@ public class AdminConfigScreen extends Screen
         graphics.fill(windowX, windowY, windowX + ADMIN_WINDOW_WIDTH, windowY + ADMIN_WINDOW_HEIGHT, WINDOW_COLOR);
         graphics.drawString(this.font, Component.translatable(key("admin.manage_admins")), windowX + 6, windowY + 6,
                 TITLE_COLOR, false);
-        graphics.drawString(this.font, Component.translatable(key("admin.label_admin_name")), windowX + 6,
-                windowY + ADMIN_FIELD_Y - LABEL_GAP, LABEL_COLOR, false);
+        /*
+         * The name field names itself through its own hint text; a separate caption above it would sit on the last row
+         * of the list as soon as the window lists six entries.
+         */
 
         int listX = windowX + ADMIN_LIST_X;
         int headerY = windowY + ADMIN_LIST_Y;
@@ -770,7 +854,7 @@ public class AdminConfigScreen extends Screen
         int rowsY = headerY + ModConstants.TABLE_HEADER_HEIGHT;
         TableLayout layout = this.valueTab ? this.valueLayout : this.prizeLayout;
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
-        int visible = Math.min(LIST_VISIBLE_ROWS, Math.max(0, total - this.scrollBar.value()));
+        int visible = Math.min(listRows(), Math.max(0, total - this.scrollBar.value()));
 
         graphics.fill(listX, headerY, listX + LIST_WIDTH, headerY + ModConstants.TABLE_HEADER_HEIGHT, HEADER_COLOR);
         layout.drawHeader(graphics, listX, headerY + 2, HEADER_TEXT_COLOR);
@@ -944,7 +1028,7 @@ public class AdminConfigScreen extends Screen
 
         int line = (int) Math.floor((mouseY - listY) / ModConstants.TABLE_ROW_HEIGHT);
 
-        if (line < 0 || line >= LIST_VISIBLE_ROWS)
+        if (line < 0 || line >= listRows())
         {
             return -1;
         }
@@ -1131,8 +1215,8 @@ public class AdminConfigScreen extends Screen
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         this.scrollBar.setBounds(this.leftPos + LIST_X + LIST_WIDTH + SCROLL_GAP,
                 this.topPos + (this.valueTab ? VALUE_LIST_Y : PRIZE_LIST_Y), ModConstants.TABLE_HEADER_HEIGHT
-                        + LIST_VISIBLE_ROWS * ModConstants.TABLE_ROW_HEIGHT);
-        this.scrollBar.setRange(Math.max(0, total - LIST_VISIBLE_ROWS), LIST_VISIBLE_ROWS);
+                        + listRows() * ModConstants.TABLE_ROW_HEIGHT);
+        this.scrollBar.setRange(Math.max(0, total - listRows()), listRows());
         reportCommandStatus();
     }
 
