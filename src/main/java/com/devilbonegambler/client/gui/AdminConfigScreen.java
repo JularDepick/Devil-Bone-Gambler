@@ -78,6 +78,11 @@ public class AdminConfigScreen extends Screen
     private static final int CONTENT_ROW_HEIGHT = 24;
     private static final int LABEL_GAP = 10;
     private static final int TOGGLE_WIDTH = 70;
+    /* The value tab carries its own filter and cycles all offerings, item values and creature values. */
+    private static final int CHAPTER_ALL = 0;
+    private static final int CHAPTER_ITEMS = 1;
+    private static final int CHAPTER_ENTITIES = 2;
+    private static final int CHAPTER_COUNT = 3;
     /*
      * Rows of the right column. A text field is fourteen pixels tall and carries its label in the ten pixels above it,
      * which is the rhythm of CONTENT_ROW_HEIGHT; a row of buttons is two pixels taller, so the row after it starts two
@@ -91,6 +96,11 @@ public class AdminConfigScreen extends Screen
     private static final int ROW_NOTIFY_Y = ROW_COMMAND_Y + CONTENT_ROW_HEIGHT;
     private static final int ROW_TOGGLE_Y = ROW_NOTIFY_Y + CONTENT_ROW_HEIGHT;
     private static final int COLUMN_BOTTOM = ROW_TOGGLE_Y + 16;
+    /* The value row of the value tab: a coarse slider on a hundred grid over the precise text field. */
+    private static final int ROW_VALUE_Y = ROW_COLOR_Y;
+    private static final int ROW_VALUE_SLIDER_Y = ROW_VALUE_Y + 20;
+    private static final int VALUE_MAX = ModConstants.MAX_ITEM_VALUE;
+    private static final int VALUE_STEP = 100;
 
     /*
      * Footer and button row hang from the bottom of the content area, so the list is the only part that grows or
@@ -98,6 +108,10 @@ public class AdminConfigScreen extends Screen
      */
     private static final int BUTTON_ROW_HEIGHT = 18;
     private static final int BUTTON_ROW_MARGIN = 6;
+    /* A bottom row button is as wide as its widest label plus this padding on each side, so the row follows the text. */
+    private static final int BUTTON_PADDING_X = 5;
+    private static final int BUTTON_GAP = 4;
+    private static final int BUTTON_ROW_START_X = 8;
     private static final int BUTTON_ROW_FROM_BOTTOM = BUTTON_ROW_HEIGHT + BUTTON_ROW_MARGIN;
     private static final int FOOTER_FROM_BOTTOM = BUTTON_ROW_FROM_BOTTOM + 14;
     private static final int BASE_CONTENT_HEIGHT = COLUMN_BOTTOM + 4 + FOOTER_FROM_BOTTOM;
@@ -168,6 +182,8 @@ public class AdminConfigScreen extends Screen
     private String baselineNotifyText = "";
     private boolean valueBaselineReady;
     private int baselineValue;
+    /* Set while one of the two value controls writes into the other, so the pair never echoes itself. */
+    private boolean syncingValue;
     private String status = "";
     private boolean widgetsReady;
     private TableLayout prizeLayout;
@@ -177,13 +193,13 @@ public class AdminConfigScreen extends Screen
     private EditBox fieldTier;
     private Button colorButton;
     private Button majorEventButton;
-    private Button chapterButton;
-    private boolean entityChapter;
+    private int valueChapter;
     private EditBox fieldId;
     private EditBox fieldWeight;
     private EditBox fieldCommand;
     private EditBox fieldNotifyText;
     private EditBox fieldValue;
+    private IntSlider valueSlider;
     private EditBox fieldFilter;
     private Button notifyModeButton;
     private Button enabledButton;
@@ -301,7 +317,7 @@ public class AdminConfigScreen extends Screen
         this.tabPrizeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")),
                 button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + TAB_Y).size(88, 16).build());
         this.tabValueButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")),
-                button -> switchTab(true)).pos(this.leftPos + 100, this.topPos + TAB_Y).size(88, 16).build());
+                button -> onValueTabClicked()).pos(this.leftPos + 100, this.topPos + TAB_Y).size(88, 16).build());
 
         this.fieldTier = addField(ROW_REGION_Y, Component.translatable(key("admin.label_region")), 6);
         this.colorButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleColor())
@@ -341,9 +357,13 @@ public class AdminConfigScreen extends Screen
                 .pos(this.leftPos + EDIT_X + EDIT_WIDTH - TOGGLE_WIDTH, this.topPos + ROW_TOGGLE_Y)
                 .size(TOGGLE_WIDTH, 16).build());
 
-        this.fieldValue = addField(ROW_REGION_Y, Component.translatable(key("admin.label_value")), 12);
-        this.chapterButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleChapter())
-                .pos(this.leftPos + EDIT_X, this.topPos + ROW_COLOR_Y).size(EDIT_WIDTH, 16).build());
+        this.fieldValue = addField(ROW_VALUE_Y, Component.translatable(key("admin.label_value")), 6);
+        this.fieldValue.setFilter(text -> text.isEmpty()
+                || (text.matches("\\d{1,6}") && parseInt(text, -1) <= VALUE_MAX));
+        this.fieldValue.setResponder(text -> onValueTyped(text));
+        this.valueSlider = addRenderableWidget(new IntSlider(this.leftPos + EDIT_X, this.topPos + ROW_VALUE_SLIDER_Y,
+                EDIT_WIDTH, 16, Component.translatable(key("admin.label_value")), 0, VALUE_MAX, 0, VALUE_STEP));
+        this.valueSlider.setValueListener(value -> onValueSliderMoved(value));
 
         this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + FILTER_Y, LIST_WIDTH, FIELD_HEIGHT,
                 Component.translatable(key("admin.filter")));
@@ -353,21 +373,48 @@ public class AdminConfigScreen extends Screen
         });
         addRenderableWidget(this.fieldFilter);
 
+        /*
+         * The bottom row flows from left to right: every button takes the width of its own text plus a small padding,
+         * so a translation never leaves a wide button with unused room or a narrow one clipping its label.
+         */
         int buttonY = this.topPos + contentHeight() - BUTTON_ROW_FROM_BOTTOM;
-        this.addRegionButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")),
-                button -> addRegion()).pos(this.leftPos + 8, buttonY).size(68, 18).build());
-        this.addEntryButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")),
-                button -> addEntry()).pos(this.leftPos + 80, buttonY).size(68, 18).build());
-        this.removeButton = addRenderableWidget(new ConfirmButton(this.leftPos + 152, buttonY, 68, 18,
-                Component.translatable(key("admin.remove")), Component.translatable(key("admin.remove_confirm")),
-                this::removeSelected));
-        this.refreshButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.refresh")),
-                button -> ClientActions.sendAdminPanelRequest())
-                .pos(this.leftPos + 224, buttonY).size(24, 18).build());
-        this.submitButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.submit")),
-                button -> submit()).pos(this.leftPos + 252, buttonY).size(64, 18).build());
-        this.closeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
-                button -> onClose()).pos(this.leftPos + 320, buttonY).size(52, 18).build());
+        int buttonX = this.leftPos + BUTTON_ROW_START_X;
+
+        Component addRegionLabel = Component.translatable(key("admin.add_region"));
+        int addRegionWidth = fitWidth(addRegionLabel);
+        this.addRegionButton = addRenderableWidget(Button.builder(addRegionLabel, button -> addRegion())
+                .pos(buttonX, buttonY).size(addRegionWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += addRegionWidth + BUTTON_GAP;
+
+        Component addEntryLabel = Component.translatable(key("admin.add_entry"));
+        int addEntryWidth = fitWidth(addEntryLabel);
+        this.addEntryButton = addRenderableWidget(Button.builder(addEntryLabel, button -> addEntry())
+                .pos(buttonX, buttonY).size(addEntryWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += addEntryWidth + BUTTON_GAP;
+
+        Component removeLabel = Component.translatable(key("admin.remove"));
+        Component removeConfirmLabel = Component.translatable(key("admin.remove_confirm"));
+        int removeWidth = fitWidth(removeLabel, removeConfirmLabel);
+        this.removeButton = addRenderableWidget(new ConfirmButton(buttonX, buttonY, removeWidth, BUTTON_ROW_HEIGHT,
+                removeLabel, removeConfirmLabel, this::removeSelected));
+        buttonX += removeWidth + BUTTON_GAP;
+
+        Component refreshLabel = Component.translatable(key("admin.refresh"));
+        int refreshWidth = fitWidth(refreshLabel);
+        this.refreshButton = addRenderableWidget(Button.builder(refreshLabel, button -> ClientActions.sendAdminPanelRequest())
+                .pos(buttonX, buttonY).size(refreshWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += refreshWidth + BUTTON_GAP;
+
+        Component submitLabel = Component.translatable(key("admin.submit"));
+        int submitWidth = fitWidth(submitLabel);
+        this.submitButton = addRenderableWidget(Button.builder(submitLabel, button -> submit())
+                .pos(buttonX, buttonY).size(submitWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += submitWidth + BUTTON_GAP;
+
+        Component closeLabel = Component.translatable(key("admin.close"));
+        int closeWidth = fitWidth(closeLabel);
+        this.closeButton = addRenderableWidget(Button.builder(closeLabel, button -> onClose())
+                .pos(buttonX, buttonY).size(closeWidth, BUTTON_ROW_HEIGHT).build());
 
         this.adminButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_admins")),
                 button -> toggleAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + ADMIN_BUTTON_Y)
@@ -394,6 +441,22 @@ public class AdminConfigScreen extends Screen
         rebuildValueTable();
         rebuildAdminTable();
         refreshFields();
+    }
+
+    /**
+     * Width of a bottom row button: the widest of its labels plus a small padding on both sides. A confirm label can be
+     * longer than the plain one, so the button is measured against both and never clips after the first click.
+     */
+    private int fitWidth(Component... labels)
+    {
+        int widest = 0;
+
+        for (Component label : labels)
+        {
+            widest = Math.max(widest, this.font.width(label));
+        }
+
+        return widest + BUTTON_PADDING_X * 2;
     }
 
     @Override
@@ -855,6 +918,117 @@ public class AdminConfigScreen extends Screen
         this.scrollBar.setValue(0);
         this.tooltip.reset();
         refreshFields();
+        updateTabMessages();
+    }
+
+    /**
+     * The value field and the slider edit one number. Typing a number inside the legal range moves the slider, and the
+     * flag keeps the text write that the slider itself triggers from bouncing back.
+     */
+    private void onValueTyped(String text)
+    {
+        if (this.syncingValue || this.valueSlider == null)
+        {
+            return;
+        }
+
+        int typed = parseInt(text, -1);
+
+        if (typed < 0 || typed > VALUE_MAX)
+        {
+            return;
+        }
+
+        this.syncingValue = true;
+        this.valueSlider.setValue(typed);
+        this.syncingValue = false;
+    }
+
+    /**
+     * A drag writes the stepped number back into the field, so the field always shows what the slider stands for.
+     */
+    private void onValueSliderMoved(int value)
+    {
+        if (this.syncingValue || this.fieldValue == null)
+        {
+            return;
+        }
+
+        this.syncingValue = true;
+        this.fieldValue.setValue(Integer.toString(value));
+        this.syncingValue = false;
+    }
+
+    /**
+     * The value tab button carries the filter: the first click opens the tab and keeps the search box as it is, and
+     * every later click cycles the filter through all offerings, item values and creature values.
+     */
+    private void onValueTabClicked()
+    {
+        if (!this.valueTab)
+        {
+            switchTab(true);
+            return;
+        }
+
+        cycleValueChapter();
+    }
+
+    private void cycleValueChapter()
+    {
+        applyFieldsToSelection();
+        this.valueChapter = (this.valueChapter + 1) % CHAPTER_COUNT;
+        this.selectedValueIndices.clear();
+        this.scrollBar.setValue(0);
+        rebuildValueKeys();
+        refreshFields();
+        updateTabMessages();
+    }
+
+    /**
+     * The value tab shows the current filter on its own button, so the filter needs no extra widget of its own.
+     */
+    private void updateTabMessages()
+    {
+        if (this.tabValueButton == null)
+        {
+            return;
+        }
+
+        this.tabValueButton.setMessage(Component.translatable(key(this.valueTab ? chapterKey() : "admin.tab_value")));
+    }
+
+    private String chapterKey()
+    {
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return "admin.chapter_item";
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return "admin.chapter_entity";
+        }
+
+        return "admin.chapter_all";
+    }
+
+    /**
+     * The filter belongs to the visit, not to the panel: closing the screen returns to all offerings and an empty
+     * search box, so the next open always starts from the same place.
+     */
+    @Override
+    public void onClose()
+    {
+        this.valueChapter = CHAPTER_ALL;
+        this.selectedValueIndices.clear();
+
+        if (this.fieldFilter != null)
+        {
+            this.fieldFilter.setValue("");
+        }
+
+        super.onClose();
     }
 
     /**
@@ -1022,12 +1196,22 @@ public class AdminConfigScreen extends Screen
      */
     private String nameOf(String id)
     {
-        return this.entityChapter ? ItemLabels.entityName(id) : ItemLabels.itemName(id);
+        return usesEntityTable(id) ? ItemLabels.entityName(id) : ItemLabels.itemName(id);
     }
 
     private boolean isRegisteredValue(String id)
     {
-        return this.entityChapter ? this.itemValues.isRegisteredEntity(id) : this.itemValues.isRegisteredItem(id);
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return this.itemValues.isRegisteredItem(id);
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return this.itemValues.isRegisteredEntity(id);
+        }
+
+        return this.itemValues.isRegisteredEntity(id) || this.itemValues.isRegisteredItem(id);
     }
 
     private int listRowAt(double mouseX, double mouseY)
@@ -1167,7 +1351,7 @@ public class AdminConfigScreen extends Screen
         setVisible(this.notifyModeButton, main && entryRow != null);
         setVisible(this.enabledButton, main && entryRow != null);
         setVisible(this.fieldValue, main && this.valueTab);
-        setVisible(this.chapterButton, main && this.valueTab);
+        setVisible(this.valueSlider, main && this.valueTab);
         setVisible(this.fieldFilter, main && this.valueTab);
         setVisible(this.commandEditor, this.commandEditorOpen);
         setVisible(this.commandApplyButton, this.commandEditorOpen);
@@ -1214,9 +1398,8 @@ public class AdminConfigScreen extends Screen
 
         if (this.valueTab)
         {
-            this.chapterButton.setMessage(Component.translatable(key(this.entityChapter
-                    ? "admin.chapter_entity" : "admin.chapter_item")));
             this.fieldValue.setValue(Integer.toString(selectedValue()));
+            this.valueSlider.setValue(selectedValue());
             this.baselineValue = selectedValue();
             this.valueBaselineReady = true;
         }
@@ -1378,7 +1561,7 @@ public class AdminConfigScreen extends Screen
 
         if (this.valueTab)
         {
-            int value = Math.max(0, parseInt(this.fieldValue.getValue(), 0));
+            int value = Math.min(VALUE_MAX, Math.max(0, parseInt(this.fieldValue.getValue(), 0)));
 
             /*
              * The value of the primary row is only written over the selection when the admin typed a different number.
@@ -1453,24 +1636,33 @@ public class AdminConfigScreen extends Screen
         refreshFields();
     }
 
-    private void toggleChapter()
+    /**
+     * A row of the all offerings filter belongs to the creature table when the id lives there, otherwise to the item
+     * table; the two id spaces never overlap, so one lookup is enough.
+     */
+    private boolean usesEntityTable(String key)
     {
-        applyFieldsToSelection();
-        this.entityChapter = !this.entityChapter;
-        this.selectedValueIndices.clear();
-        this.scrollBar.setValue(0);
-        rebuildValueKeys();
-        refreshFields();
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return true;
+        }
+
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return false;
+        }
+
+        return this.itemValues.entitiesOrEmpty().containsKey(key);
     }
 
     private int valueOfKey(String key)
     {
-        return this.entityChapter ? this.itemValues.entityValueOf(key) : this.itemValues.itemValueOf(key);
+        return usesEntityTable(key) ? this.itemValues.entityValueOf(key) : this.itemValues.itemValueOf(key);
     }
 
     private void setValueOfKey(String key, int value)
     {
-        if (this.entityChapter)
+        if (usesEntityTable(key))
         {
             this.itemValues.entities.put(key, Integer.valueOf(value));
         }
@@ -1482,7 +1674,20 @@ public class AdminConfigScreen extends Screen
 
     private Map<String, Number> currentChapter()
     {
-        return this.entityChapter ? this.itemValues.entitiesOrEmpty() : this.itemValues.itemsOrEmpty();
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return this.itemValues.itemsOrEmpty();
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return this.itemValues.entitiesOrEmpty();
+        }
+
+        Map<String, Number> merged = new TreeMap<String, Number>();
+        merged.putAll(this.itemValues.itemsOrEmpty());
+        merged.putAll(this.itemValues.entitiesOrEmpty());
+        return merged;
     }
 
     private void cycleNotifyMode()
@@ -1578,7 +1783,9 @@ public class AdminConfigScreen extends Screen
             {
                 for (String key : keys)
                 {
-                    currentChapter().remove(key);
+                    /* The id lives in exactly one of the two tables, so removing it from both clears either case. */
+                    this.itemValues.itemsOrEmpty().remove(key);
+                    this.itemValues.entitiesOrEmpty().remove(key);
                 }
 
                 this.selectedValueIndices.clear();

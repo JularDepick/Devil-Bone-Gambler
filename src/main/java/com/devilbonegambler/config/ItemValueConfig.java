@@ -140,7 +140,7 @@ public class ItemValueConfig
             return fallback;
         }
 
-        return (int) Math.min(Integer.MAX_VALUE, Math.round(raw));
+        return (int) Math.min(ModConstants.MAX_ITEM_VALUE, Math.round(raw));
     }
 
     public ItemValueConfig copy()

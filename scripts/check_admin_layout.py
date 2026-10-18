@@ -139,6 +139,53 @@ def main() -> int:
 
         previous_bottom = top + control
 
+    # 底部那一排按钮的宽度必须跟随各自文本, 不能再写死. 确认按钮要同时容纳普通与确认文案.
+    if "private int fitWidth(Component... labels)" not in text:
+        problems.append("the bottom row does not measure its buttons against their labels")
+
+    if "BUTTON_PADDING_X = 5" not in text:
+        problems.append("the bottom row padding constant is missing")
+
+    parts = text.split("int buttonY =", 1)
+
+    if len(parts) == 2:
+        row = parts[1].split("this.adminButton", 1)[0]
+
+        for literal in ("size(68, 18)", "size(24, 18)", "size(64, 18)", "size(52, 18)"):
+            if literal in row:
+                problems.append("a bottom row button still uses a fixed width: " + literal)
+    else:
+        problems.append("the bottom row could not be located")
+
+    # 祭品价值的筛选必须挂在标签按钮上, 不能再有单独按钮.
+    if "chapterButton" in text or "toggleChapter" in text:
+        problems.append("the value filter still owns a separate button")
+
+    if "onValueTabClicked" not in text or "cycleValueChapter" not in text:
+        problems.append("the value tab button does not cycle the filter")
+
+    if "CHAPTER_COUNT = 3" not in text or "admin.chapter_all" not in text:
+        problems.append("the three way value filter is missing")
+
+    # 价值页需要一个与输入框双向绑定的滑条, 范围 0 到 100000, 步长 100.
+    if "VALUE_MAX = ModConstants.MAX_ITEM_VALUE" not in text or "VALUE_STEP = 100" not in text:
+        problems.append("the value slider range or step is missing")
+
+    for marker in ("valueSlider", "onValueTyped", "onValueSliderMoved", "setValueListener", "setFilter"):
+        if marker not in text:
+            problems.append("the value field and slider are not bound: missing " + marker)
+
+    slider_source = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "IntSlider.java").read_text(encoding="utf-8")
+
+    for marker in ("private final int step", "snapNearest", "public void onRelease"):
+        if marker not in slider_source:
+            problems.append("the slider does not snap to its step: missing " + marker)
+
+    item_values = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "config" / "ItemValueConfig.java").read_text(encoding="utf-8")
+
+    if "ModConstants.MAX_ITEM_VALUE" not in item_values:
+        problems.append("the server accepts offering values above the cap the panel shows")
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)
