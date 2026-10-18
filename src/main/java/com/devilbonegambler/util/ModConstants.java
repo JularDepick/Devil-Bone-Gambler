@@ -139,7 +139,7 @@ public final class ModConstants
      * The glow a dealer carries: half of a torch. A torch sits at fourteen, so the dealer sits at seven, and like the
      * altar it has to be a block, because this Minecraft version gives no light to an entity.
      */
-    public static final int DEALER_LIGHT_LEVEL = 7;
+    public static final int DEALER_LIGHT_LEVEL = 14;
     /* How often a dealer re-checks which block it is standing in, in ticks. */
     public static final int DEALER_GLOW_INTERVAL_TICKS = 10;
 
@@ -287,6 +287,8 @@ public final class ModConstants
      * all, so a long fight slows down and finally stops instead of running forever.
      */
     public static final int DEALER_PATH_RADIUS = 8;
+    /* A dealer with room walks towards a dice on the ground inside this radius instead of a random spot. */
+    public static final int DEALER_DICE_LURE_RADIUS = 8;
     public static final int DEALER_PATH_SAMPLES = 16;
     public static final int DEALER_PATH_TIMEOUT_TICKS = 400;
     public static final double DEALER_LIGHT_WEIGHT = 4.0D;

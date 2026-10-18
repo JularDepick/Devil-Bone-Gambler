@@ -6,12 +6,16 @@
 
 package com.devilbonegambler.mob;
 
+import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.EnumSet;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
@@ -94,6 +98,20 @@ public class DealerWanderGoal extends Goal
         double bestScore = Double.NEGATIVE_INFINITY;
         int radius = ModConstants.DEALER_PATH_RADIUS;
 
+        /*
+         * A dealer that still has room in its pocket walks to the nearest dice on the ground instead of a random spot,
+         * so the walk itself brings it within reach of the pickup.
+         */
+        if (this.dealer.pocketDice() < this.dealer.pocketCapacity())
+        {
+            BlockPos lure = this.lureToDice(level);
+
+            if (lure != null)
+            {
+                return lure;
+            }
+        }
+
         for (int index = 0; index < ModConstants.DEALER_PATH_SAMPLES; index++)
         {
             int dx = random.nextInt(radius * 2 + 1) - radius;
@@ -121,6 +139,54 @@ public class DealerWanderGoal extends Goal
         }
 
         return best;
+    }
+
+    /**
+     * A standable block right next to the nearest gambler's dice, or null when nothing lies within the lure radius.
+     */
+    private BlockPos lureToDice(Level level)
+    {
+        List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class, this.dealer.getBoundingBox().inflate(
+                ModConstants.DEALER_DICE_LURE_RADIUS));
+        ItemEntity nearest = null;
+        double bestDistance = Double.MAX_VALUE;
+
+        for (ItemEntity drop : drops)
+        {
+            ItemStack stack = drop.getItem();
+
+            if (!stack.is(ModItems.GAMBLERS_DICE.get()))
+            {
+                continue;
+            }
+
+            double distance = drop.distanceToSqr(this.dealer);
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                nearest = drop;
+            }
+        }
+
+        if (nearest == null)
+        {
+            return null;
+        }
+
+        BlockPos dropPos = nearest.blockPosition();
+
+        for (Direction direction : Direction.Plane.HORIZONTAL)
+        {
+            BlockPos candidate = dropPos.relative(direction);
+
+            if (this.isStandable(level, candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return this.isStandable(level, dropPos) ? dropPos : null;
     }
 
     private boolean isStandable(Level level, BlockPos pos)

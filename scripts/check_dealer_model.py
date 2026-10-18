@@ -387,7 +387,7 @@ def check_dealer_glow():
         encoding="utf-8")
 
     check("荷官自带光照强度", glow.exists() and "DEALER_LIGHT_LEVEL" in constants)
-    check("亮度为火把的一半", re.search(r"DEALER_LIGHT_LEVEL\s*=\s*7\b", constants) is not None
+    check("亮度与火把相同", re.search(r"DEALER_LIGHT_LEVEL\s*=\s*14\b", constants) is not None
           and re.search(r"ALTAR_LIGHT_LEVEL\s*=\s*14\b", constants) is not None)
     check("光照块已注册且没有物品", "DEALER_GLOW" in blocks and "BLOCK_ITEMS.register(\"dealer_glow\"" not in blocks)
     check("光照跟着荷官走", "tickGlow" in dealer and "clearGlow" in dealer)
@@ -546,6 +546,12 @@ def check_bar_economy():
     check("攻击伤害随生命上限", "getMaxHealth() / ModConstants.PLAYER_BASE_MAX_HEALTH" in dealer
           and "DEALER_TERRITORY_MAX_DAMAGE" in dealer)
     check("每二十刻掉一次", "DEALER_DECAY_INTERVAL_TICKS = 20" in constants and "tickSatiety" in dealer)
+    wander = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "DealerWanderGoal.java").read_text(encoding="utf-8")
+    check("寻路会靠近骰子", "DEALER_DICE_LURE_RADIUS = 8" in constants
+          and "lureToDice" in wander
+          and "this.dealer.pocketDice() < this.dealer.pocketCapacity()" in wander)
+
+
     check("一昼夜掉一百点", "DEALER_DAY_TICKS" in constants
           and "100.0D * DEALER_DECAY_INTERVAL_TICKS / DEALER_DAY_TICKS" in constants)
     body = dealer[dealer.index("private void tickSatiety"):]
