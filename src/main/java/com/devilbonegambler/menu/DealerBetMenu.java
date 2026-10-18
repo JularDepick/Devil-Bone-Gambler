@@ -282,7 +282,7 @@ public class DealerBetMenu extends AbstractContainerMenu
         @Override
         public boolean mayPlace(ItemStack stack)
         {
-            return DealerBetMenu.this.canEditBet();
+            return DealerBetMenu.this.canEditBet() && DealerBetBox.isAllowedBet(stack);
         }
 
         @Override

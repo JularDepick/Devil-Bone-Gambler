@@ -7,6 +7,7 @@
 package com.devilbonegambler.dealer;
 
 import com.devilbonegambler.config.ItemValueConfig;
+import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
 import java.util.ArrayList;
@@ -87,11 +88,25 @@ public final class DealerBetBox implements Container
     }
 
     /**
+     * A bet may hold anything but the manuals that follow a role: those are bound to their holder and turn up again in
+     * the hands of the same player, so offering one as a stake would only create an item the winner cannot keep.
+     */
+    public static boolean isAllowedBet(ItemStack stack)
+    {
+        return stack.isEmpty() || !(stack.is(ModItems.ADMIN_MANUAL.get()) || stack.is(ModItems.CREATOR_MANUAL.get()));
+    }
+
+    /**
      * Moves up to the given amount out of the source stack, merging into matching slots before using empty ones.
      * Returns how many items were moved, zero when the box has no room at all.
      */
     public int insert(ItemStack source, int amount)
     {
+        if (!isAllowedBet(source))
+        {
+            return 0;
+        }
+
         int remaining = Math.min(Math.max(0, amount), source.getCount());
         int moved = 0;
 
@@ -141,6 +156,11 @@ public final class DealerBetBox implements Container
      */
     public int insert(ItemStack source, int amount, int preferredIndex)
     {
+        if (!isAllowedBet(source))
+        {
+            return 0;
+        }
+
         int remaining = Math.min(Math.max(0, amount), source.getCount());
 
         if (remaining <= 0 || preferredIndex < 0 || preferredIndex >= this.slots.size())
@@ -309,7 +329,7 @@ public final class DealerBetBox implements Container
     @Override
     public void setItem(int index, ItemStack stack)
     {
-        if (index < 0 || index >= this.slots.size())
+        if (index < 0 || index >= this.slots.size() || !isAllowedBet(stack))
         {
             return;
         }

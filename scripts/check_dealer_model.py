@@ -591,6 +591,17 @@ def check_countdown():
           and "broadcastMembers(server, session, Component.translatable(KEY_COUNTDOWN" in service)
 
 
+def check_bet_rule():
+    """Binding manuals follow their holder, so a bet box refuses them while any other item may be staked."""
+    box = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerBetBox.java").read_text(encoding="utf-8")
+    menu = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "menu" / "DealerBetMenu.java").read_text(encoding="utf-8")
+
+    check("赌注拒收绑定手册", "public static boolean isAllowedBet(ItemStack stack)" in box
+          and "ModItems.ADMIN_MANUAL" in box and "ModItems.CREATOR_MANUAL" in box)
+    check("赌注入箱前先校验", "if (!isAllowedBet(source))" in box and "!isAllowedBet(stack)" in box)
+    check("赌注格同用一条规则", "DealerBetBox.isAllowedBet(stack)" in menu)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -617,6 +628,7 @@ def main():
     check_hurt_condition()
     check_player_hits()
     check_countdown()
+    check_bet_rule()
 
     print("")
     print("调色板清单:")

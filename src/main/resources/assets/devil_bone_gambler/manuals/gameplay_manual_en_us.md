@@ -72,6 +72,7 @@
 - The first seconds of the recruit and its last seconds carry a chime, and the countdown between them is quiet
 - In the last five seconds the joined players see a one second countdown in chat
 - Clicking your own cell opens your own bet box to put in and take out freely, and clicking another cell only shows that box
+- The manuals that follow a role cannot be put into a bet box, every other item can
 - When the recruit ends the countdown starts: members outside the range are pulled back to the dealer at once, and a member without a stake is removed
 - The point picks one member and the colour decides the payout: red takes every stake plus one more copy of the own stake, black takes every stake only
 - Leaving closes the bet box and returns the stake; a wager with too few members or without the one who started it is cancelled with every stake returned
