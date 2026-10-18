@@ -7,6 +7,7 @@
 package com.devilbonegambler.manual;
 
 import com.devilbonegambler.DevilBoneGambler;
+import com.devilbonegambler.altar.AltarManualConversion;
 import com.devilbonegambler.config.AccessConfig;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.draw.NotifySender;
@@ -53,6 +54,8 @@ public final class ManualService
      * that was dropped is gone from the world and back in the inventory of its holder.
      */
     private static int countdown;
+    /* Ticks between two scans of the dropped gameplay manuals that lie inside an altar range. */
+    private static int conversionCountdown;
 
     private ManualService()
     {
@@ -94,12 +97,6 @@ public final class ManualService
             return;
         }
 
-        if (++countdown < ModConstants.MANUAL_CALIBRATION_INTERVAL_TICKS)
-        {
-            return;
-        }
-
-        countdown = 0;
         MinecraftServer server = event.getServer();
 
         if (server == null)
@@ -107,6 +104,18 @@ public final class ManualService
             return;
         }
 
+        if (++conversionCountdown >= ModConstants.MANUAL_CONVERSION_INTERVAL_TICKS)
+        {
+            conversionCountdown = 0;
+            AltarManualConversion.onServerTick(server);
+        }
+
+        if (++countdown < ModConstants.MANUAL_CALIBRATION_INTERVAL_TICKS)
+        {
+            return;
+        }
+
+        countdown = 0;
         discardBoundManuals(server);
 
         for (ServerPlayer player : server.getPlayerList().getPlayers())

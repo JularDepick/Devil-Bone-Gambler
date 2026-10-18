@@ -124,6 +124,37 @@ def main() -> int:
     if "suppressNotice" in item or "manual.kept" in item:
         problems.append("the manual item still prompts about a drop")
 
+    conversion_path = SOURCE_ROOT / "altar" / "AltarManualConversion.java"
+
+    if not conversion_path.is_file():
+        problems.append("the altar manual conversion service is missing")
+    else:
+        conversion = conversion_path.read_text(encoding="utf-8")
+
+        if "AltarManualConversion.onServerTick(server)" not in service:
+            problems.append("the manual service does not run the altar conversion")
+
+        if "MANUAL_CONVERSION_INTERVAL_TICKS" not in service:
+            problems.append("the altar conversion does not run on its own interval")
+
+        if "ModItems.GAMEPLAY_MANUAL" not in conversion:
+            problems.append("the altar conversion does not consume gameplay manuals")
+
+        if "ADMIN_MANUAL" in conversion or "CREATOR_MANUAL" in conversion:
+            problems.append("the altar conversion consumes a bound manual")
+
+        if "ModItems.GAMBLERS_DICE" not in conversion or "ModItems.DEVILS_DICE" not in conversion:
+            problems.append("the altar conversion does not produce both dice")
+
+        if "rangeSource" not in conversion:
+            problems.append("the altar conversion does not check the altar range")
+
+        if "MANUAL_CONVERSION_MIN_COUNT" not in conversion:
+            problems.append("the altar conversion does not use the minimum pile size")
+
+        if "MANUAL_CONVERSION_RATIO_MIN" not in conversion or "MANUAL_CONVERSION_RATIO_MAX" not in conversion:
+            problems.append("the altar conversion does not split the pile at a random ratio")
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)
