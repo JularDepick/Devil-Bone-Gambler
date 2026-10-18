@@ -110,3 +110,5 @@
 - A placeholder only samples a registry id and never spawns an entity or places a block in the world; the enchanted book is the one exception and comes out as a real book
 - Try a line in chat with /dbgr run <command with placeholders>; only the creator and the admins may use it
 - The sampled id is plain text inside the command, so the command still follows the vanilla syntax; try a changed line in a single player world first
+- After the draw the name of every sampled entry is appended to the display text, separated by spaces; entries without placeholders are untouched
+- The preset pool holds 604 entries in 6 regions and is written only when the pool file does not exist yet; an existing world keeps its own pool

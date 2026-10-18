@@ -36,6 +36,12 @@
 - The screen closes as soon as the offering is submitted and shows Please wait for the settlement; when it settles, the chat box first reports the converted value of the offering, then the draw result
 - The more valuable the offering, the more the range and the level of the altar grow, and the chat reports the settled value after the submission
 
+### Manuals into dice
+
+- Drop at least 8 gameplay manuals inside an altar range and the altar takes them, turning them into the same number of dice
+- How many dice of each kind you get is random, and the split differs on every conversion
+- Role bound manuals cannot be converted this way
+
 ## Offering Value Table
 
 - Hold the table and right click it to open a searchable list of the values of items and creatures
