@@ -415,6 +415,45 @@ public final class ModConstants
     public static final String RANDOM_TOKEN_CLOSE = "}";
     public static final String RANDOM_AIR_ID = "minecraft:air";
 
+    /*
+     * Sample space placeholders: ^(TYPE) or ^(TYPE)[namespace]. The spaces are discovered from the live registries on
+     * every world load and stored in their own config file, so a new game version or a new mod only changes the file.
+     */
+    public static final String SAMPLE_SPACE_FILE = "sample_spaces.json";
+    public static final String SAMPLE_TYPE_ITEM = "ITEM";
+    public static final String SAMPLE_TYPE_BLOCK = "BLOCK";
+    public static final String SAMPLE_TYPE_ENTITY = "ENTITY";
+    public static final String SAMPLE_TYPE_MOB = "MOB";
+    public static final String SAMPLE_TYPE_EFFECT = "EFFECT";
+    public static final String SAMPLE_TYPE_ENCHANTMENT = "ENCHANTMENT";
+    public static final String SAMPLE_TYPE_POTION = "POTION";
+    public static final String SAMPLE_TYPE_SOUND = "SOUND";
+    public static final String SAMPLE_TYPE_PARTICLE = "PARTICLE";
+    public static final String SAMPLE_TYPE_PAINTING = "PAINTING";
+    public static final String SAMPLE_TYPE_ATTRIBUTE = "ATTRIBUTE";
+    public static final String SAMPLE_TYPE_FLUID = "FLUID";
+    public static final String SAMPLE_TYPE_BIOME = "BIOME";
+    public static final String SAMPLE_TYPE_STRUCTURE = "STRUCTURE";
+    public static final String SAMPLE_TYPE_DAMAGE_TYPE = "DAMAGE_TYPE";
+    public static final String SAMPLE_DERIVED_BUFF = "BUFF";
+    public static final String SAMPLE_DERIVED_DEBUFF = "DEBUFF";
+    public static final String SAMPLE_DERIVED_NEUBUFF = "NEUBUFF";
+    public static final String SAMPLE_DERIVED_BUFF_ENCHANTMENT = "BUFF_ENCHANTMENT";
+    public static final String SAMPLE_DERIVED_CURSE = "CURSE";
+    public static final String SAMPLE_DERIVED_ENCHANTED_BOOK = "ENCHANTED_BOOK";
+    public static final java.util.List<String> SAMPLE_DERIVED_TYPES = java.util.List.of(
+            SAMPLE_DERIVED_BUFF,
+            SAMPLE_DERIVED_DEBUFF,
+            SAMPLE_DERIVED_NEUBUFF,
+            SAMPLE_DERIVED_BUFF_ENCHANTMENT,
+            SAMPLE_DERIVED_CURSE,
+            SAMPLE_DERIVED_ENCHANTED_BOOK
+    );
+    public static final String SAMPLE_FALLBACK_ID = "minecraft:stone";
+    public static final String SAMPLE_FALLBACK_EFFECT = "minecraft:speed";
+    public static final String SAMPLE_FALLBACK_ENCHANTMENT = "minecraft:sharpness";
+    public static final String SAMPLE_BOOK_SAMPLE = "minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:sharpness\",lvl:1}]}";
+
     /**
      * Pool name at the given index, or null when the index is outside the table.
      */

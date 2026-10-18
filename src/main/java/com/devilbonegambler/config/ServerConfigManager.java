@@ -54,6 +54,7 @@ public final class ServerConfigManager
     private static PrizePoolConfig prizePool;
     private static ItemValueConfig itemValues;
     private static RandomPoolConfig randomPools;
+    private static SampleSpaceConfig sampleSpaces;
     private static AccessConfig access;
     private static Path configDir;
     private static MinecraftServer serverRef;
@@ -154,6 +155,16 @@ public final class ServerConfigManager
         return randomPools == null ? "{}" : GSON.toJson(randomPools);
     }
 
+    public static SampleSpaceConfig sampleSpaces()
+    {
+        return sampleSpaces;
+    }
+
+    public static String sampleSpacesJson()
+    {
+        return sampleSpaces == null ? "{}" : GSON.toJson(sampleSpaces);
+    }
+
     public static AccessConfig access()
     {
         return access;
@@ -227,6 +238,7 @@ public final class ServerConfigManager
         prizePool = null;
         itemValues = null;
         randomPools = null;
+        sampleSpaces = null;
         access = null;
         configDir = null;
         serverRef = null;
@@ -254,6 +266,7 @@ public final class ServerConfigManager
         prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
         randomPools = readRandomPools(root.resolve(ModConstants.RANDOM_POOL_FILE));
+        sampleSpaces = readSampleSpaces(root.resolve(ModConstants.SAMPLE_SPACE_FILE));
 
         Path accessPath = root.resolve(ModConstants.ACCESS_FILE);
         boolean accessMissing = !Files.isRegularFile(accessPath);
@@ -280,6 +293,11 @@ public final class ServerConfigManager
             writeRandomPools();
         }
 
+        if (refreshSampleSpaces(server))
+        {
+            writeSampleSpaces();
+        }
+
         serverRef = server;
         refreshCommandValidity();
 
@@ -297,6 +315,9 @@ public final class ServerConfigManager
                 Integer.valueOf(itemValues.revisionOrZero()));
         DevilBoneGambler.LOGGER.info("Random pools refreshed: {} entries over {} pools",
                 Integer.valueOf(randomPools.totalEntries()), Integer.valueOf(ModConstants.RANDOM_POOLS.length));
+        DevilBoneGambler.LOGGER.info("Sample spaces refreshed: {} entries over {} spaces",
+                Integer.valueOf(sampleSpaces == null ? 0 : sampleSpaces.totalEntries()),
+                Integer.valueOf(sampleSpaces == null ? 0 : sampleSpaces.spacesOrEmpty().size()));
     }
 
     /**
@@ -598,6 +619,71 @@ public final class ServerConfigManager
 
         changed |= randomPools.replacePool(ModConstants.RANDOM_POOL_POTION, potions);
         return changed;
+    }
+
+    /**
+     * Rebuilds the sample spaces from the live registries. Like the random pools the spaces are overwritten, so an
+     * uninstalled mod never lingers, and the file is only rewritten when the installed content really changed.
+     */
+    private static boolean refreshSampleSpaces(MinecraftServer server)
+    {
+        if (sampleSpaces == null)
+        {
+            sampleSpaces = SampleSpaceConfig.empty();
+        }
+
+        SampleSpaceConfig scanned = SampleSpaceConfig.scan(server);
+        boolean changed = sampleSpaces.replaceFrom(scanned);
+
+        if (changed)
+        {
+            sampleSpaces.normalize();
+        }
+
+        return changed;
+    }
+
+    private static SampleSpaceConfig readSampleSpaces(Path path)
+    {
+        if (!Files.isRegularFile(path))
+        {
+            SampleSpaceConfig created = SampleSpaceConfig.empty();
+            created.normalize();
+            return created;
+        }
+
+        try
+        {
+            SampleSpaceConfig loaded = GSON.fromJson(readText(path), SampleSpaceConfig.class);
+
+            if (loaded == null)
+            {
+                throw new IllegalStateException("empty sample space file");
+            }
+
+            loaded.normalize();
+            return loaded;
+        }
+        catch (RuntimeException exception)
+        {
+            DevilBoneGambler.LOGGER.error("Failed to read {}, the spaces are rebuilt from the registries instead", path,
+                    exception);
+            backup(path);
+            SampleSpaceConfig created = SampleSpaceConfig.empty();
+            created.normalize();
+            return created;
+        }
+    }
+
+    private static void writeSampleSpaces()
+    {
+        if (configDir == null || sampleSpaces == null)
+        {
+            return;
+        }
+
+        sampleSpaces.normalize();
+        writeJson(configDir.resolve(ModConstants.SAMPLE_SPACE_FILE), sampleSpaces);
     }
 
     private static RandomPoolConfig readRandomPools(Path path)

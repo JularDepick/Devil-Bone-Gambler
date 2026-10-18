@@ -11,6 +11,7 @@ import com.devilbonegambler.altar.AltarService;
 import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.util.CommandPlaceholders;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.SampleContext;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import java.util.ArrayList;
@@ -64,9 +65,18 @@ public final class CommandRunner
     }
 
     /**
-     * Executes every line in order and returns how many commands were dispatched.
+     * Executes every line in order and returns how many commands were dispatched. A caller without a draw passes
+     * null, which samples the spaces without point or colour bias.
      */
     public static int run(MinecraftServer server, ServerPlayer trigger, String raw)
+    {
+        return run(server, trigger, raw, null);
+    }
+
+    /**
+     * Executes every line in order with the roll attributes of the draw that triggered it.
+     */
+    public static int run(MinecraftServer server, ServerPlayer trigger, String raw, SampleContext context)
     {
         int executed = 0;
 
@@ -87,6 +97,15 @@ public final class CommandRunner
             {
                 DevilBoneGambler.LOGGER.warn(
                         "Skipped a prize command line, a referenced player or altar is unavailable, line={}", line);
+                continue;
+            }
+
+            command = SamplePlaceholders.expand(command, context);
+
+            if (command == null)
+            {
+                DevilBoneGambler.LOGGER.warn(
+                        "Skipped a prize command line, a sample space is unknown or empty, line={}", line);
                 continue;
             }
 
@@ -133,6 +152,13 @@ public final class CommandRunner
                 return placeholderProblem;
             }
 
+            String sampleProblem = SamplePlaceholders.findProblem(line);
+
+            if (sampleProblem != null)
+            {
+                return sampleProblem;
+            }
+
             if (dispatcher == null || source == null)
             {
                 continue;
@@ -140,7 +166,8 @@ public final class CommandRunner
 
             try
             {
-                ParseResults<S> results = dispatcher.parse(CommandPlaceholders.sampleForm(line), source);
+                ParseResults<S> results = dispatcher.parse(
+                        SamplePlaceholders.sampleForm(CommandPlaceholders.sampleForm(line)), source);
 
                 if (!results.getExceptions().isEmpty())
                 {

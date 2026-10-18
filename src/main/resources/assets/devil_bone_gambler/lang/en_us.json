@@ -59,6 +59,7 @@
   "gui.devil_bone_gambler.admin.add_region": "Add Region",
   "gui.devil_bone_gambler.admin.add_entry": "Add Entry",
   "gui.devil_bone_gambler.command.reloaded": "Devil Bone Gambler config reloaded",
+  "gui.devil_bone_gambler.command.ran": "%s command(s) ran",
   "gui.devil_bone_gambler.admin.remove": "Remove",
   "gui.devil_bone_gambler.admin.remove_confirm": "Confirm delete",
   "gui.devil_bone_gambler.admin.refresh": "Reload",

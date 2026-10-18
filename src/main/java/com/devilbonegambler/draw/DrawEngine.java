@@ -26,6 +26,7 @@ import com.devilbonegambler.util.ItemValuation;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.OfferEligibility;
 import com.devilbonegambler.util.Placeholders;
+import com.devilbonegambler.util.SampleContext;
 import com.devilbonegambler.util.ServerScheduler;
 import java.util.List;
 import java.util.UUID;
@@ -209,7 +210,9 @@ public final class DrawEngine
             return;
         }
 
-        int commandResult = CommandRunner.run(server, player, pending.hit.commandOrEmpty());
+        int commandResult = CommandRunner.run(server, player, pending.hit.commandOrEmpty(),
+                new SampleContext(pending.roll.point(), pending.overflow, pending.luck, pending.roll.isRed(),
+                        pending.seed));
 
         if (commandResult <= 0)
         {

@@ -69,3 +69,17 @@
 
 - Every prompt appears in the chat box
 - A command runs exactly as written, so try a change in a single player save first
+
+## Mod command placeholder system
+
+- A command line may carry ^(TYPE) or ^(TYPE)[namespace], and the mod replaces it with one id picked from that type's sample space
+- The types are discovered from the installed content after every world load and written to sample_spaces.json in the config directory, so a game update or a new mod only changes that file instead of the source of this mod
+- Without the brackets the whole space is used; with them only that namespace is used
+- The colour decides the range: a red point picks only positive samples and a black point only negative ones, falling back to the whole space when the type has no such sample
+- The higher the point and the overflow, the more the pick leans to the rare part of the space; a higher luck value leans to rare and positive samples as well
+- General types: ITEM, BLOCK, ENTITY, MOB, EFFECT, ENCHANTMENT, POTION, SOUND, PARTICLE, PAINTING, ATTRIBUTE, FLUID, BIOME, STRUCTURE, DAMAGE_TYPE
+- Focused types: BUFF, DEBUFF and NEUBUFF pick effects by category, BUFF_ENCHANTMENT picks positive enchantments, CURSE picks curses, and ENCHANTED_BOOK hands out an enchanted book directly
+- One line may carry several placeholders, each sampled on its own
+- A placeholder only samples a registry id and never spawns an entity or places a block in the world; the enchanted book is the one exception and comes out as a real book
+- Try a line in chat with /dbgr run <command with placeholders>; only the creator and the admins may use it
+- The sampled id is plain text inside the command, so the command still follows the vanilla syntax; try a changed line in a single player world first

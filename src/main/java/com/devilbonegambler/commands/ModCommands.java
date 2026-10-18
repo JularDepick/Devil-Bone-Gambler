@@ -10,6 +10,8 @@ import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.network.ServerRequestHandler;
 import com.devilbonegambler.util.ModConstants;
+import com.devilbonegambler.util.SampleContext;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -33,6 +35,8 @@ public final class ModCommands
     private static final String SHORT_LITERAL = "dbgr";
     private static final String CONFIG_LITERAL = "config";
     private static final String RELOAD_LITERAL = "reload";
+    private static final String RUN_LITERAL = "run";
+    private static final String RUN_ARGUMENT = "command";
 
     private ModCommands()
     {
@@ -57,7 +61,11 @@ public final class ModCommands
                         .executes(ModCommands::openPanel))
                 .then(Commands.literal(RELOAD_LITERAL)
                         .requires(ModCommands::mayManage)
-                        .executes(ModCommands::reload));
+                        .executes(ModCommands::reload))
+                .then(Commands.literal(RUN_LITERAL)
+                        .requires(ModCommands::mayManage)
+                        .then(Commands.argument(RUN_ARGUMENT, StringArgumentType.greedyString())
+                                .executes(ModCommands::runLine)));
     }
 
     /**
@@ -81,6 +89,35 @@ public final class ModCommands
         }
 
         ServerRequestHandler.sendPanel(player);
+        return 1;
+    }
+
+    /**
+     * Runs one command line with the sample space placeholders of the mod, in chat, so an admin can try a line before
+     * putting it into a prize entry. The line is sampled without point or colour bias.
+     */
+    private static int runLine(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
+    {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        MinecraftServer server = context.getSource().getServer();
+
+        if (server == null)
+        {
+            return 0;
+        }
+
+        String raw = StringArgumentType.getString(context, RUN_ARGUMENT);
+        int executed = CommandRunner.run(server, player, raw, SampleContext.DEFAULT);
+
+        if (executed <= 0)
+        {
+            NotifySender.sendFailure(player, "command_failed");
+            return 0;
+        }
+
+        context.getSource().sendSuccess(
+                () -> Component.translatable("gui." + ModConstants.MOD_ID + ".command.ran", Integer.valueOf(executed)),
+                false);
         return 1;
     }
 
