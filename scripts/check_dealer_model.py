@@ -562,6 +562,21 @@ def check_bar_economy():
     check("主持从创建就开始", "dealer.setHosting(true)" in (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8"))
 
 
+def check_player_hits():
+    """Players cannot hurt a busy dealer at all, and an idle dealer takes at most one player hit per second."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
+    hurt = dealer[dealer.index("public boolean hurt(DamageSource source, float amount)"):]
+    hurt = hurt[:hurt.index("private void dropHurtDice")]
+
+    check("招募主持竞争时挡住玩家攻击", "source.getEntity() instanceof Player" in hurt
+          and "if (this.isHosting() || this.isDefendingTerritory())" in hurt
+          and hurt.index("return false;") < hurt.index("super.hurt(source, amount)"))
+    check("空闲玩家攻击一秒冷却", "DEALER_PLAYER_HIT_COOLDOWN_TICKS = 20" in constants
+          and "getGameTime() - this.lastPlayerHitTick" in hurt
+          and "this.lastPlayerHitTick = this.level().getGameTime()" in hurt)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -586,6 +601,7 @@ def main():
     check_recruit_text()
     check_neutrality()
     check_hurt_condition()
+    check_player_hits()
 
     print("")
     print("调色板清单:")

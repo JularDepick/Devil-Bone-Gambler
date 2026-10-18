@@ -80,6 +80,8 @@ public class GamblersDealer extends PathfinderMob
     private int escapeCooldown;
     /* Countdown to the next drain or recovery step of the two bars. */
     private int decayTicks = ModConstants.DEALER_DECAY_INTERVAL_TICKS;
+    /* The tick of the last player hit that really landed, for the one second window of an idle dealer. */
+    private long lastPlayerHitTick = -ModConstants.DEALER_PLAYER_HIT_COOLDOWN_TICKS;
     private boolean hosting;
     /* Business names (hosting, recruiting) are shown to everyone, the idle name only to the player who looks at it. */
     private boolean showNameToEveryone;
@@ -976,16 +978,39 @@ public class GamblersDealer extends PathfinderMob
      * loot, which stays the only guaranteed handful. A hit that is shrugged off without losing a point, for example one
      * cancelled by resistance, frees nothing. Most wounds free nothing at all, so a fight over a dealer is not a dice
      * farm.
+     * A player can only hurt an idle dealer: while it recruits, hosts or fights a rival every player hit is swallowed
+     * without a sound, and an idle dealer takes at most one player hit per second.
      */
     @Override
     public boolean hurt(DamageSource source, float amount)
     {
+        boolean fromPlayer = source.getEntity() instanceof Player;
+
+        if (fromPlayer)
+        {
+            if (this.isHosting() || this.isDefendingTerritory())
+            {
+                return false;
+            }
+
+            if (this.level().getGameTime() - this.lastPlayerHitTick
+                    < ModConstants.DEALER_PLAYER_HIT_COOLDOWN_TICKS)
+            {
+                return false;
+            }
+        }
+
         float healthBefore = this.getHealth();
         boolean taken = super.hurt(source, amount);
 
         if (taken && this.getHealth() < healthBefore && !this.isDeadOrDying())
         {
             this.dropHurtDice();
+        }
+
+        if (taken && fromPlayer)
+        {
+            this.lastPlayerHitTick = this.level().getGameTime();
         }
 
         return taken;

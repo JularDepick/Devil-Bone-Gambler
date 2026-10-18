@@ -58,6 +58,7 @@
 - When its health or food drops to six tenths, the dealer eats dice from the pocket one by one, each restoring half of a bar, and it stops once both are full; it neither picks up nor eats while fighting another dealer
 - Whatever a meal cannot restore turns into experience: the more experience, the larger the pocket, the higher both ceilings and the harder it hits
 - A wound may shake dice out of the pocket and an empty pocket shakes out nothing
+- A recruiting, hosting or fighting dealer takes no damage from players at all, and an idle one takes a player hit at most once per second
 - A dealer hates liquid: in water or lava it climbs out at once, and while wet it neither fights nor eats
 - Its food drains with time and runs out over a whole day; during a recruit or a wager it stops draining and both bars refill slowly instead, as if the players were feeding it
 - A fallen dealer drops the dice still left in its pocket

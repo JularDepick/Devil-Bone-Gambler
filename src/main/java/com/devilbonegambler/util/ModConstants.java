@@ -336,6 +336,8 @@ public final class ModConstants
     /* One minute, written out because the tick helper is declared further down and cannot be read from here. */
     public static final int DEALER_HURT_DROP_WINDOW_TICKS = 1200;
     public static final int DEALER_HURT_DROP_WINDOW_MAX = 6;
+    /* A player attack on an idle dealer lands at most once per second, and never while it is busy. */
+    public static final int DEALER_PLAYER_HIT_COOLDOWN_TICKS = 20;
     /*
      * The idle name of a dealer is only readable up close and only for the player who looks at it, while the hosting
      * and recruiting names are business and stay over its head for everyone.
