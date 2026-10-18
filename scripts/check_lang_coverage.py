@@ -143,10 +143,33 @@ def main() -> int:
         problems.append("no preset entry slugs could be read from DefaultPrizePool")
 
     for slug in slugs:
-        for family in ("entry." + MOD_ID + "." + slug, PREFIX + ".notify." + slug):
-            for name, table in langs.items():
-                if family not in table:
-                    problems.append("missing " + family + " in " + name)
+        family = "entry." + MOD_ID + "." + slug
+
+        for name, table in langs.items():
+            if family not in table:
+                problems.append("missing " + family + " in " + name)
+
+            # 预设展示文本属于配置数据, 语言文件里不得再有它, 否则文本又会随语言切换.
+            display = PREFIX + ".notify." + slug
+
+            if display in table:
+                problems.append("preset display text is still a language key: " + display + " in " + name)
+
+    reward = PREFIX + ".draw.reward"
+
+    for name, table in langs.items():
+        if reward not in table:
+            problems.append("missing " + reward + " in " + name)
+
+    preset_source = (SOURCE_ROOT / "com" / "devilbonegambler" / "config" / "DefaultPrizePool.java").read_text(encoding="utf-8")
+
+    if '{"translate"' in preset_source:
+        problems.append("the preset pool still writes a text component instead of a plain string")
+
+    sender_source = (SOURCE_ROOT / "com" / "devilbonegambler" / "draw" / "NotifySender.java").read_text(encoding="utf-8")
+
+    if "Component.Serializer" in sender_source:
+        problems.append("a display text is still parsed as a component")
 
     modes = notify_modes()
 

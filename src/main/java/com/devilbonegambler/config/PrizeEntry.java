@@ -105,14 +105,12 @@ public class PrizeEntry
     }
 
     /**
-     * Name of this entry as a player or an administrator reads it.
-     * A preset entry keeps its name as a text component, so the name follows the language of whoever reads it, while a
-     * name an administrator typed is a plain literal. A configuration written before that change still stores the
-     * preset slug and is resolved through the preset table.
+     * Name of this entry as a player or an administrator reads it. The name is a plain string stored in the config file:
+     * a preset name is written in the language the file was created in and never follows a later language change.
      */
     public String displayName()
     {
-        return DefaultPrizePool.displayName(this.id);
+        return this.id == null ? "" : this.id;
     }
 
     public PrizeEntry copy()

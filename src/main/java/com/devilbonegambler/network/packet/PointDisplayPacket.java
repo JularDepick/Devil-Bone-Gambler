@@ -21,13 +21,15 @@ public class PointDisplayPacket
     private final int sequence;
     private final int point;
     private final boolean red;
+    private final boolean devils;
     private final int overflow;
 
-    public PointDisplayPacket(int sequence, int point, boolean red, int overflow)
+    public PointDisplayPacket(int sequence, int point, boolean red, boolean devils, int overflow)
     {
         this.sequence = sequence;
         this.point = point;
         this.red = red;
+        this.devils = devils;
         this.overflow = overflow;
     }
 
@@ -46,6 +48,14 @@ public class PointDisplayPacket
         return this.red;
     }
 
+    /**
+     * True for the devil dice, whose name is shown in red above the hotbar; the gambler dice is named in white.
+     */
+    public boolean devils()
+    {
+        return this.devils;
+    }
+
     public int overflow()
     {
         return this.overflow;
@@ -56,6 +66,7 @@ public class PointDisplayPacket
         buffer.writeVarInt(message.sequence);
         buffer.writeVarInt(message.point);
         buffer.writeBoolean(message.red);
+        buffer.writeBoolean(message.devils);
         buffer.writeVarInt(message.overflow);
     }
 
@@ -64,8 +75,9 @@ public class PointDisplayPacket
         int sequence = buffer.readVarInt();
         int point = buffer.readVarInt();
         boolean red = buffer.readBoolean();
+        boolean devils = buffer.readBoolean();
         int overflow = buffer.readVarInt();
-        return new PointDisplayPacket(sequence, point, red, overflow);
+        return new PointDisplayPacket(sequence, point, red, devils, overflow);
     }
 
     public static void handle(PointDisplayPacket message, Supplier<NetworkEvent.Context> contextSupplier)

@@ -19,6 +19,7 @@ import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
+import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.util.InventoryHandover;
 import com.devilbonegambler.util.ItemValuation;
@@ -141,7 +142,8 @@ public final class DrawEngine
             return DrawResult.failure("item_mismatch");
         }
 
-        ModNetwork.sendToPlayer(player, new PointDisplayPacket(sequence, roll.point(), roll.isRed(), overflow));
+        ModNetwork.sendToPlayer(player, new PointDisplayPacket(sequence, roll.point(), roll.isRed(),
+                dice == ModItems.DEVILS_DICE.get(), overflow));
         RequestGuard.markBusy(player, ModConstants.POINT_DISPLAY_TICKS);
 
         PendingDraw pending = new PendingDraw(player.getUUID(), sequence, itemId, roll, baseTier, targetTier, overflow,

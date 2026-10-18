@@ -780,9 +780,9 @@ public final class WagerService
 
     private static Component withEntryText(Component prefix, ServerPlayer player, PrizeEntry entry)
     {
-        return prefix.copy()
-                .append(Component.literal(TEXT_SEPARATOR))
-                .append(NotifySender.entryText(player, entry.notifyOrDefault()));
+        Component result = NotifySender.entryText(player, entry.notifyOrDefault());
+        return result == null ? prefix.copy()
+                : prefix.copy().append(Component.literal(TEXT_SEPARATOR)).append(result);
     }
 
     private static List<String> namesExcept(List<ServerPlayer> players, ServerPlayer excluded)

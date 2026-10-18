@@ -6,7 +6,6 @@
 
 package com.devilbonegambler.draw;
 
-import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.util.ModConstants;
@@ -15,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -35,7 +33,15 @@ public final class NotifySender
 
     public static void sendEntryResult(ServerPlayer player, NotifyConfig notify)
     {
-        send(player, notify.modeOrDefault(), entryText(player, notify));
+        Component text = entryText(player, notify);
+
+        if (text == null)
+        {
+            return;
+        }
+
+        send(player, notify.modeOrDefault(), Component.translatable("gui." + ModConstants.MOD_ID + ".draw.reward",
+                text));
     }
 
     public static void sendFailure(ServerPlayer player, String reasonKey)
@@ -61,10 +67,14 @@ public final class NotifySender
             return;
         }
 
+        Component result = entryText(source, entry.notifyOrDefault());
         Component text = Component.translatable("gui." + ModConstants.MOD_ID + ".major_event",
-                source.getGameProfile().getName())
-                .append(Component.literal(" "))
-                .append(entryText(source, entry.notifyOrDefault()));
+                source.getGameProfile().getName());
+
+        if (result != null)
+        {
+            text = text.copy().append(Component.literal(" ")).append(result);
+        }
 
         for (ServerPlayer target : server.getPlayerList().getPlayers())
         {
@@ -132,9 +142,8 @@ public final class NotifySender
     }
 
     /**
-     * The configured text is either plain text or a vanilla text component in JSON form.
-     * A text that looks like a component but does not parse falls back to the default wording, so a broken
-     * configuration never prints its raw JSON, with registry names and command syntax, into the chat box.
+     * The display text of an entry is a plain string stored in the config file. Placeholders are expanded, and an entry
+     * without text has no result line at all instead of a placeholder wording.
      */
     public static Component entryText(ServerPlayer player, NotifyConfig notify)
     {
@@ -142,36 +151,9 @@ public final class NotifySender
 
         if (raw == null || raw.trim().isEmpty())
         {
-            return defaultText();
+            return null;
         }
 
-        String trimmed = raw.trim();
-
-        if (trimmed.startsWith("{") || trimmed.startsWith("["))
-        {
-            try
-            {
-                MutableComponent parsed = Component.Serializer.fromJson(trimmed);
-
-                if (parsed != null)
-                {
-                    return parsed;
-                }
-            }
-            catch (RuntimeException exception)
-            {
-                DevilBoneGambler.LOGGER.warn("The result text of a prize entry is not a valid text component, "
-                        + "the default wording is used instead");
-            }
-
-            return defaultText();
-        }
-
-        return Component.literal(raw);
-    }
-
-    private static Component defaultText()
-    {
-        return Component.translatable("gui." + ModConstants.MOD_ID + ".notify.default");
+        return Component.literal(raw.trim());
     }
 }

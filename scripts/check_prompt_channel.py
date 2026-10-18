@@ -2,9 +2,10 @@
 Guards the promise that no mod prompt is ever written above the hotbar, and that repeated refusals do not flood the chat
 box.
 
-The action bar area belongs to the game itself: every mod prompt is expected on the chat box, the item tooltip or a
-screen. This check scans the mod sources and resources for any API or configuration value that writes there, and
-exits non zero when one is found, so a future change can not quietly reintroduce it.
+The action bar area belongs to the game itself with one exception: the rolled dice point and colour, which the
+player asked for above the hotbar. This check scans the mod sources and resources for any API or configuration value
+that writes there, allows exactly that one call and exits non zero for every other one, so a future change can not
+quietly reintroduce a second prompt.
 
 The second check proves that an identical notice is held back for a second: refusals, and every invalid action that
 repeats, such as sneaking with the dice while nobody is nearby or right clicking the dice outside an altar range. A
@@ -97,10 +98,48 @@ def cooldown_problems():
     return problems
 
 
+def dice_prompt_problems():
+    # The one allowed action bar writer: the rolled point and colour above the hotbar.
+    actions = (SOURCE_ROOT / "com" / "devilbonegambler" / "client" / "ClientActions.java").read_text(encoding="utf-8")
+    problems = []
+
+    if actions.count("setOverlayMessage(") != 1:
+        problems.append("the dice prompt must be the only action bar call in ClientActions")
+
+    start = actions.find("public static void showPointDisplay")
+
+    if start < 0:
+        problems.append("the dice prompt method is missing")
+        return problems
+
+    end = actions.find("\n    }", start)
+    method = actions[start:end if end > 0 else len(actions)]
+
+    for marker in ("gamblers", "devils", "color.", "setOverlayMessage("):
+        if marker not in method:
+            problems.append("the dice prompt does not build the expected line: missing " + marker)
+
+    if "overflow" in method:
+        problems.append("the dice prompt shows the overflow value again")
+
+    if "getChat().addMessage" in method:
+        problems.append("the dice prompt is back in the chat box")
+
+    return problems
+
+
 def main():
     findings = scan(SOURCE_ROOT, {".java"}, SOURCE_PATTERNS)
     findings += scan(RESOURCE_ROOT, {".json"}, RESOURCE_PATTERNS)
+    allowed = [finding for finding in findings
+               if "setOverlayMessage" in finding and "ClientActions.java" in finding]
+    findings = [finding for finding in findings if finding not in allowed]
+
+    if len(allowed) != 1:
+        findings.append("expected exactly one allowed action bar call, found " + str(len(allowed)))
+
     findings += cooldown_problems()
+    findings += dice_prompt_problems()
 
     if findings:
         print("FAILED: the action bar area must stay free of mod prompts")
@@ -110,7 +149,7 @@ def main():
 
         return 1
 
-    print("OK: no mod prompt writes above the hotbar, repeated refusals are held back")
+    print("OK: only the dice point line writes above the hotbar, repeated refusals are held back")
     print("  scanned %d java patterns and %d resource patterns" % (len(SOURCE_PATTERNS), len(RESOURCE_PATTERNS)))
     return 0
 

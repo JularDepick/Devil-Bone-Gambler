@@ -27,6 +27,7 @@ import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.UUID;
 import java.util.List;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -211,9 +212,11 @@ public final class ClientActions
     }
 
     /**
-     * Shows the rolled point and colour in the chat box, before the result text arrives.
+     * The rolled point and colour, shown above the hotbar and nowhere else: the dice name in white for the gambler dice
+     * and in red for the devil dice, the point in white, the colour word painted with the colour it names. The overflow
+     * value stays out of this line on purpose.
      */
-    public static void showPointDisplay(int point, boolean red, int overflow)
+    public static void showPointDisplay(int point, boolean red, boolean devils)
     {
         Minecraft minecraft = Minecraft.getInstance();
 
@@ -222,19 +225,18 @@ public final class ClientActions
             return;
         }
 
-        Component text = Component.translatable("gui." + ModConstants.MOD_ID + ".dice.point", Integer.valueOf(point))
-                .append(Component.literal(" "))
-                .append(Component.translatable("gui." + ModConstants.MOD_ID + ".dice.color."
-                        + (red ? "red" : "black")));
-
-        if (overflow > 0)
-        {
-            text = text.copy().append(Component.literal(" "))
-                    .append(Component.translatable("gui." + ModConstants.MOD_ID + ".dice.overflow",
-                            Integer.valueOf(overflow)));
-        }
-
-        minecraft.gui.getChat().addMessage(text);
+        Component name = Component.translatable(devils
+                ? "gui." + ModConstants.MOD_ID + ".dice.devils"
+                : "gui." + ModConstants.MOD_ID + ".dice.gamblers")
+                .withStyle(devils ? ChatFormatting.RED : ChatFormatting.WHITE);
+        Component points = Component.translatable("gui." + ModConstants.MOD_ID + ".dice.points",
+                Integer.valueOf(point)).withStyle(ChatFormatting.WHITE);
+        Component colour = Component.translatable(red
+                ? "gui." + ModConstants.MOD_ID + ".dice.color.red"
+                : "gui." + ModConstants.MOD_ID + ".dice.color.black")
+                .withStyle(red ? ChatFormatting.RED : ChatFormatting.BLACK);
+        minecraft.gui.setOverlayMessage(name.copy().append(Component.literal(" ")).append(points)
+                .append(Component.literal(" ")).append(colour), false);
     }
 
     public static String devilsDiceId()

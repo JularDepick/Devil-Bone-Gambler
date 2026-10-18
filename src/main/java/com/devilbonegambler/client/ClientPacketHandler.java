@@ -138,7 +138,7 @@ public final class ClientPacketHandler
 
     public static void handlePointDisplay(PointDisplayPacket message)
     {
-        ClientActions.showPointDisplay(message.point(), message.red(), message.overflow());
+        ClientActions.showPointDisplay(message.point(), message.red(), message.devils());
     }
 
     public static void handleMobList(MobListPacket message)
