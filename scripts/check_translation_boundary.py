@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 LANG = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang"
 MANUALS = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "manuals"
 PREFIX = "gui.devil_bone_gambler."
-PRESET_SOURCE = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "config" / "DefaultPrizePool.java"
+PRESET_SOURCE = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "config" / "DefaultPrizePoolData.java"
 CJK = re.compile(r"[\u4e00-\u9fff]")
 PLACEHOLDER = re.compile(r"%[sd]")
 
@@ -107,20 +107,28 @@ def main() -> int:
                                 + " | " + match.group(1))
 
     preset = PRESET_SOURCE.read_text(encoding="utf-8")
-    chinese_rows = len(CJK.findall(preset))
-    rows = len(re.findall(r'\{"[a-z0-9_]+", "[^"]+", "[^"]+"\}', preset))
+    row_pattern = re.compile(
+        r'^\s*\{"\d+", "((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", '
+        r'"((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", "[0-9.]+", '
+        r'"(?:red|black)", "(?:true|false)", "(?:[^"\\]|\\.)*"\},\s*$', re.MULTILINE)
+    rows = row_pattern.findall(preset)
 
-    if rows != 24 or chinese_rows < 24:
-        problems.append("the preset text table no longer holds 24 Chinese and English rows")
+    if len(rows) < 600:
+        problems.append("the preset table holds only " + str(len(rows)) + " entries")
 
-    slugs = sorted(set(re.findall(r'add\(\s*[A-Za-z]+,\s*"([A-Za-z0-9_]+)"', preset)))
+    for nzh, nen, tzh, ten in rows:
+        if not nzh or not nen or not tzh or not ten:
+            problems.append("empty preset column: " + nzh + " | " + nen)
+        if CJK.search(nen) or CJK.search(ten):
+            problems.append("Chinese text in the English preset column: " + nzh + " | " + nen)
 
-    for slug in slugs:
-        display = PREFIX + ".notify." + slug
+    for table, name in ((zh, "zh_cn"), (en, "en_us")):
+        stale = sorted(key for key in table
+                       if key.startswith("entry.devil_bone_gambler.")
+                       or (key.startswith(PREFIX + "notify.") and not key.startswith(PREFIX + "notify.mode.")))
 
-        for table, name in ((zh, "zh_cn"), (en, "en_us")):
-            if display in table:
-                problems.append("preset display text is a language key again: " + display + " in " + name)
+        for key in stale:
+            problems.append("preset text is a language key again: " + key + " in " + name)
 
     for key in (PREFIX + "language", PREFIX + "draw.reward"):
         for table, name in ((zh, "zh_cn"), (en, "en_us")):
@@ -143,7 +151,7 @@ def main() -> int:
 
         return 1
 
-    print("translation boundary check passed: " + str(len(zh)) + " keys, " + str(len(slugs)) + " presets")
+    print("translation boundary check passed: " + str(len(zh)) + " keys, " + str(len(rows)) + " preset entries")
     return 0
 
 

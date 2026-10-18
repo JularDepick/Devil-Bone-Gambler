@@ -47,6 +47,15 @@ public final class ModConstants
      * a player enough time to put a manual back into the inventory by hand before a pass can react.
      */
     public static final int MANUAL_CALIBRATION_INTERVAL_TICKS = 200;
+    /*
+     * Dropped gameplay manuals inside an altar range turn into dice. A pile counts only once it holds at least
+     * MANUAL_CONVERSION_MIN_COUNT manuals; the pile then yields one die per manual, split between the two kinds at a
+     * ratio drawn uniformly from the min to the max so the mix is never predictable.
+     */
+    public static final int MANUAL_CONVERSION_INTERVAL_TICKS = 20;
+    public static final int MANUAL_CONVERSION_MIN_COUNT = 8;
+    public static final double MANUAL_CONVERSION_RATIO_MIN = 0.25D;
+    public static final double MANUAL_CONVERSION_RATIO_MAX = 0.75D;
     /* A held dice reveals what it belongs to: the reach, the rescan interval and the white highlight both share. */
     public static final double DICE_SIGHT_ALTAR_RADIUS = 24.0D;
     public static final double DICE_SIGHT_DEALER_RADIUS = 24.0D;
@@ -81,9 +90,9 @@ public final class ModConstants
      */
     public static final int MIN_REGION_TIER = 1;
     public static final int MAX_REGIONS = 6;
-    public static final int DEFAULT_REGION_COUNT = 3;
+    public static final int DEFAULT_REGION_COUNT = 6;
     public static final int MAX_ENTRIES_PER_REGION = 128;
-    public static final int MAX_TOTAL_ENTRIES = 512;
+    public static final int MAX_TOTAL_ENTRIES = 768;
 
     public static final int MAX_COMMAND_LENGTH = 512;
     public static final int MAX_NOTIFY_TEXT_LENGTH = 256;

@@ -80,11 +80,6 @@ def emitted_keys():
     return keys
 
 
-def preset_slugs():
-    text = (SOURCE_ROOT / "com" / "devilbonegambler" / "config" / "DefaultPrizePool.java").read_text(encoding="utf-8")
-    return sorted(set(re.findall(r'add\(\s*[A-Za-z]+,\s*"([A-Za-z0-9_]+)"', text)))
-
-
 def notify_modes():
     text = (SOURCE_ROOT / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
     return sorted(set(re.findall(r'NOTIFY_MODE_[A-Z_]+[A-Za-z_]*\s*=\s*"([A-Za-z0-9_]+)"', text)))
@@ -137,23 +132,14 @@ def main() -> int:
     if only_en:
         problems.append("keys only in en_us.json: " + ", ".join(only_en))
 
-    slugs = preset_slugs()
+    # 预设条目的名称与展示文本属于配置数据, 已随 DefaultPrizePoolData 以双语字面量冻结, 语言文件里不得再有它们.
+    for name, table in langs.items():
+        stale = sorted(key for key in table
+                       if key.startswith("entry." + MOD_ID + ".")
+                       or (key.startswith(PREFIX + ".notify.") and not key.startswith(PREFIX + ".notify.mode.")))
 
-    if not slugs:
-        problems.append("no preset entry slugs could be read from DefaultPrizePool")
-
-    for slug in slugs:
-        family = "entry." + MOD_ID + "." + slug
-
-        for name, table in langs.items():
-            if family not in table:
-                problems.append("missing " + family + " in " + name)
-
-            # 预设展示文本属于配置数据, 语言文件里不得再有它, 否则文本又会随语言切换.
-            display = PREFIX + ".notify." + slug
-
-            if display in table:
-                problems.append("preset display text is still a language key: " + display + " in " + name)
+        for key in stale:
+            problems.append("preset text is still a language key: " + key + " in " + name)
 
     reward = PREFIX + ".draw.reward"
 
@@ -204,8 +190,8 @@ def main() -> int:
 
         return 1
 
-    print("translation coverage check passed (" + str(len(keys)) + " emitted keys, " + str(len(slugs))
-          + " presets, " + str(len(modes)) + " notify modes, " + str(len(reason_codes(langs))) + " reason codes, "
+    print("translation coverage check passed (" + str(len(keys)) + " emitted keys, "
+          + str(len(modes)) + " notify modes, " + str(len(reason_codes(langs))) + " reason codes, "
           + str(len(defined["zh_cn.json"])) + " keys per file)")
     return 0
 
