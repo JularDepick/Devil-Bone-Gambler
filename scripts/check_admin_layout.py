@@ -157,6 +157,16 @@ def main() -> int:
     else:
         problems.append("the bottom row could not be located")
 
+    # 祭品价值的筛选必须挂在标签按钮上, 不能再有单独按钮.
+    if "chapterButton" in text or "toggleChapter" in text:
+        problems.append("the value filter still owns a separate button")
+
+    if "onValueTabClicked" not in text or "cycleValueChapter" not in text:
+        problems.append("the value tab button does not cycle the filter")
+
+    if "CHAPTER_COUNT = 3" not in text or "admin.chapter_all" not in text:
+        problems.append("the three way value filter is missing")
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)

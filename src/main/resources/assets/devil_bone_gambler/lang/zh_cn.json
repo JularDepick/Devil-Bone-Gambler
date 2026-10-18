@@ -77,6 +77,7 @@
   "gui.devil_bone_gambler.admin.toggle_black": "黑色",
   "gui.devil_bone_gambler.admin.major_event_on": "重大事件",
   "gui.devil_bone_gambler.admin.major_event_off": "普通条目",
+  "gui.devil_bone_gambler.admin.chapter_all": "祭品价值",
   "gui.devil_bone_gambler.admin.chapter_item": "物品价值",
   "gui.devil_bone_gambler.admin.chapter_entity": "生物价值",
   "gui.devil_bone_gambler.admin.column_tier": "区域",

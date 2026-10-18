@@ -36,7 +36,7 @@
 ## Offering value configuration
 
 - The columns are the name and the value
-- The button on the top cycles the offering values and the creature values, and the filter box matches both names and registry names
+- The value tab opens this page on the first click, and every later click cycles the filter through offering values, item values and creature values without clearing the filter box; the box matches both names and registry names
 - An entry that is not registered is drawn in a muted colour, and resting the pointer on it explains why
 - A filled value is written into every selected entry
 

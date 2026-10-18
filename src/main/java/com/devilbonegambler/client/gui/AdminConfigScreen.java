@@ -78,6 +78,11 @@ public class AdminConfigScreen extends Screen
     private static final int CONTENT_ROW_HEIGHT = 24;
     private static final int LABEL_GAP = 10;
     private static final int TOGGLE_WIDTH = 70;
+    /* The value tab carries its own filter and cycles all offerings, item values and creature values. */
+    private static final int CHAPTER_ALL = 0;
+    private static final int CHAPTER_ITEMS = 1;
+    private static final int CHAPTER_ENTITIES = 2;
+    private static final int CHAPTER_COUNT = 3;
     /*
      * Rows of the right column. A text field is fourteen pixels tall and carries its label in the ten pixels above it,
      * which is the rhythm of CONTENT_ROW_HEIGHT; a row of buttons is two pixels taller, so the row after it starts two
@@ -181,8 +186,7 @@ public class AdminConfigScreen extends Screen
     private EditBox fieldTier;
     private Button colorButton;
     private Button majorEventButton;
-    private Button chapterButton;
-    private boolean entityChapter;
+    private int valueChapter;
     private EditBox fieldId;
     private EditBox fieldWeight;
     private EditBox fieldCommand;
@@ -305,7 +309,7 @@ public class AdminConfigScreen extends Screen
         this.tabPrizeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")),
                 button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + TAB_Y).size(88, 16).build());
         this.tabValueButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_value")),
-                button -> switchTab(true)).pos(this.leftPos + 100, this.topPos + TAB_Y).size(88, 16).build());
+                button -> onValueTabClicked()).pos(this.leftPos + 100, this.topPos + TAB_Y).size(88, 16).build());
 
         this.fieldTier = addField(ROW_REGION_Y, Component.translatable(key("admin.label_region")), 6);
         this.colorButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleColor())
@@ -346,8 +350,6 @@ public class AdminConfigScreen extends Screen
                 .size(TOGGLE_WIDTH, 16).build());
 
         this.fieldValue = addField(ROW_REGION_Y, Component.translatable(key("admin.label_value")), 12);
-        this.chapterButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleChapter())
-                .pos(this.leftPos + EDIT_X, this.topPos + ROW_COLOR_Y).size(EDIT_WIDTH, 16).build());
 
         this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + FILTER_Y, LIST_WIDTH, FIELD_HEIGHT,
                 Component.translatable(key("admin.filter")));
@@ -902,6 +904,79 @@ public class AdminConfigScreen extends Screen
         this.scrollBar.setValue(0);
         this.tooltip.reset();
         refreshFields();
+        updateTabMessages();
+    }
+
+    /**
+     * The value tab button carries the filter: the first click opens the tab and keeps the search box as it is, and
+     * every later click cycles the filter through all offerings, item values and creature values.
+     */
+    private void onValueTabClicked()
+    {
+        if (!this.valueTab)
+        {
+            switchTab(true);
+            return;
+        }
+
+        cycleValueChapter();
+    }
+
+    private void cycleValueChapter()
+    {
+        applyFieldsToSelection();
+        this.valueChapter = (this.valueChapter + 1) % CHAPTER_COUNT;
+        this.selectedValueIndices.clear();
+        this.scrollBar.setValue(0);
+        rebuildValueKeys();
+        refreshFields();
+        updateTabMessages();
+    }
+
+    /**
+     * The value tab shows the current filter on its own button, so the filter needs no extra widget of its own.
+     */
+    private void updateTabMessages()
+    {
+        if (this.tabValueButton == null)
+        {
+            return;
+        }
+
+        this.tabValueButton.setMessage(Component.translatable(key(this.valueTab ? chapterKey() : "admin.tab_value")));
+    }
+
+    private String chapterKey()
+    {
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return "admin.chapter_item";
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return "admin.chapter_entity";
+        }
+
+        return "admin.chapter_all";
+    }
+
+    /**
+     * The filter belongs to the visit, not to the panel: closing the screen returns to all offerings and an empty
+     * search box, so the next open always starts from the same place.
+     */
+    @Override
+    public void onClose()
+    {
+        this.valueChapter = CHAPTER_ALL;
+        this.selectedValueIndices.clear();
+
+        if (this.fieldFilter != null)
+        {
+            this.fieldFilter.setValue("");
+        }
+
+        super.onClose();
     }
 
     /**
@@ -1069,12 +1144,22 @@ public class AdminConfigScreen extends Screen
      */
     private String nameOf(String id)
     {
-        return this.entityChapter ? ItemLabels.entityName(id) : ItemLabels.itemName(id);
+        return usesEntityTable(id) ? ItemLabels.entityName(id) : ItemLabels.itemName(id);
     }
 
     private boolean isRegisteredValue(String id)
     {
-        return this.entityChapter ? this.itemValues.isRegisteredEntity(id) : this.itemValues.isRegisteredItem(id);
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return this.itemValues.isRegisteredItem(id);
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return this.itemValues.isRegisteredEntity(id);
+        }
+
+        return this.itemValues.isRegisteredEntity(id) || this.itemValues.isRegisteredItem(id);
     }
 
     private int listRowAt(double mouseX, double mouseY)
@@ -1214,7 +1299,6 @@ public class AdminConfigScreen extends Screen
         setVisible(this.notifyModeButton, main && entryRow != null);
         setVisible(this.enabledButton, main && entryRow != null);
         setVisible(this.fieldValue, main && this.valueTab);
-        setVisible(this.chapterButton, main && this.valueTab);
         setVisible(this.fieldFilter, main && this.valueTab);
         setVisible(this.commandEditor, this.commandEditorOpen);
         setVisible(this.commandApplyButton, this.commandEditorOpen);
@@ -1261,8 +1345,6 @@ public class AdminConfigScreen extends Screen
 
         if (this.valueTab)
         {
-            this.chapterButton.setMessage(Component.translatable(key(this.entityChapter
-                    ? "admin.chapter_entity" : "admin.chapter_item")));
             this.fieldValue.setValue(Integer.toString(selectedValue()));
             this.baselineValue = selectedValue();
             this.valueBaselineReady = true;
@@ -1500,24 +1582,33 @@ public class AdminConfigScreen extends Screen
         refreshFields();
     }
 
-    private void toggleChapter()
+    /**
+     * A row of the all offerings filter belongs to the creature table when the id lives there, otherwise to the item
+     * table; the two id spaces never overlap, so one lookup is enough.
+     */
+    private boolean usesEntityTable(String key)
     {
-        applyFieldsToSelection();
-        this.entityChapter = !this.entityChapter;
-        this.selectedValueIndices.clear();
-        this.scrollBar.setValue(0);
-        rebuildValueKeys();
-        refreshFields();
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return true;
+        }
+
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return false;
+        }
+
+        return this.itemValues.entitiesOrEmpty().containsKey(key);
     }
 
     private int valueOfKey(String key)
     {
-        return this.entityChapter ? this.itemValues.entityValueOf(key) : this.itemValues.itemValueOf(key);
+        return usesEntityTable(key) ? this.itemValues.entityValueOf(key) : this.itemValues.itemValueOf(key);
     }
 
     private void setValueOfKey(String key, int value)
     {
-        if (this.entityChapter)
+        if (usesEntityTable(key))
         {
             this.itemValues.entities.put(key, Integer.valueOf(value));
         }
@@ -1529,7 +1620,20 @@ public class AdminConfigScreen extends Screen
 
     private Map<String, Number> currentChapter()
     {
-        return this.entityChapter ? this.itemValues.entitiesOrEmpty() : this.itemValues.itemsOrEmpty();
+        if (this.valueChapter == CHAPTER_ITEMS)
+        {
+            return this.itemValues.itemsOrEmpty();
+        }
+
+        if (this.valueChapter == CHAPTER_ENTITIES)
+        {
+            return this.itemValues.entitiesOrEmpty();
+        }
+
+        Map<String, Number> merged = new TreeMap<String, Number>();
+        merged.putAll(this.itemValues.itemsOrEmpty());
+        merged.putAll(this.itemValues.entitiesOrEmpty());
+        return merged;
     }
 
     private void cycleNotifyMode()
@@ -1625,7 +1729,9 @@ public class AdminConfigScreen extends Screen
             {
                 for (String key : keys)
                 {
-                    currentChapter().remove(key);
+                    /* The id lives in exactly one of the two tables, so removing it from both clears either case. */
+                    this.itemValues.itemsOrEmpty().remove(key);
+                    this.itemValues.entitiesOrEmpty().remove(key);
                 }
 
                 this.selectedValueIndices.clear();
