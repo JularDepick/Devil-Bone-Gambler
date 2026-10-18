@@ -7,12 +7,14 @@
 package com.devilbonegambler.mob;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
+import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.List;
@@ -51,20 +53,32 @@ public class GamblersDealer extends PathfinderMob
 {
     private static final String TAG_SATIETY = "DealerSatiety";
     private static final String TAG_STAY = "DealerStayTicks";
+    private static final String TAG_HURT_DROP_START = "DealerHurtDropStart";
+    private static final String TAG_HURT_DROP_COUNT = "DealerHurtDropCount";
+    private static final String TAG_POCKET = "DealerPocket";
+    private static final String TAG_EXPERIENCE = "DealerExperience";
     private static final String KEY_RECRUITING = "gui." + ModConstants.MOD_ID + ".dealer.recruiting";
     private static final String KEY_IDLE_NAME = "gui." + ModConstants.MOD_ID + ".dealer.name_tag";
 
     private GamblersDealer rival;
     private int territoryCheckTicks;
     private int territoryAttackTicks;
-    /* Swings since the last satiety point was spent on the fight. */
-    private int territorySwings;
     /* The block the dealer is currently lighting, and the countdown until the next look at it. */
     private BlockPos glowAt;
     private int glowTicks;
-    private int satiety = ModConstants.DEALER_MAX_SATIETY;
+    private double satiety = ModConstants.DEALER_MAX_SATIETY;
+    /* The dice in the pocket and the experience gathered from the wasted part of a meal. */
+    private int pocketDice = ModConstants.DEALER_POCKET_INITIAL_DICE;
+    private double experience;
+    /* The one minute window of hurt drops, opened by the hit that first frees dice, and what it has already handed out. */
+    private long hurtDropWindowStart = -1L;
+    private int hurtDropWindowCount;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
     private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
+    /* Countdown to the next look for a shore while the dealer is standing in liquid. */
+    private int escapeCooldown;
+    /* Countdown to the next drain or recovery step of the two bars. */
+    private int decayTicks = ModConstants.DEALER_DECAY_INTERVAL_TICKS;
     private boolean hosting;
     /* Business names (hosting, recruiting) are shown to everyone, the idle name only to the player who looks at it. */
     private boolean showNameToEveryone;
@@ -75,6 +89,7 @@ public class GamblersDealer extends PathfinderMob
         this.setPersistenceRequired();
         /* Every dealer carries its idle name from the start, no matter how it was created. */
         this.showIdleName();
+        this.applyProgress();
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -83,6 +98,26 @@ public class GamblersDealer extends PathfinderMob
                 .add(Attributes.MAX_HEALTH, ModConstants.DEALER_MAX_HEALTH)
                 .add(Attributes.MOVEMENT_SPEED, 0.5D)
                 .add(Attributes.FOLLOW_RANGE, 16.0D);
+    }
+
+    /**
+     * The dealer is neutral. Neither its type nor its behaviour makes it a monster, and no mob counts it as an enemy,
+     * so hostile creatures never pick it up as a target; only another dealer fights it, and that fight calls the damage
+     * directly instead of asking the target selectors.
+     */
+    @Override
+    public boolean canBeSeenAsEnemy()
+    {
+        return false;
+    }
+
+    /**
+     * The dealer attacks dealers and nothing else, even if a future goal asks whether some other creature is fair game.
+     */
+    @Override
+    public boolean canAttackType(EntityType<?> type)
+    {
+        return type == ModEntities.GAMBLERS_DEALER.get();
     }
 
     @Override
@@ -157,8 +192,8 @@ public class GamblersDealer extends PathfinderMob
         }
 
         /*
-         * A swing is paid for with the bar: every second swing eats one satiety point, and an empty bar leaves the
-         * dealer standing in front of its rival without attacking, so a long fight slows down and then stops.
+         * A swing is paid for with the bar: half a percent of the ceiling each time, and an empty bar leaves the dealer
+         * standing in front of its rival without attacking, so a long fight slows down and then stops.
          */
         if (this.satiety <= 0)
         {
@@ -168,13 +203,8 @@ public class GamblersDealer extends PathfinderMob
         this.territoryAttackTicks = ModConstants.DEALER_TERRITORY_ATTACK_INTERVAL_TICKS;
         this.swing(InteractionHand.MAIN_HAND);
         this.rival.hurt(this.damageSources().mobAttack(this), this.rollTerritoryDamage());
-        this.territorySwings++;
-
-        if (this.territorySwings >= ModConstants.DEALER_TERRITORY_SWINGS_PER_SATIETY)
-        {
-            this.territorySwings = 0;
-            this.satiety = Math.max(0, this.satiety - 1);
-        }
+        this.satiety = Math.max(0.0D,
+                this.satiety - this.maxSatiety() * ModConstants.DEALER_SWING_COST_PERCENT / 100.0D);
     }
 
     /**
@@ -279,7 +309,8 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * Damage of one territory hit, somewhere between zero and five points.
+     * Damage of one territory hit: the current health ceiling divided by the player base, plus a roll between zero and
+     * five. Experience lifts the ceiling, so a grown dealer also hits harder.
      * The seed mixes the timestamp with the own health, satiety and position, so every hit rolls its own number and
      * the fight decides a winner instead of ending with both dealers dead.
      */
@@ -292,7 +323,107 @@ public class GamblersDealer extends PathfinderMob
                 ^ Double.doubleToLongBits(this.getY()) * 0xC2B2AE3D27D4EB4FL
                 ^ Double.doubleToLongBits(this.getZ()) * 0x165667B19E3779F9L
                 ^ (long) this.getId();
-        return new Random(seed).nextFloat() * ModConstants.DEALER_TERRITORY_MAX_DAMAGE;
+        float base = this.getMaxHealth() / ModConstants.PLAYER_BASE_MAX_HEALTH;
+        return base + new Random(seed).nextFloat() * ModConstants.DEALER_TERRITORY_MAX_DAMAGE;
+    }
+
+    /**
+     * True while the dealer stands in water, a bubble column or lava. The dealer hates liquid, so this is also the
+     * switch that puts everything else on hold.
+     */
+    public boolean isInLiquid()
+    {
+        return this.isInWaterOrBubble() || this.isInLava();
+    }
+
+    /**
+     * A dealer in liquid leaves it at once. The nearest dry spot is picked on a short interval and the move control
+     * drives straight at it, so neither a stray path nor a rival can keep it in the water; the float goal keeps its
+     * head above the surface in the meantime.
+     */
+    private void tickLiquidEscape()
+    {
+        this.getNavigation().stop();
+
+        if (this.escapeCooldown > 0)
+        {
+            this.escapeCooldown--;
+            return;
+        }
+
+        this.escapeCooldown = ModConstants.DEALER_LIQUID_ESCAPE_REPATH_TICKS;
+        BlockPos shore = this.findShore();
+
+        if (shore == null)
+        {
+            return;
+        }
+
+        this.getMoveControl().setWantedPosition(shore.getX() + 0.5D, shore.getY(), shore.getZ() + 0.5D,
+                ModConstants.DEALER_LIQUID_ESCAPE_SPEED);
+        this.getLookControl().setLookAt(shore.getX() + 0.5D, shore.getY() + 0.5D, shore.getZ() + 0.5D, 30.0F, 30.0F);
+    }
+
+    /**
+     * Nearest dry spot around the dealer, searched ring by ring so the closest shore wins. A spot may sit one or two
+     * blocks below or above, which covers a bank next to the water and a hole the dealer fell into.
+     */
+    private BlockPos findShore()
+    {
+        BlockPos origin = this.blockPosition();
+        int[] heights = {0, -1, 1, -2, 2};
+
+        for (int distance = 1; distance <= ModConstants.DEALER_LIQUID_ESCAPE_RADIUS; distance++)
+        {
+            for (int dx = -distance; dx <= distance; dx++)
+            {
+                for (int dz = -distance; dz <= distance; dz++)
+                {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != distance)
+                    {
+                        continue;
+                    }
+
+                    for (int dy : heights)
+                    {
+                        BlockPos candidate = origin.offset(dx, dy, dz);
+
+                        if (this.isDryStand(candidate))
+                        {
+                            return candidate;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isDryStand(BlockPos pos)
+    {
+        Level level = this.level();
+        BlockPos below = pos.below();
+        BlockState floor = level.getBlockState(below);
+
+        /* The spot needs solid ground that does not burn, and air (or a plant) instead of liquid at feet and head. */
+        if (!floor.isFaceSturdy(level, below, Direction.UP) || floor.is(Blocks.MAGMA_BLOCK))
+        {
+            return false;
+        }
+
+        BlockState feet = level.getBlockState(pos);
+
+        if (!feet.getFluidState().isEmpty() || feet.is(Blocks.FIRE) || feet.is(Blocks.SOUL_FIRE))
+        {
+            return false;
+        }
+
+        BlockState head = level.getBlockState(pos.above());
+
+        return head.getFluidState().isEmpty()
+                && feet.getCollisionShape(level, pos).isEmpty()
+                && head.getCollisionShape(level, pos.above()).isEmpty();
     }
 
     /**
@@ -302,8 +433,18 @@ public class GamblersDealer extends PathfinderMob
     protected void customServerAiStep()
     {
         super.customServerAiStep();
-        this.tickTerritory();
+
+        if (this.isInLiquid())
+        {
+            this.tickLiquidEscape();
+        }
+        else
+        {
+            this.tickTerritory();
+        }
+
         this.tickGlow();
+        this.tickSatiety();
 
         if (this.feedCooldown > 0)
         {
@@ -326,18 +467,91 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * One gambler's dice drop is eaten and refills both bars at once. A full dealer ignores nearby drops.
+     * The bars drain with time: one whole satiety bar per day, checked once per second. A recruit or a wager stops the
+     * drain and refills both bars at the same rate, because the players are feeding the dealer while it hosts. A
+     * satiety bar that runs dry spills into health, two percent of satiety for one percent of health.
+     */
+    private void tickSatiety()
+    {
+        if (this.decayTicks > 0)
+        {
+            this.decayTicks--;
+            return;
+        }
+
+        this.decayTicks = ModConstants.DEALER_DECAY_INTERVAL_TICKS;
+        double maxSatiety = this.maxSatiety();
+        double stepPercent = ModConstants.DEALER_DECAY_PERCENT_PER_INTERVAL;
+        double satietyStep = maxSatiety * stepPercent / 100.0D;
+
+        if (this.hosting)
+        {
+            this.satiety = Math.min(maxSatiety, this.satiety + satietyStep);
+            float healthStep = (float) (this.getMaxHealth() * stepPercent / 100.0D);
+            this.setHealth(Math.min(this.getMaxHealth(), this.getHealth() + healthStep));
+            return;
+        }
+
+        if (this.satiety >= satietyStep)
+        {
+            this.satiety -= satietyStep;
+            return;
+        }
+
+        double shortfall = satietyStep - this.satiety;
+        this.satiety = 0.0D;
+        double shortfallPercent = shortfall * 100.0D / maxSatiety;
+        this.drainHealth((float) (this.getMaxHealth()
+                * (shortfallPercent / ModConstants.DEALER_SATIETY_PERCENT_PER_HEALTH_PERCENT) / 100.0D));
+    }
+
+    /**
+     * Health taken by a drained bar, straight on the number: no hurt flash and no hurt sound for a drain that small,
+     * but a bar that reaches zero still kills the dealer.
+     */
+    private void drainHealth(float amount)
+    {
+        if (!(amount > 0.0F))
+        {
+            return;
+        }
+
+        float left = this.getHealth() - amount;
+
+        if (left > 0.0F)
+        {
+            this.setHealth(left);
+        }
+        else
+        {
+            this.setHealth(0.0F);
+            this.die(this.damageSources().starve());
+        }
+    }
+
+    /**
+     * A dealer looks at its pocket once per interval. A hungry one eats a dice from the pocket; a fed one that still has
+     * room picks one off the ground. Only the gambler's dice is food, the devil's dice is left where it lies.
      */
     private void tryFeed()
     {
         /*
-         * A dealer only reaches for a dice when one of its bars fell under the share, and it only eats the gambler's
-         * dice; the devil's dice is not food and is left where it lies.
+         * A fight comes first: while a rival is inside the territory the dealer neither picks up dice nor eats, so a
+         * meal cannot stall the fight and the dice on the ground wait for whoever wins. Feeding resumes once the rival
+         * is gone, and liquid is handled by the escape before this ever runs.
          */
-        boolean hungry = this.getHealth() < this.getMaxHealth() * ModConstants.DEALER_FEED_THRESHOLD
-                || this.satiety < ModConstants.DEALER_MAX_SATIETY * ModConstants.DEALER_FEED_THRESHOLD;
+        if (this.isInLiquid() || this.isDefendingTerritory())
+        {
+            return;
+        }
 
-        if (!hungry)
+        if (this.isHungry() && this.pocketDice > 0)
+        {
+            this.eatFromPocket();
+            return;
+        }
+
+        if (this.pocketDice >= this.pocketCapacity())
         {
             return;
         }
@@ -361,21 +575,123 @@ public class GamblersDealer extends PathfinderMob
                 drop.discard();
             }
 
-            this.setHealth(this.getMaxHealth());
-            this.satiety = ModConstants.DEALER_MAX_SATIETY;
-            this.playSound(SoundEvents.GENERIC_EAT, 1.0F, 1.0F);
+            this.pocketDice++;
             return;
         }
     }
 
-    public int satiety()
+    /**
+     * True when either bar fell to the share where a dealer starts eating again.
+     */
+    public boolean isHungry()
+    {
+        return this.getHealth() <= this.getMaxHealth() * ModConstants.DEALER_FEED_THRESHOLD
+                || this.satiety <= this.maxSatiety() * ModConstants.DEALER_FEED_THRESHOLD;
+    }
+
+    /**
+     * One dice leaves the pocket and refills half of each bar, so it takes two of them to come back from empty.
+     */
+    public void eatFromPocket()
+    {
+        if (this.pocketDice <= 0)
+        {
+            return;
+        }
+
+        this.pocketDice--;
+        this.eatOneDice();
+    }
+
+    /**
+     * The shared meal: half of each bar, and whatever the bars cannot take turns into experience. Eating two dice while
+     * already full therefore turns into a whole point of experience, which is the reward for hosting a wager with a
+     * pocket that has no room left.
+     */
+    private void eatOneDice()
+    {
+        float maxHealth = this.getMaxHealth();
+        float restoreHealth = (float) (maxHealth * ModConstants.DEALER_DICE_RESTORE_SHARE);
+        int maxSatiety = this.maxSatiety();
+        int restoreSatiety = Math.max(1, (int) Math.round(maxSatiety * ModConstants.DEALER_DICE_RESTORE_SHARE));
+
+        float healed = Math.min(restoreHealth, maxHealth - this.getHealth());
+        this.setHealth(this.getHealth() + healed);
+        double fed = Math.min(restoreSatiety, maxSatiety - this.satiety);
+        this.satiety += fed;
+
+        double overflowHealth = restoreHealth - healed;
+        double overflowSatiety = restoreSatiety - fed;
+        this.gainExperience(0.5D * (overflowHealth / restoreHealth + overflowSatiety / restoreSatiety));
+        this.playSound(SoundEvents.GENERIC_EAT, 1.0F, 1.0F);
+    }
+
+    private void gainExperience(double amount)
+    {
+        if (!(amount > 0.0D))
+        {
+            return;
+        }
+
+        this.experience += amount;
+        this.applyProgress();
+    }
+
+    /**
+     * Applies the experience to the two bars. A raise never heals, it only lifts the ceiling, so a dealer that grows
+     * while hurt stays hurt until its next meal.
+     */
+    private void applyProgress()
+    {
+        double multiplier = ModConstants.DEALER_STAT_BASE_MULTIPLIER
+                + this.experience * ModConstants.DEALER_STAT_PER_EXPERIENCE;
+        float maxHealth = (float) (ModConstants.PLAYER_BASE_MAX_HEALTH * multiplier);
+        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(maxHealth);
+
+        if (this.getHealth() > maxHealth)
+        {
+            this.setHealth(maxHealth);
+        }
+
+        this.satiety = Math.min(this.satiety, this.maxSatiety());
+    }
+
+    public int pocketDice()
+    {
+        return this.pocketDice;
+    }
+
+    /**
+     * Room in the pocket: the base 32 plus one slot per whole experience point.
+     */
+    public int pocketCapacity()
+    {
+        return ModConstants.DEALER_POCKET_BASE + (int) Math.floor(Math.max(0.0D, this.experience));
+    }
+
+    public double experience()
+    {
+        return this.experience;
+    }
+
+    public double satiety()
     {
         return this.satiety;
     }
 
-    public void setSatiety(int value)
+    /**
+     * The satiety ceiling follows the experience the same way the health ceiling does.
+     */
+    public int maxSatiety()
     {
-        this.satiety = Math.max(0, Math.min(ModConstants.DEALER_MAX_SATIETY, value));
+        double multiplier = ModConstants.DEALER_STAT_BASE_MULTIPLIER
+                + this.experience * ModConstants.DEALER_STAT_PER_EXPERIENCE;
+        return (int) Math.round(ModConstants.PLAYER_BASE_MAX_SATIETY * multiplier);
+    }
+
+    public void setSatiety(double value)
+    {
+        this.satiety = Math.max(0.0D, Math.min(this.maxSatiety(), value));
     }
 
     public boolean isHosting()
@@ -393,6 +709,58 @@ public class GamblersDealer extends PathfinderMob
         }
     }
 
+    /**
+     * The dice the creator paid goes into the dealer hand while the wager runs. It is not consumed by the draw, it is
+     * the payment for the draw, so it stays a real dice the whole time.
+     */
+    public void holdWagerDice()
+    {
+        this.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.GAMBLERS_DICE.get()));
+    }
+
+    /**
+     * A settled wager hands the held dice over: into the pocket, or straight into the mouth when the pocket is full.
+     */
+    public void receiveWagerDice()
+    {
+        ItemStack held = this.getItemInHand(InteractionHand.MAIN_HAND);
+        this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+
+        if (held.is(ModItems.GAMBLERS_DICE.get()))
+        {
+            this.absorbDice(Math.max(1, held.getCount()));
+        }
+    }
+
+    /**
+     * A cancelled wager gives the dice back to its owner through the caller, so the hand is simply emptied.
+     */
+    public void clearWagerDice()
+    {
+        if (this.getItemInHand(InteractionHand.MAIN_HAND).is(ModItems.GAMBLERS_DICE.get()))
+        {
+            this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+    }
+
+    /**
+     * Dice that arrive from a finished wager or a reloaded hand: into the pocket while it has room, otherwise eaten.
+     */
+    private void absorbDice(int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (this.pocketDice < this.pocketCapacity())
+            {
+                this.pocketDice++;
+            }
+            else
+            {
+                this.eatOneDice();
+            }
+        }
+    }
+
     public int stayTicks()
     {
         return this.stayTicks;
@@ -404,12 +772,13 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * The recruit counter on the name tag. It never makes a sound of its own, because the panel and the dealer would
-     * otherwise chirp once per second for the whole recruit. A business name stays over the head for everyone.
+     * The recruit counter on the name tag: how many members the wager already has and how many seconds are left.
+     * It never makes a sound of its own, because the panel and the dealer would otherwise chirp once per second for
+     * the whole recruit. A business name stays over the head for everyone.
      */
-    public void showRecruitText(int seconds)
+    public void showRecruitText(int members, int seconds)
     {
-        this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(seconds)));
+        this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(members), Integer.valueOf(seconds)));
         this.setCustomNameVisible(true);
         this.showNameToEveryone = true;
     }
@@ -474,24 +843,42 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * One successful wager costs one satiety point per member; the shortage is paid with health, one health per two
-     * satiety, which can kill the dealer.
+     * One settled wager costs a share of the satiety ceiling: twelve percent plus one more per member. What the bar
+     * cannot pay is eaten back with the dice the wager itself paid out, and only a debt that survives that meal is paid
+     * with health, two percent of satiety for one percent of health.
      */
     public void consumeForWager(int players)
     {
-        int cost = Math.max(0, players);
+        double costPercent = ModConstants.DEALER_WAGER_COST_BASE_PERCENT
+                + ModConstants.DEALER_WAGER_COST_PER_MEMBER_PERCENT * Math.max(0, players);
+        double debt = this.paySatiety(this.maxSatiety() * costPercent / 100.0D);
 
-        if (this.satiety >= cost)
+        if (debt > 0.0D && this.pocketDice > 0)
         {
-            this.satiety -= cost;
+            this.eatFromPocket();
+            debt = this.paySatiety(debt);
+        }
+
+        if (debt <= 0.0D)
+        {
             return;
         }
 
-        int rest = cost - this.satiety;
-        this.satiety = 0;
-        int healthCost = (int) Math.ceil(rest / (double) ModConstants.DEALER_SATIETY_PER_HEALTH);
+        double debtPercent = debt * 100.0D / this.maxSatiety();
+        float healthCost = (float) (this.getMaxHealth()
+                * (debtPercent / ModConstants.DEALER_SATIETY_PERCENT_PER_HEALTH_PERCENT) / 100.0D);
         this.invulnerableTime = 0;
-        this.hurt(this.damageSources().magic(), (float) healthCost);
+        this.hurt(this.damageSources().magic(), healthCost);
+    }
+
+    /**
+     * Takes as much of the cost out of the bar as it can hold and hands back what is still owed.
+     */
+    private double paySatiety(double cost)
+    {
+        double paid = Math.min(this.satiety, cost);
+        this.satiety -= paid;
+        return cost - paid;
     }
 
     /**
@@ -530,31 +917,45 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * A well fed dealer leaves gambler dice behind: the count scales with the satiety left, a starving dealer leaves
-     * nothing and a full one leaves the whole handful.
+     * A fallen dealer leaves its whole pocket behind, plus the dice it still holds for an open wager. An empty pocket
+     * leaves nothing.
      */
     @Override
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);
-        int count = this.deathDiceDrops();
 
-        if (count > 0)
+        if (this.pocketDice > 0)
         {
-            this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), count));
+            this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), this.pocketDice));
+            this.pocketDice = 0;
         }
     }
 
     /**
-     * A struck dealer fumbles dice out of its pockets, once per hit and never on top of the death loot, which stays the
-     * only guaranteed handful. Most hits free nothing at all, so a fight over a dealer is not a dice farm.
+     * The dice of an open wager belongs to the creator, not to the corpse: the session ends with a cancel that hands it
+     * back, so the hand is emptied before the vanilla equipment drop can roll for it.
+     */
+    @Override
+    public void die(DamageSource source)
+    {
+        this.clearWagerDice();
+        super.die(source);
+    }
+
+    /**
+     * A dealer that really loses health fumbles dice out of its pockets, once per wound and never on top of the death
+     * loot, which stays the only guaranteed handful. A hit that is shrugged off without losing a point, for example one
+     * cancelled by resistance, frees nothing. Most wounds free nothing at all, so a fight over a dealer is not a dice
+     * farm.
      */
     @Override
     public boolean hurt(DamageSource source, float amount)
     {
+        float healthBefore = this.getHealth();
         boolean taken = super.hurt(source, amount);
 
-        if (taken && !this.isDeadOrDying())
+        if (taken && this.getHealth() < healthBefore && !this.isDeadOrDying())
         {
             this.dropHurtDice();
         }
@@ -564,6 +965,11 @@ public class GamblersDealer extends PathfinderMob
 
     private void dropHurtDice()
     {
+        if (this.pocketDice <= 0)
+        {
+            return;
+        }
+
         double roll = this.level().getRandom().nextDouble();
         int count = 0;
 
@@ -581,20 +987,40 @@ public class GamblersDealer extends PathfinderMob
             count = ModConstants.DEALER_HURT_DROP_ONE;
         }
 
-        if (count > 0)
+        if (count <= 0)
         {
-            this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), count));
+            return;
         }
+
+        long now = this.level().getGameTime();
+        this.openHurtDropWindow(now);
+        int remaining = ModConstants.DEALER_HURT_DROP_WINDOW_MAX - this.hurtDropWindowCount;
+        /* The dice come out of the pocket, so an empty pocket frees nothing no matter what the roll says. */
+        count = Math.min(count, Math.min(remaining, this.pocketDice));
+
+        if (count <= 0)
+        {
+            return;
+        }
+
+        /* A roll that would cross the limit hands out what is left of the window instead of nothing. */
+        this.pocketDice -= count;
+        this.hurtDropWindowCount += count;
+        this.spawnAtLocation(new ItemStack(ModItems.GAMBLERS_DICE.get(), count));
     }
 
-    /**
-     * Linear in the satiety and rounded down, so half a bar leaves half the handful.
+    /*
+     * The window runs for one minute from the first hit that frees dice and is only reopened afterwards, so the cap is
+     * a real ceiling on how fast one dealer can be farmed rather than a per hit cooldown that a fast hitter can ignore.
      */
-    public int deathDiceDrops()
+    private void openHurtDropWindow(long now)
     {
-        int clamped = Math.max(0, Math.min(ModConstants.DEALER_MAX_SATIETY, this.satiety));
-        return (int) (ModConstants.DEALER_DEATH_DICE_DROPS
-                * (clamped / (double) ModConstants.DEALER_MAX_SATIETY));
+        if (this.hurtDropWindowStart < 0L
+                || now - this.hurtDropWindowStart >= ModConstants.DEALER_HURT_DROP_WINDOW_TICKS)
+        {
+            this.hurtDropWindowStart = now;
+            this.hurtDropWindowCount = 0;
+        }
     }
 
     /*
@@ -623,17 +1049,43 @@ public class GamblersDealer extends PathfinderMob
     public void addAdditionalSaveData(CompoundTag tag)
     {
         super.addAdditionalSaveData(tag);
-        tag.putInt(TAG_SATIETY, this.satiety);
+        tag.putDouble(TAG_SATIETY, this.satiety);
         tag.putInt(TAG_STAY, this.stayTicks);
+        tag.putLong(TAG_HURT_DROP_START, this.hurtDropWindowStart);
+        tag.putInt(TAG_HURT_DROP_COUNT, this.hurtDropWindowCount);
+        tag.putInt(TAG_POCKET, this.pocketDice);
+        tag.putDouble(TAG_EXPERIENCE, this.experience);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag)
     {
         super.readAdditionalSaveData(tag);
-        this.satiety = tag.contains(TAG_SATIETY) ? tag.getInt(TAG_SATIETY) : ModConstants.DEALER_MAX_SATIETY;
+        this.satiety = tag.contains(TAG_SATIETY) ? tag.getDouble(TAG_SATIETY) : ModConstants.DEALER_MAX_SATIETY;
         this.stayTicks = tag.contains(TAG_STAY) ? tag.getInt(TAG_STAY)
                 : ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
+        this.hurtDropWindowStart = tag.contains(TAG_HURT_DROP_START) ? tag.getLong(TAG_HURT_DROP_START) : -1L;
+        this.hurtDropWindowCount = tag.contains(TAG_HURT_DROP_COUNT) ? tag.getInt(TAG_HURT_DROP_COUNT) : 0;
+        this.experience = tag.contains(TAG_EXPERIENCE) ? Math.max(0.0D, tag.getDouble(TAG_EXPERIENCE)) : 0.0D;
+        this.pocketDice = tag.contains(TAG_POCKET) ? Math.max(0, tag.getInt(TAG_POCKET))
+                : ModConstants.DEALER_POCKET_INITIAL_DICE;
+        /*
+         * The vanilla read clamps the saved health to the ceiling of a fresh dealer, so the raw value is kept and put
+         * back after the experience lifted the ceiling again.
+         */
+        float savedHealth = tag.contains("Health") ? tag.getFloat("Health") : this.getHealth();
+        this.applyProgress();
+        this.setHealth(Math.max(0.0F, Math.min(savedHealth, this.getMaxHealth())));
+        this.pocketDice = Math.min(this.pocketDice, this.pocketCapacity());
+        /* A wager is not saved, so a dice left in the hand by a lost session goes back into the pocket or is eaten. */
+        ItemStack held = this.getItemInHand(InteractionHand.MAIN_HAND);
+
+        if (held.is(ModItems.GAMBLERS_DICE.get()))
+        {
+            this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            this.absorbDice(held.getCount());
+        }
+
         this.hosting = false;
         this.clearRecruitText();
         this.showIdleName();

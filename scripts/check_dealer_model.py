@@ -340,17 +340,30 @@ def check_dealer_habits():
     constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
         encoding="utf-8")
 
-    check("挥击以饱食度支付", "DEALER_TERRITORY_SWINGS_PER_SATIETY" in dealer
-          and "this.satiety - 1" in dealer)
+    check("挥击按百分比扣饱食度", "DEALER_SWING_COST_PERCENT" in dealer
+          and "this.satiety - this.maxSatiety() * ModConstants.DEALER_SWING_COST_PERCENT" in dealer)
     check("饱食度为空时不出手", "this.satiety <= 0" in dealer and "return;" in dealer)
-    check("只在六成以下才进食", "DEALER_FEED_THRESHOLD" in dealer and "hungry" in dealer)
+    check("只在六成以下才进食", "DEALER_FEED_THRESHOLD" in dealer and "isHungry" in dealer)
+
+    feed = re.search(r"private void tryFeed\(\).*?\n    \}", dealer, re.S)
+    check("竞争时不捡骰子进食", feed is not None and "isDefendingTerritory()" in feed.group(0),
+          "tryFeed 在与别的荷官竞争时仍然会捡骰子")
     check("只吃赌徒的骰子", "ModItems.GAMBLERS_DICE.get()" in dealer and "DEVILS_DICE" not in dealer)
     check("进食冷却为两秒", re.search(r"DEALER_FEED_INTERVAL_TICKS\s*=\s*40", constants) is not None)
     check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
     check("追击速度已放慢", re.search(r"DEALER_TERRITORY_CHASE_SPEED\s*=\s*0\.9D", constants) is not None)
     check("待机名只对看向它的玩家显示", "shouldShowName" in dealer and "isLookingAtMe" in dealer)
     check("主持与招募名不受影响", "showNameToEveryone" in dealer)
-    check("受击有几率掉骰子", "dropHurtDice" in dealer and "DEALER_HURT_DROP_CHANCE_ONE" in dealer)
+    check("受伤有几率掉骰子", "dropHurtDice" in dealer and "DEALER_HURT_DROP_CHANCE_ONE" in dealer)
+    check("受击掉落合计百分之五", re.search(r"DEALER_HURT_DROP_CHANCE_THREE\s*=\s*0\.01D", constants) is not None
+          and re.search(r"DEALER_HURT_DROP_CHANCE_TWO\s*=\s*0\.015D", constants) is not None
+          and re.search(r"DEALER_HURT_DROP_CHANCE_ONE\s*=\s*0\.025D", constants) is not None,
+          "受击掉落的 1% 掉 3 个 / 1.5% 掉 2 个 / 2.5% 掉 1 个 与文档不一致")
+    check("受击掉落每分钟上限", re.search(r"DEALER_HURT_DROP_WINDOW_TICKS\s*=\s*1200", constants) is not None
+          and re.search(r"DEALER_HURT_DROP_WINDOW_MAX\s*=\s*6", constants) is not None
+          and "DEALER_HURT_DROP_WINDOW_MAX" in dealer
+          and "openHurtDropWindow" in dealer,
+          "受击掉落的一分钟 6 个上限没有被使用")
     check("受击掉落不影响死亡掉落", "isDeadOrDying()" in dealer)
 
 
@@ -386,13 +399,8 @@ def check_death_drops():
     mob_file = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java"
     text = mob_file.read_text(encoding="utf-8")
     check("荷官死亡掉落走原版死亡掉落钩子", "dropCustomDeathLoot" in text)
-    check("死亡掉落按饱食度线性且向下取整", "deathDiceDrops" in text and "(int) (ModConstants.DEALER_DEATH_DICE_DROPS" in text)
-
-    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(
-        encoding="utf-8")
-    drops = re.search(r"DEALER_DEATH_DICE_DROPS\s*=\s*(\d+)", constants)
-    check("满饱食度掉落 4 个", bool(drops) and drops.group(1) == "4",
-          drops.group(1) if drops else "缺失")
+    check("死亡掉落背包里剩余的骰子", "new ItemStack(ModItems.GAMBLERS_DICE.get(), this.pocketDice)" in text)
+    check("死亡时不再按饱食度结算", "deathDiceDrops" not in text)
 
 
 def check_panel_and_chime():
@@ -408,6 +416,136 @@ def check_panel_and_chime():
     tail = re.search(r"DEALER_WAGER_CHIME_TAIL_SECONDS\s*=\s*(\d+)", constants)
     check("招募提示音只在开局 3 秒与末尾 10 秒", bool(head) and bool(tail) and head.group(1) == "3"
           and tail.group(1) == "10", (head.group(1) if head else "缺失") + "/" + (tail.group(1) if tail else "缺失"))
+
+
+def check_liquid_escape():
+    """A dealer hates liquid: as soon as it stands in water or lava it stops everything else and climbs out."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    wander = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "DealerWanderGoal.java").read_text(encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
+
+    check("液体判定包含水面与岩浆", "isInWaterOrBubble()" in dealer and "isInLava()" in dealer)
+    check("液体中立即离开", "isInLiquid()" in dealer and "tickLiquidEscape" in dealer)
+
+    escape = dealer[dealer.index("private void tickLiquidEscape()"):dealer.index("private BlockPos findShore()")]
+    check("离开时直接驱动移动控制", "getMoveControl().setWantedPosition" in escape,
+          "离开路径必须走移动控制, 地面寻路在水里不可用")
+    check("离开时打断旧路径", "getNavigation().stop()" in escape)
+
+    search = dealer[dealer.index("private BlockPos findShore()"):dealer.index("private boolean isDryStand(")]
+    check("由近到远找岸边", "DEALER_LIQUID_ESCAPE_RADIUS" in search and "distance++" in search)
+    check("岸边不含岩浆与火", "MAGMA_BLOCK" in dealer and "Blocks.FIRE" in dealer and "SOUL_FIRE" in dealer)
+    check("岸边需要实地与空位", "isFaceSturdy" in dealer and "getFluidState().isEmpty()" in dealer)
+
+    check("离开半径与重算间隔",
+          "DEALER_LIQUID_ESCAPE_RADIUS = 16" in constants and "DEALER_LIQUID_ESCAPE_REPATH_TICKS = 5" in constants)
+    check("离开速度高于走路", "DEALER_LIQUID_ESCAPE_SPEED = 1.2D" in constants)
+
+    step = dealer[dealer.index("protected void customServerAiStep()"):]
+    step = step[:step.index("this.tickGlow()")]
+    check("液体中不谈领地", "isInLiquid()" in step
+          and step.index("tickLiquidEscape") < step.index("tickTerritory"))
+
+    feed = dealer[dealer.index("private void tryFeed()"):]
+    feed = feed[:feed.index("private ", 10)]
+    check("液体中不进食", "isInLiquid()" in feed)
+    check("液体中不闲逛", "isInLiquid()" in wander)
+
+
+def check_recruit_text():
+    """The recruit name tag names both the members already in and the seconds left."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
+    lang = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang" / "zh_cn.json").read_text(encoding="utf-8")
+
+    check("招募名牌带人数与秒数", "public void showRecruitText(int members, int seconds)" in dealer
+          and dealer.count("Integer.valueOf(members)") >= 1 and dealer.count("Integer.valueOf(seconds)") >= 1)
+    check("招募名牌随人数刷新", service.count("showRecruitText(session.memberCount()") >= 2)
+    check("招募文案有两个占位符", '"gui.devil_bone_gambler.dealer.recruiting": "' in lang
+          and lang.split('"gui.devil_bone_gambler.dealer.recruiting": "')[1].split('"')[0].count("%s") == 2)
+
+
+def check_neutrality():
+    """The dealer is neutral: no mob targets it, it only ever attacks dealers, and nothing counts it as a monster."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    entities = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "registry" / "ModEntities.java").read_text(encoding="utf-8")
+
+    check("荷官不被当作敌对目标", "public boolean canBeSeenAsEnemy()" in dealer
+          and dealer.split("public boolean canBeSeenAsEnemy()")[1].split("}")[0].strip().startswith("{")
+          and "return false;" in dealer.split("public boolean canBeSeenAsEnemy()")[1].split("}")[0])
+    check("荷官只对荷官动手", "public boolean canAttackType(EntityType<?> type)" in dealer
+          and "ModEntities.GAMBLERS_DEALER.get()" in dealer)
+    check("荷官不是怪物类型", "extends PathfinderMob" in dealer and "implements" not in dealer.split("extends PathfinderMob")[1].split("{")[0])
+    check("荷官注册为生物类别", "MobCategory.CREATURE" in entities)
+    check("领地只认荷官", "private GamblersDealer findIntruder()" in dealer)
+
+
+def check_hurt_condition():
+    """Dice are fumbled only when the dealer really loses health, not merely when a hit lands and is shrugged off."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    hurt = dealer[dealer.index("public boolean hurt(DamageSource source, float amount)"):]
+    hurt = hurt[:hurt.index("private void dropHurtDice()")]
+
+    check("只有真正掉血才掷骰", "healthBefore" in hurt and "this.getHealth() < healthBefore" in hurt,
+          "受击但没掉血的命中不应触发掉落")
+    check("死亡掉落与受伤掉落分开", "dropCustomDeathLoot" in dealer and "dropHurtDice" in dealer)
+
+
+def check_pocket():
+    """The dealer pocket: dice in, dice out, experience from the wasted part of a meal and the growth it pays for."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
+
+    check("背包初始 16 个", "DEALER_POCKET_INITIAL_DICE = 16" in constants
+          and "private int pocketDice = ModConstants.DEALER_POCKET_INITIAL_DICE" in dealer)
+    check("背包基础容量 32", "DEALER_POCKET_BASE = 32" in constants
+          and "DEALER_POCKET_BASE + (int) Math.floor" in dealer)
+    check("经验扩背包并提升上限", "DEALER_STAT_PER_EXPERIENCE = 0.1D" in constants
+          and "DEALER_STAT_BASE_MULTIPLIER = 2.0D" in constants
+          and "gainExperience" in dealer and "applyProgress" in dealer)
+    check("一个骰子回一半", "DEALER_DICE_RESTORE_SHARE = 0.5D" in constants
+          and "DEALER_DICE_RESTORE_SHARE" in dealer)
+    check("溢出转为经验", "0.5D * (overflowHealth / restoreHealth + overflowSatiety / restoreSatiety)" in dealer)
+    check("捡起的骰子进入背包", "this.pocketDice++" in dealer)
+    check("背包满了不再捡", "this.pocketDice >= this.pocketCapacity()" in dealer)
+    check("进食来自背包", "eatFromPocket" in dealer and "this.pocketDice--" in dealer)
+    check("受伤掉落从背包扣除", "this.pocketDice -= count" in dealer)
+    check("背包空后不掉骰子", "if (this.pocketDice <= 0)" in dealer)
+    check("背包进存档", "tag.putInt(TAG_POCKET" in dealer and "tag.putDouble(TAG_EXPERIENCE" in dealer
+          and "tag.contains(TAG_POCKET)" in dealer)
+    check("赌局骰子先到手上", "dealer.holdWagerDice()" in service and "public void holdWagerDice()" in dealer)
+    check("赌局成功后进背包", "dealer.receiveWagerDice()" in service and "public void receiveWagerDice()" in dealer)
+    check("背包满时结算后立刻吃掉", service.index("receiveWagerDice") < service.index("consumeForWager")
+          and "this.eatOneDice();" in dealer)
+    check("取消时取回手上的骰子", "dealer.clearWagerDice()" in service)
+    check("主持时手里才有骰子", "this.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.GAMBLERS_DICE.get()))" in dealer)
+
+
+def check_bar_economy():
+    """Percent based bar costs, the eat first debt rule, the daily drain and the attack that grows with the ceiling."""
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
+
+    check("主持按百分比扣", "DEALER_WAGER_COST_BASE_PERCENT = 12.0D" in constants
+          and "DEALER_WAGER_COST_PER_MEMBER_PERCENT = 1.0D" in constants
+          and "DEALER_WAGER_COST_BASE_PERCENT" in dealer)
+    method = dealer[dealer.index("public void consumeForWager"):]
+    method = method[:method.index("private double paySatiety")]
+    check("先扣饱食度再吃骰子再扣血", "paySatiety" in method and "eatFromPocket" in method
+          and method.index("eatFromPocket") < method.index("debtPercent"))
+    check("饱食度按小数计", "private double satiety" in dealer and "tag.putDouble(TAG_SATIETY" in dealer)
+    check("攻击伤害随生命上限", "getMaxHealth() / ModConstants.PLAYER_BASE_MAX_HEALTH" in dealer
+          and "DEALER_TERRITORY_MAX_DAMAGE" in dealer)
+    check("每二十刻掉一次", "DEALER_DECAY_INTERVAL_TICKS = 20" in constants and "tickSatiety" in dealer)
+    check("一昼夜掉一百点", "DEALER_DAY_TICKS" in constants
+          and "100.0D * DEALER_DECAY_INTERVAL_TICKS / DEALER_DAY_TICKS" in constants)
+    body = dealer[dealer.index("private void tickSatiety"):]
+    body = body[:body.index("private void drainHealth")]
+    check("主持期间暂停并回复", "if (this.hosting)" in body and "this.satiety + satietyStep" in body
+          and "this.getHealth() + healthStep" in body)
+    check("饱食度空了扣血", "drainHealth" in body and "DEALER_SATIETY_PERCENT_PER_HEALTH_PERCENT" in body)
+    check("主持从创建就开始", "dealer.setHosting(true)" in (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8"))
 
 
 def main():
@@ -428,6 +566,12 @@ def main():
     check_panel_and_chime()
     check_dealer_sounds()
     check_death_drops()
+    check_pocket()
+    check_bar_economy()
+    check_liquid_escape()
+    check_recruit_text()
+    check_neutrality()
+    check_hurt_condition()
 
     print("")
     print("调色板清单:")

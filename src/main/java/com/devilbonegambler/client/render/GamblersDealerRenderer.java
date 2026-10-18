@@ -11,6 +11,7 @@ import com.devilbonegambler.mob.GamblersDealer;
 import com.devilbonegambler.registry.ModModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
+import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -26,6 +27,8 @@ public class GamblersDealerRenderer extends MobRenderer<GamblersDealer, Gamblers
     {
         super(context, new GamblersDealerModel(context.bakeLayer(ModModelLayers.GAMBLERS_DEALER)), 0.5F);
         this.addLayer(new DiceSightLayer(this));
+        /* The dice of an open wager is a real item in the hand, so it is drawn like one. */
+        this.addLayer(new ItemInHandLayer<>(this, context.getItemInHandRenderer()));
     }
 
     @Override

@@ -140,6 +140,8 @@ public final class DealerWagerService
                     return;
                 }
 
+                dealer.showRecruitText(session.memberCount(),
+                        Math.max(0, remainingSeconds(session, server.getTickCount())));
                 broadcastMembers(server, session, Component.translatable(KEY_JOINED, player.getGameProfile().getName()));
             }
 
@@ -198,13 +200,16 @@ public final class DealerWagerService
         }
 
         DealerRewardService.recordDiceUse(player);
+        /* The dealer hosts from the first second of the recruit on, which also feeds it for the whole wager. */
+        dealer.setHosting(true);
+        dealer.holdWagerDice();
 
         DealerWagerSession session = new DealerWagerSession(dealer.getUUID(), player.getUUID(), server.getTickCount());
         session.addMember(player.getUUID());
         rememberName(player);
         SESSIONS.put(dealer.getUUID(), session);
         BUSY.remove(dealer.getUUID());
-        dealer.showRecruitText(ModConstants.DEALER_WAGER_RECRUIT_SECONDS);
+        dealer.showRecruitText(session.memberCount(), ModConstants.DEALER_WAGER_RECRUIT_SECONDS);
         NotifySender.sendChat(player, KEY_CREATED);
         DevilBoneGambler.LOGGER.info("Dealer wager created, dealer={} owner={}", dealer.getUUID(),
                 player.getGameProfile().getName());
@@ -285,6 +290,8 @@ public final class DealerWagerService
             return;
         }
 
+        dealer.showRecruitText(session.memberCount(),
+                Math.max(0, remainingSeconds(session, server.getTickCount())));
         broadcastMembers(server, session, Component.translatable(KEY_LEFT, player.getGameProfile().getName()));
         NotifySender.sendChat(player, KEY_YOU_LEFT);
         sendPanels(server, session, dealer);
@@ -474,7 +481,7 @@ public final class DealerWagerService
         if (remaining != session.lastSecond())
         {
             session.setLastSecond(remaining);
-            dealer.showRecruitText(Math.max(0, remaining));
+            dealer.showRecruitText(session.memberCount(), Math.max(0, remaining));
             sendPanels(server, session, dealer);
 
             /*
@@ -723,6 +730,8 @@ public final class DealerWagerService
         broadcastMembers(server, session,
                 Component.translatable(roll.isRed() ? KEY_WIN_RED : KEY_WIN_BLACK, winner.getGameProfile().getName()));
 
+        /* The payment lands in the pocket first, so a dealer that dies of the wager still leaves it behind. */
+        dealer.receiveWagerDice();
         dealer.consumeForWager(members.size());
         dealer.dealingParticles();
         DevilBoneGambler.LOGGER.info("Dealer wager settled, dealer={} point={} red={} winner={} members={}",
@@ -836,6 +845,7 @@ public final class DealerWagerService
         if (dealer != null)
         {
             dealer.setHosting(false);
+            dealer.clearWagerDice();
             dealer.clearRecruitText();
             /* A refused wager ends with the villager "no", so the dealer answers every outcome out loud. */
             dealer.playSound(net.minecraft.sounds.SoundEvents.VILLAGER_NO, 1.0F, 1.0F);
@@ -973,7 +983,8 @@ public final class DealerWagerService
         boolean canCreate = !hasWager && !isInAnyWager(player);
         boolean canStart = owner && session.memberCount() >= ModConstants.DEALER_WAGER_MIN_PLAYERS;
         ModNetwork.sendToPlayer(player, new DealerPanelPacket(dealer.getId(), dealer.getHealth(),
-                dealer.getMaxHealth(), dealer.satiety(), ModConstants.DEALER_MAX_SATIETY, hasWager, phase, remaining,
+                dealer.getMaxHealth(), (int) Math.round(dealer.satiety()), dealer.maxSatiety(), hasWager, phase,
+                remaining,
                 hasWager ? session.ownerId() : null, owner, member, canCreate, canStart, openScreen, entries));
     }
 
