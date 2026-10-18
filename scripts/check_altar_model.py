@@ -304,6 +304,11 @@ check("MID_TEXT_X = 192" in screen_source and "MID_TEXT_WIDTH = 106" in screen_s
       "the altar summary block is not laid out right of the offering grid")
 check(screen_source.count("MID_TEXT_X") >= 5,
       "a summary line still sits in the creature column")
+check("MOB_LIST_Y = 20" in screen_source, "the creature list still leaves a blank strip above its header")
+zh_lang = open(ROOT + "/src/main/resources/assets/devil_bone_gambler/lang/zh_cn.json", encoding="utf-8").read()
+en_lang = open(ROOT + "/src/main/resources/assets/devil_bone_gambler/lang/en_us.json", encoding="utf-8").read()
+check("预估价值 %s, 实际以献祭结算为准" not in zh_lang, "the estimate still carries the settlement disclaimer")
+check("the server settles the final value" not in en_lang, "the estimate still carries the settlement disclaimer")
 check("altar.hint\")), MOB_X" not in screen_source,
       "the hint still takes room from the creature column")
 

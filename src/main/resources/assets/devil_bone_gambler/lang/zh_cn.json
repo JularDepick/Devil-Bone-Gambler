@@ -38,7 +38,7 @@
   "gui.devil_bone_gambler.altar.current": "当前 %s",
   "gui.devil_bone_gambler.altar.intrusion": "你佩戴的祭坛侵入了其他祭坛的范围, 立刻离开",
   "gui.devil_bone_gambler.altar.offered_total": "本次献祭折算价值 %s",
-  "gui.devil_bone_gambler.altar.estimate": "预估价值 %s, 实际以献祭结算为准",
+  "gui.devil_bone_gambler.altar.estimate": "预估价值 %s",
   "gui.devil_bone_gambler.altar.altar_value": "祭坛献祭值 %s",
   "gui.devil_bone_gambler.altar.value_label": "献祭值 %s",
   "gui.devil_bone_gambler.value.line": "祭品价值: %s",

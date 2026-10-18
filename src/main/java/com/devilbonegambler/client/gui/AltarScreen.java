@@ -81,7 +81,7 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
     private static final int MOB_TABLE_WIDTH = 100;
     private static final int MOB_HEALTH_WIDTH = 40;
     private static final int MOB_VISIBLE_ROWS = 8;
-    private static final int MOB_LIST_Y = 40;
+    private static final int MOB_LIST_Y = 20;
     private static final int MOB_SCROLL_GAP = 2;
 
     private static final int TITLE_Y = 6;
@@ -814,8 +814,8 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
 
     /**
      * Client side estimate of the offering value: the grid stacks, the selected creatures and the numeric offering,
-     * with the experience bonus once any numeric offering is selected. The item part uses the public value table, so
-     * the estimate stays a hint and the server settles the real value.
+     * with the experience bonus once any numeric offering is selected. The item part uses the public value table; the
+     * server still settles the real value, but the panel only shows the estimate instead of restating that rule.
      */
     private long estimatedValue()
     {
