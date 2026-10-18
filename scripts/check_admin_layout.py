@@ -139,6 +139,24 @@ def main() -> int:
 
         previous_bottom = top + control
 
+    # 底部那一排按钮的宽度必须跟随各自文本, 不能再写死. 确认按钮要同时容纳普通与确认文案.
+    if "private int fitWidth(Component... labels)" not in text:
+        problems.append("the bottom row does not measure its buttons against their labels")
+
+    if "BUTTON_PADDING_X = 5" not in text:
+        problems.append("the bottom row padding constant is missing")
+
+    parts = text.split("int buttonY =", 1)
+
+    if len(parts) == 2:
+        row = parts[1].split("this.adminButton", 1)[0]
+
+        for literal in ("size(68, 18)", "size(24, 18)", "size(64, 18)", "size(52, 18)"):
+            if literal in row:
+                problems.append("a bottom row button still uses a fixed width: " + literal)
+    else:
+        problems.append("the bottom row could not be located")
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)

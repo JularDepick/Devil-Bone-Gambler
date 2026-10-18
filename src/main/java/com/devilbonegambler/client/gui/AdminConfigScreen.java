@@ -98,6 +98,10 @@ public class AdminConfigScreen extends Screen
      */
     private static final int BUTTON_ROW_HEIGHT = 18;
     private static final int BUTTON_ROW_MARGIN = 6;
+    /* A bottom row button is as wide as its widest label plus this padding on each side, so the row follows the text. */
+    private static final int BUTTON_PADDING_X = 5;
+    private static final int BUTTON_GAP = 4;
+    private static final int BUTTON_ROW_START_X = 8;
     private static final int BUTTON_ROW_FROM_BOTTOM = BUTTON_ROW_HEIGHT + BUTTON_ROW_MARGIN;
     private static final int FOOTER_FROM_BOTTOM = BUTTON_ROW_FROM_BOTTOM + 14;
     private static final int BASE_CONTENT_HEIGHT = COLUMN_BOTTOM + 4 + FOOTER_FROM_BOTTOM;
@@ -353,21 +357,48 @@ public class AdminConfigScreen extends Screen
         });
         addRenderableWidget(this.fieldFilter);
 
+        /*
+         * The bottom row flows from left to right: every button takes the width of its own text plus a small padding,
+         * so a translation never leaves a wide button with unused room or a narrow one clipping its label.
+         */
         int buttonY = this.topPos + contentHeight() - BUTTON_ROW_FROM_BOTTOM;
-        this.addRegionButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_region")),
-                button -> addRegion()).pos(this.leftPos + 8, buttonY).size(68, 18).build());
-        this.addEntryButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.add_entry")),
-                button -> addEntry()).pos(this.leftPos + 80, buttonY).size(68, 18).build());
-        this.removeButton = addRenderableWidget(new ConfirmButton(this.leftPos + 152, buttonY, 68, 18,
-                Component.translatable(key("admin.remove")), Component.translatable(key("admin.remove_confirm")),
-                this::removeSelected));
-        this.refreshButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.refresh")),
-                button -> ClientActions.sendAdminPanelRequest())
-                .pos(this.leftPos + 224, buttonY).size(24, 18).build());
-        this.submitButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.submit")),
-                button -> submit()).pos(this.leftPos + 252, buttonY).size(64, 18).build());
-        this.closeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
-                button -> onClose()).pos(this.leftPos + 320, buttonY).size(52, 18).build());
+        int buttonX = this.leftPos + BUTTON_ROW_START_X;
+
+        Component addRegionLabel = Component.translatable(key("admin.add_region"));
+        int addRegionWidth = fitWidth(addRegionLabel);
+        this.addRegionButton = addRenderableWidget(Button.builder(addRegionLabel, button -> addRegion())
+                .pos(buttonX, buttonY).size(addRegionWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += addRegionWidth + BUTTON_GAP;
+
+        Component addEntryLabel = Component.translatable(key("admin.add_entry"));
+        int addEntryWidth = fitWidth(addEntryLabel);
+        this.addEntryButton = addRenderableWidget(Button.builder(addEntryLabel, button -> addEntry())
+                .pos(buttonX, buttonY).size(addEntryWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += addEntryWidth + BUTTON_GAP;
+
+        Component removeLabel = Component.translatable(key("admin.remove"));
+        Component removeConfirmLabel = Component.translatable(key("admin.remove_confirm"));
+        int removeWidth = fitWidth(removeLabel, removeConfirmLabel);
+        this.removeButton = addRenderableWidget(new ConfirmButton(buttonX, buttonY, removeWidth, BUTTON_ROW_HEIGHT,
+                removeLabel, removeConfirmLabel, this::removeSelected));
+        buttonX += removeWidth + BUTTON_GAP;
+
+        Component refreshLabel = Component.translatable(key("admin.refresh"));
+        int refreshWidth = fitWidth(refreshLabel);
+        this.refreshButton = addRenderableWidget(Button.builder(refreshLabel, button -> ClientActions.sendAdminPanelRequest())
+                .pos(buttonX, buttonY).size(refreshWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += refreshWidth + BUTTON_GAP;
+
+        Component submitLabel = Component.translatable(key("admin.submit"));
+        int submitWidth = fitWidth(submitLabel);
+        this.submitButton = addRenderableWidget(Button.builder(submitLabel, button -> submit())
+                .pos(buttonX, buttonY).size(submitWidth, BUTTON_ROW_HEIGHT).build());
+        buttonX += submitWidth + BUTTON_GAP;
+
+        Component closeLabel = Component.translatable(key("admin.close"));
+        int closeWidth = fitWidth(closeLabel);
+        this.closeButton = addRenderableWidget(Button.builder(closeLabel, button -> onClose())
+                .pos(buttonX, buttonY).size(closeWidth, BUTTON_ROW_HEIGHT).build());
 
         this.adminButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_admins")),
                 button -> toggleAdminWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72, this.topPos + ADMIN_BUTTON_Y)
@@ -394,6 +425,22 @@ public class AdminConfigScreen extends Screen
         rebuildValueTable();
         rebuildAdminTable();
         refreshFields();
+    }
+
+    /**
+     * Width of a bottom row button: the widest of its labels plus a small padding on both sides. A confirm label can be
+     * longer than the plain one, so the button is measured against both and never clips after the first click.
+     */
+    private int fitWidth(Component... labels)
+    {
+        int widest = 0;
+
+        for (Component label : labels)
+        {
+            widest = Math.max(widest, this.font.width(label));
+        }
+
+        return widest + BUTTON_PADDING_X * 2;
     }
 
     @Override
