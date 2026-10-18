@@ -299,5 +299,13 @@ check("if (!ClientActions.hasAltar())" in screen_source,
 check("ALTAR_LABEL_RANGE" in constants_source and "ALTAR_LABEL_LOOK_DOT" in constants_source,
       "the altar label constants are missing")
 
+
+check("MID_TEXT_X = 192" in screen_source and "MID_TEXT_WIDTH = 106" in screen_source,
+      "the altar summary block is not laid out right of the offering grid")
+check(screen_source.count("MID_TEXT_X") >= 5,
+      "a summary line still sits in the creature column")
+check("altar.hint\")), MOB_X" not in screen_source,
+      "the hint still takes room from the creature column")
+
 print("RESULT: %s" % ("OK" if not failures else "%d failure(s)" % len(failures)))
 sys.exit(0 if not failures else 1)

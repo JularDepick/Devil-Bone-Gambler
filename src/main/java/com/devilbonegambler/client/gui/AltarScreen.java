@@ -83,13 +83,19 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
     private static final int MOB_VISIBLE_ROWS = 8;
     private static final int MOB_LIST_Y = 40;
     private static final int MOB_SCROLL_GAP = 2;
-    private static final int HINT_Y = 152;
-    private static final int HINT_LINE_HEIGHT = 10;
 
     private static final int TITLE_Y = 6;
+    /*
+     * The altar summary, the estimate, the accumulated altar value and the hint sit right of the offering grid instead
+     * of above the creature list, so the left column belongs to the creature list alone.
+     */
+    private static final int MID_TEXT_X = 192;
+    private static final int MID_TEXT_WIDTH = 106;
     private static final int SUMMARY_Y = 18;
     private static final int ESTIMATE_Y = 28;
     private static final int ALTAR_VALUE_Y = 38;
+    private static final int HINT_Y = 54;
+    private static final int HINT_LINE_HEIGHT = 10;
 
     /*
      * Middle column: the offering grid above and the real player inventory below, both positioned by the menu.
@@ -270,17 +276,18 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
     {
         graphics.drawString(this.font, this.title, MOB_X, TITLE_Y, TITLE_COLOR, false);
         graphics.drawString(this.font, clip(Component.translatable(key("altar.summary"),
-                Integer.valueOf(countEntries()), Integer.valueOf(countItems())).getString(), MOB_WIDTH), MOB_X,
-                SUMMARY_Y, TEXT_COLOR, false);
+                Integer.valueOf(countEntries()), Integer.valueOf(countItems())).getString(), MID_TEXT_WIDTH),
+                MID_TEXT_X, SUMMARY_Y, TEXT_COLOR, false);
         graphics.drawString(this.font, clip(Component.translatable(key("altar.estimate"),
-                Long.valueOf(estimatedValue())).getString(), MOB_WIDTH), MOB_X, ESTIMATE_Y, ESTIMATE_COLOR, false);
+                Long.valueOf(estimatedValue())).getString(), MID_TEXT_WIDTH), MID_TEXT_X, ESTIMATE_Y, ESTIMATE_COLOR,
+                false);
         drawAltarValue(graphics);
         graphics.drawString(this.font, Component.translatable(key("altar.altar")), AltarMenu.OFFERING_X,
                 OFFERING_LABEL_Y, LABEL_COLOR, false);
         graphics.drawString(this.font, Component.translatable(key("altar.backpack")), AltarMenu.INVENTORY_X,
                 INVENTORY_LABEL_Y, LABEL_COLOR, false);
-        drawWrapped(graphics, Component.translatable(key("altar.hint")), MOB_X, HINT_Y, MOB_WIDTH, HINT_LINE_HEIGHT,
-                LABEL_COLOR);
+        drawWrapped(graphics, Component.translatable(key("altar.hint")), MID_TEXT_X, HINT_Y, MID_TEXT_WIDTH,
+                HINT_LINE_HEIGHT, LABEL_COLOR);
         drawValueLabels(graphics);
         graphics.drawString(this.font, clip(this.status, STATUS_WIDTH), STATUS_X, STATUS_Y, STATUS_COLOR, false);
         graphics.drawString(this.font, Component.translatable("gui." + ModConstants.MOD_ID + ".author"), AUTHOR_X,
@@ -300,7 +307,7 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
         }
 
         graphics.drawString(this.font, clip(Component.translatable(key("altar.altar_value"),
-                Long.valueOf(ClientActions.altarValue())).getString(), MOB_WIDTH), MOB_X, ALTAR_VALUE_Y,
+                Long.valueOf(ClientActions.altarValue())).getString(), MID_TEXT_WIDTH), MID_TEXT_X, ALTAR_VALUE_Y,
                 TEXT_COLOR, false);
     }
 
