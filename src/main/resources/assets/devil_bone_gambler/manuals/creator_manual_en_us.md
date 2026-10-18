@@ -29,6 +29,7 @@
 ## Opening the panel
 
 - Press Shift and D in game, and the key can be rebound in the vanilla controls screen
+- Or select this mod in the mod list of the game menu and press its config button, which is exactly the same as Shift and D
 - Or run /devilbonegambler config, the short form /dbgr config is equivalent
 - Only the creator and the admins may open it, a press by anybody else does nothing
 

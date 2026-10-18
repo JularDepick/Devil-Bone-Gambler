@@ -186,6 +186,32 @@ def main() -> int:
     if "ModConstants.MAX_ITEM_VALUE" not in item_values:
         problems.append("the server accepts offering values above the cap the panel shows")
 
+    mod_config = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "ModConfigScreen.java"
+    entry = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "DevilBoneGambler.java").read_text(encoding="utf-8")
+    actions = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "ClientActions.java").read_text(encoding="utf-8")
+
+    if not mod_config.is_file():
+        problems.append("the mod list config button has no screen factory")
+
+    if "ConfigScreenHandler.ConfigScreenFactory" not in mod_config.read_text(encoding="utf-8") if mod_config.is_file() else True:
+        problems.append("the config button does not register a screen factory")
+
+    if "openAdminPanelFromMenu" not in mod_config.read_text(encoding="utf-8") if mod_config.is_file() else True:
+        problems.append("the config button does not open the admin panel")
+
+    if "unsafeRunWhenOn(Dist.CLIENT, () -> ModConfigScreen::register)" not in entry:
+        problems.append("the config screen factory is not registered on the client only")
+
+    if "public static void openAdminPanelFromMenu()" not in actions or "sendAdminPanelRequest()" not in actions:
+        problems.append("the config button does not send the panel request")
+
+    for name, marker in (("admin_manual_zh_cn.md", "点配置按钮"),
+                         ("admin_manual_en_us.md", "config button")):
+        manual = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "manuals" / name).read_text(encoding="utf-8")
+
+        if marker not in manual:
+            problems.append("the manual does not mention the config button: " + name)
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)

@@ -3,6 +3,7 @@
 ## 打开面板
 
 - 按 Shift 加 D, 键位可以在控制界面改绑
+- 或在游戏菜单的模组列表里选中本模组点配置按钮, 与按 Shift 加 D 完全等价
 - 或执行 /devilbonegambler config, 短名 /dbgr config 等价
 - 只有创建者与管理员能打开, 其他人按键没有反应
 

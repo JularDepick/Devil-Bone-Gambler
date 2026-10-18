@@ -13,8 +13,11 @@ import com.devilbonegambler.registry.ModCreativeTabs;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.registry.ModMenus;
+import com.devilbonegambler.client.ModConfigScreen;
 import com.mojang.logging.LogUtils;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -43,6 +46,12 @@ public class DevilBoneGambler
         ModMenus.MENUS.register(modEventBus);
 
         modEventBus.addListener(this::onCommonSetup);
+
+        /*
+         * The mod list config button is a client side entry point to the same admin panel as the in game key. The call
+         * is wrapped so the client only class is never loaded on a dedicated server.
+         */
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> ModConfigScreen::register);
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event)

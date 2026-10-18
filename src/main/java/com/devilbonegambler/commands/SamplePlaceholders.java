@@ -322,7 +322,8 @@ public final class SamplePlaceholders
             return picked;
         }
 
-        Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(picked));
+        ResourceLocation key = ResourceLocation.tryParse(picked);
+        Enchantment enchantment = key == null ? null : ForgeRegistries.ENCHANTMENTS.getValue(key);
 
         if (enchantment == null)
         {
@@ -360,7 +361,8 @@ public final class SamplePlaceholders
                 || ModConstants.SAMPLE_DERIVED_DEBUFF.equals(type)
                 || ModConstants.SAMPLE_DERIVED_NEUBUFF.equals(type))
         {
-            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(id));
+            ResourceLocation key = ResourceLocation.tryParse(id);
+            Enchantment enchantment = key == null ? null : ForgeRegistries.ENCHANTMENTS.getValue(key);
 
             if (enchantment != null)
             {

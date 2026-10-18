@@ -173,6 +173,22 @@ public final class ClientActions
         ModNetwork.sendToServer(new ValueTableRefreshRequestPacket(nextSequence()));
     }
 
+    /**
+     * The mod list config button calls this. It sends the same request as the in game key, and the server answers with
+     * the panel only when the player may manage the mod.
+     */
+    public static void openAdminPanelFromMenu()
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (minecraft.player == null || minecraft.screen instanceof AdminConfigScreen)
+        {
+            return;
+        }
+
+        sendAdminPanelRequest();
+    }
+
     public static void sendAdminPanelRequest()
     {
         ModNetwork.sendToServer(new AdminPanelRequestPacket(nextSequence()));
