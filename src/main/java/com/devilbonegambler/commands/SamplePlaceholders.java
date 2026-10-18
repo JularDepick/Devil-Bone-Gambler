@@ -44,6 +44,15 @@ public final class SamplePlaceholders
      */
     public static String expand(String line, SampleContext context)
     {
+        return expand(line, context, null);
+    }
+
+    /**
+     * Same expansion, additionally reporting the display name of every sample it picked, in command order, so the
+     * result notice can say what the placeholder actually rolled.
+     */
+    public static String expand(String line, SampleContext context, List<String> names)
+    {
         if (line == null || line.indexOf("^(") < 0)
         {
             return line;
@@ -83,6 +92,11 @@ public final class SamplePlaceholders
             builder.append(line, cursor, matcher.start());
             builder.append(sampled);
             cursor = matcher.end();
+
+            if (names != null)
+            {
+                names.add(SampleNames.displayFor(type, sampled));
+            }
         }
 
         builder.append(line, cursor, line.length());

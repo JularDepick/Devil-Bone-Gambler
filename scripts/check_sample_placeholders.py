@@ -94,12 +94,24 @@ def main() -> int:
     check("context fields", all(marker in context for marker in ("point", "overflow", "luck", "red", "seed")),
           "the sample context misses a roll attribute")
 
-    check("runner expansion", "SamplePlaceholders.expand(command, context)" in runner,
+    check("runner expansion", "SamplePlaceholders.expand(command, context, sampledNames)" in runner,
           "the prize commands do not expand the sample placeholders")
     check("runner validation", "SamplePlaceholders.findProblem(line)" in runner
           and "SamplePlaceholders.sampleForm(" in runner, "validation does not know the sample placeholders")
     check("draw context", "new SampleContext(pending.roll.point(), pending.overflow, pending.luck,"
           in engine, "the draw does not pass its roll attributes")
+
+    names = (JAVA / "commands" / "SampleNames.java").read_text(encoding="utf-8")
+    notify = (JAVA / "draw" / "NotifySender.java").read_text(encoding="utf-8")
+    check("sampled display names", "SampleNames.displayFor(type, sampled)" in sampler,
+          "the sampler does not report the display name of a sample")
+    check("sampled name sources", "ForgeRegistries.ITEMS" in names and "ForgeRegistries.ENTITY_TYPES" in names
+          and "ForgeRegistries.MOB_EFFECTS" in names and "ForgeRegistries.ENCHANTMENTS" in names,
+          "the display names are not read from the registries")
+    check("sampled names passed", "sampledNames" in runner and "sampledNames" in engine,
+          "the sampled names are not passed from the draw to the result notice")
+    check("sampled names appended", 'String.join(" ", names)' in notify,
+          "the result notice does not append the sampled names")
 
     check("chat entry", "RUN_LITERAL = \"run\"" in commands and "greedyString()" in commands
           and "SampleContext.DEFAULT" in commands, "the /dbgr run entry is missing")

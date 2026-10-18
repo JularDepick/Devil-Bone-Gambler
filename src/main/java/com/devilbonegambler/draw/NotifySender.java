@@ -10,7 +10,9 @@ import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.Placeholders;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
@@ -33,7 +35,15 @@ public final class NotifySender
 
     public static void sendEntryResult(ServerPlayer player, NotifyConfig notify)
     {
-        Component text = entryText(player, notify);
+        sendEntryResult(player, notify, null);
+    }
+
+    /**
+     * Same result line, with the names of the samples the command rolled appended after the configured text.
+     */
+    public static void sendEntryResult(ServerPlayer player, NotifyConfig notify, List<String> sampledNames)
+    {
+        Component text = entryText(player, notify, sampledNames);
 
         if (text == null)
         {
@@ -60,6 +70,11 @@ public final class NotifySender
      */
     public static void broadcastMajorEvent(ServerPlayer source, PrizeEntry entry)
     {
+        broadcastMajorEvent(source, entry, null);
+    }
+
+    public static void broadcastMajorEvent(ServerPlayer source, PrizeEntry entry, List<String> sampledNames)
+    {
         MinecraftServer server = source.getServer();
 
         if (server == null)
@@ -67,7 +82,7 @@ public final class NotifySender
             return;
         }
 
-        Component result = entryText(source, entry.notifyOrDefault());
+        Component result = entryText(source, entry.notifyOrDefault(), sampledNames);
         Component text = Component.translatable("gui." + ModConstants.MOD_ID + ".major_event",
                 source.getGameProfile().getName());
 
@@ -147,6 +162,15 @@ public final class NotifySender
      */
     public static Component entryText(ServerPlayer player, NotifyConfig notify)
     {
+        return entryText(player, notify, null);
+    }
+
+    /**
+     * A sample name is appended with a single space, in the order the placeholders were expanded. Entries without a
+     * sample placeholder pass no names and keep exactly their configured text.
+     */
+    public static Component entryText(ServerPlayer player, NotifyConfig notify, List<String> sampledNames)
+    {
         String raw = Placeholders.expand(notify.textOrEmpty(), player);
 
         if (raw == null || raw.trim().isEmpty())
@@ -154,6 +178,25 @@ public final class NotifySender
             return null;
         }
 
-        return Component.literal(raw.trim());
+        Component text = Component.literal(raw.trim());
+        List<String> names = new ArrayList<String>();
+
+        if (sampledNames != null)
+        {
+            for (String name : sampledNames)
+            {
+                if (name != null && !name.isEmpty())
+                {
+                    names.add(name);
+                }
+            }
+        }
+
+        if (names.isEmpty())
+        {
+            return text;
+        }
+
+        return text.copy().append(Component.literal(" " + String.join(" ", names)));
     }
 }

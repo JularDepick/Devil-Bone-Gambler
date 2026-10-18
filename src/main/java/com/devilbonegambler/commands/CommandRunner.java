@@ -78,6 +78,15 @@ public final class CommandRunner
      */
     public static int run(MinecraftServer server, ServerPlayer trigger, String raw, SampleContext context)
     {
+        return run(server, trigger, raw, context, null);
+    }
+
+    /**
+     * Same run, additionally collecting the display name of every sampled id in the order the lines were expanded.
+     */
+    public static int run(MinecraftServer server, ServerPlayer trigger, String raw, SampleContext context,
+            List<String> sampledNames)
+    {
         int executed = 0;
 
         for (String line : lines(raw))
@@ -100,7 +109,7 @@ public final class CommandRunner
                 continue;
             }
 
-            command = SamplePlaceholders.expand(command, context);
+            command = SamplePlaceholders.expand(command, context, sampledNames);
 
             if (command == null)
             {

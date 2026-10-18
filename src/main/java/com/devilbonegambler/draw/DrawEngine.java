@@ -28,6 +28,7 @@ import com.devilbonegambler.util.OfferEligibility;
 import com.devilbonegambler.util.Placeholders;
 import com.devilbonegambler.util.SampleContext;
 import com.devilbonegambler.util.ServerScheduler;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
@@ -210,9 +211,10 @@ public final class DrawEngine
             return;
         }
 
+        List<String> sampledNames = new ArrayList<String>();
         int commandResult = CommandRunner.run(server, player, pending.hit.commandOrEmpty(),
                 new SampleContext(pending.roll.point(), pending.overflow, pending.luck, pending.roll.isRed(),
-                        pending.seed));
+                        pending.seed), sampledNames);
 
         if (commandResult <= 0)
         {
@@ -256,11 +258,11 @@ public final class DrawEngine
             }
         }
 
-        NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault());
+        NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault(), sampledNames);
 
         if (pending.hit.isMajorEvent())
         {
-            NotifySender.broadcastMajorEvent(player, pending.hit);
+            NotifySender.broadcastMajorEvent(player, pending.hit, sampledNames);
         }
 
         audit(player, pending, commandResult, offeringsTaken, extraValue);
