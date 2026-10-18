@@ -10,7 +10,8 @@ The manuals of the two roles are kept in place by a calibration pass and by noth
   3. the copies beyond the first are the ones that are cleared,
   4. the fragile handlers that had to guess where a manual went (toss, join, pickup, container close) are gone,
   5. the item no longer reacts to a drop, because a dropped copy is cleared by the next calibration pass instead,
-  6. every manual carries its own name colour, and the item colours its own name with it.
+  6. every manual carries its own name colour, the item colours its own name with it, and the book icon of every
+     manual is painted with the very same colour: gameplay 00FF00, admin 00FFAA, creator FFAA00.
 Exit code 0 means the check passed.
 """
 
@@ -20,12 +21,15 @@ import pathlib
 import re
 import sys
 
+from PIL import Image
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler"
 SERVICE = SOURCE_ROOT / "manual" / "ManualService.java"
 CONSTANTS = SOURCE_ROOT / "util" / "ModConstants.java"
 ITEM = SOURCE_ROOT / "item" / "ManualItem.java"
 KIND = SOURCE_ROOT / "manual" / "ManualKind.java"
+TEXTURES = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "textures" / "item"
 NAME_COLORS = {
     "GAMEPLAY": "0x00FF00",
     "ADMIN": "0x00FFAA",
@@ -87,6 +91,29 @@ def main() -> int:
     for name, color in NAME_COLORS.items():
         if not re.search(rf'{name}\("[a-z_]+", {re.escape(color)}\)', kind):
             problems.append("the " + name + " manual name is not coloured " + color)
+
+        texture = TEXTURES / (name.lower() + "_manual.png")
+
+        if not texture.is_file():
+            problems.append("the " + name + " manual icon is missing")
+            continue
+
+        with Image.open(texture) as raw:
+            image = raw.convert("RGBA")
+
+        counts = {}
+        for y in range(image.height):
+            for x in range(image.width):
+                pixel = image.getpixel((x, y))
+
+                if pixel[3] == 255:
+                    counts[pixel[:3]] = counts.get(pixel[:3], 0) + 1
+
+        expected = tuple(int(color[index:index + 2], 16) for index in (2, 4, 6))
+        dominant = max(counts, key=counts.get) if counts else None
+
+        if dominant != expected:
+            problems.append("the " + name + " manual cover is " + str(dominant) + " instead of " + str(expected))
 
     if "getName(" not in item or "withColor" not in item or "nameColor()" not in item:
         problems.append("the manual item does not colour its own name")

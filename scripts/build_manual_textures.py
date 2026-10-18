@@ -22,30 +22,32 @@ SIZE = 16
 TRANSPARENT = (0, 0, 0, 0)
 
 # One palette per manual: cover, cover shade, cover highlight, page, page line, emblem.
+# The cover carries the same colour as the manual name: gameplay 00FF00, admin 00FFAA, creator FFAA00,
+# with a darker spine and a lighter highlight so the little book still reads as bound at 16 pixels.
 PALETTES = {
     "gameplay_manual": {
-        "cover": (46, 74, 122),
-        "shade": (30, 50, 86),
-        "highlight": (78, 110, 166),
+        "cover": (0, 255, 0),
+        "shade": (0, 178, 0),
+        "highlight": (77, 255, 77),
         "page": (232, 224, 200),
         "line": (198, 188, 162),
-        "emblem": (226, 226, 226),
+        "emblem": (240, 240, 240),
     },
     "admin_manual": {
-        "cover": (122, 46, 46),
-        "shade": (86, 30, 30),
-        "highlight": (166, 78, 78),
+        "cover": (0, 255, 170),
+        "shade": (0, 178, 119),
+        "highlight": (77, 255, 196),
         "page": (232, 224, 200),
         "line": (198, 188, 162),
-        "emblem": (226, 200, 140),
+        "emblem": (255, 230, 150),
     },
     "creator_manual": {
-        "cover": (138, 106, 34),
-        "shade": (98, 74, 22),
-        "highlight": (186, 150, 62),
+        "cover": (255, 170, 0),
+        "shade": (178, 119, 0),
+        "highlight": (255, 204, 77),
         "page": (232, 224, 200),
         "line": (198, 188, 162),
-        "emblem": (240, 236, 220),
+        "emblem": (250, 245, 235),
     },
 }
 
