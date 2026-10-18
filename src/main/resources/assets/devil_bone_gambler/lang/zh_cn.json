@@ -207,6 +207,7 @@
   "gui.devil_bone_gambler.dealer.offline_member": "离线成员",
   "gui.devil_bone_gambler.dealer.remind": "你还没有下注, 剩余 %s 秒, 未下注会被移出赌局",
   "gui.devil_bone_gambler.dealer.pull": "赌局即将开始, 范围外的成员会被带回荷官身边",
+  "gui.devil_bone_gambler.dealer.countdown": "赌局将在 %s 秒后开始",
   "gui.devil_bone_gambler.dealer.kick_no_bet": "你没有下注, 已被移出本次赌局",
   "gui.devil_bone_gambler.dealer.cancelled": "赌局已取消, 赌注与骰子已返还",
   "gui.devil_bone_gambler.dealer.aborted": "赌局已中止, 赌注与骰子已返还",

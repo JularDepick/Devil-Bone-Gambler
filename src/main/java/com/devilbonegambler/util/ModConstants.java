@@ -366,6 +366,8 @@ public final class ModConstants
     public static final int DEALER_WAGER_CHIME_TAIL_SECONDS = 10;
     public static final int DEALER_WAGER_PULL_SECONDS = 5;
     public static final int DEALER_WAGER_PULL_TICKS = 40;
+    /* The last seconds are counted down in chat for the members that already joined. */
+    public static final int DEALER_WAGER_COUNTDOWN_SECONDS = 5;
     public static final int DEALER_WAGER_MAX_PLAYERS = 8;
     public static final int DEALER_WAGER_MIN_PLAYERS = 2;
     public static final int DEALER_WAGER_RADIUS = 6;

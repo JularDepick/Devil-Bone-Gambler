@@ -577,6 +577,17 @@ def check_player_hits():
           and "this.lastPlayerHitTick = this.level().getGameTime()" in hurt)
 
 
+def check_countdown():
+    """The last five seconds of the recruit are counted down in chat for the members that already joined."""
+    service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
+    constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
+
+    check("开始前五秒读秒", "DEALER_WAGER_COUNTDOWN_SECONDS = 5" in constants
+          and "KEY_COUNTDOWN = LANG + \"countdown\"" in service
+          and "remaining <= ModConstants.DEALER_WAGER_COUNTDOWN_SECONDS" in service
+          and "broadcastMembers(server, session, Component.translatable(KEY_COUNTDOWN" in service)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -602,6 +613,7 @@ def main():
     check_neutrality()
     check_hurt_condition()
     check_player_hits()
+    check_countdown()
 
     print("")
     print("调色板清单:")

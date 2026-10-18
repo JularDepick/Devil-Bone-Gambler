@@ -207,6 +207,7 @@
   "gui.devil_bone_gambler.dealer.offline_member": "Offline member",
   "gui.devil_bone_gambler.dealer.remind": "No bet yet, %s seconds left, you will be removed without one",
   "gui.devil_bone_gambler.dealer.pull": "The wager is about to start, members outside the range are pulled back",
+  "gui.devil_bone_gambler.dealer.countdown": "The wager starts in %s seconds",
   "gui.devil_bone_gambler.dealer.kick_no_bet": "You placed no bet and were removed from this wager",
   "gui.devil_bone_gambler.dealer.cancelled": "The wager was cancelled, bets and the dice were returned",
   "gui.devil_bone_gambler.dealer.aborted": "The wager was aborted, bets and the dice were returned",

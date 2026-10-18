@@ -67,6 +67,7 @@ public final class DealerWagerService
     private static final String KEY_CANCELLED = LANG + "cancelled";
     private static final String KEY_ABORTED = LANG + "aborted";
     private static final String KEY_STARTED = LANG + "started";
+    private static final String KEY_COUNTDOWN = LANG + "countdown";
     private static final String KEY_POINT = LANG + "point";
     private static final String KEY_COLOR_RED = LANG + "color_red";
     private static final String KEY_COLOR_BLACK = LANG + "color_black";
@@ -483,6 +484,15 @@ public final class DealerWagerService
             session.setLastSecond(remaining);
             dealer.showRecruitText(session.memberCount(), Math.max(0, remaining));
             sendPanels(server, session, dealer);
+
+            /*
+             * The last few seconds are counted down in chat, one line per second and only for the players that already
+             * joined, so nobody has to watch the name tag to know how long is left.
+             */
+            if (remaining > 0 && remaining <= ModConstants.DEALER_WAGER_COUNTDOWN_SECONDS)
+            {
+                broadcastMembers(server, session, Component.translatable(KEY_COUNTDOWN, Integer.valueOf(remaining)));
+            }
 
             /*
              * The chime rings only when the wager opens and again in its last seconds, never once per second for the

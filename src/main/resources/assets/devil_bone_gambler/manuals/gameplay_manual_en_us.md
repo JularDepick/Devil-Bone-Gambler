@@ -70,6 +70,7 @@
 - A settled wager costs the dealer part of its food; the dice it just earned pays the bill first and only a remaining part is paid with health
 - A recruiting dealer can be joined by an empty hand right click; whoever started it can start it early with the button
 - The first seconds of the recruit and its last seconds carry a chime, and the countdown between them is quiet
+- In the last five seconds the joined players see a one second countdown in chat
 - Clicking your own cell opens your own bet box to put in and take out freely, and clicking another cell only shows that box
 - When the recruit ends the countdown starts: members outside the range are pulled back to the dealer at once, and a member without a stake is removed
 - The point picks one member and the colour decides the payout: red takes every stake plus one more copy of the own stake, black takes every stake only
