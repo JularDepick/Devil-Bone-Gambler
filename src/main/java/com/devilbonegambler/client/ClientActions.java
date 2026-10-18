@@ -155,9 +155,8 @@ public final class ClientActions
 
         ModNetwork.sendToServer(new DevilsDiceRequestPacket(nextSequence(),
                 minecraft.player.getGameProfile().getName(), devilsDiceId(), OfferingBundle.empty()));
-        /* The hint goes to the chat box, so nothing of the mod ever appears above the hotbar. */
-        minecraft.gui.getChat().addMessage(
-                Component.translatable("gui." + ModConstants.MOD_ID + ".altar.place_hint"));
+        /* The hint is an invalid action, so it shares the notice cooldown instead of printing on every click. */
+        ClientNotices.sendThrottled("gui." + ModConstants.MOD_ID + ".altar.place_hint");
     }
 
     /**

@@ -11,7 +11,9 @@ import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.Placeholders;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
@@ -23,6 +25,10 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class NotifySender
 {
+    /* When each player was last told about each kind of notice, keyed by the notice itself. */
+    private static final Map<ServerPlayer, Map<String, Long>> LAST_NOTICE =
+            new WeakHashMap<ServerPlayer, Map<String, Long>>();
+
     private NotifySender()
     {
     }
@@ -34,6 +40,11 @@ public final class NotifySender
 
     public static void sendFailure(ServerPlayer player, String reasonKey)
     {
+        if (suppressNotice(player, "reason." + reasonKey))
+        {
+            return;
+        }
+
         Component text = Component.translatable("gui." + ModConstants.MOD_ID + ".reason." + reasonKey);
         send(player, ModConstants.NOTIFY_MODE_TELLRAW, text);
     }
@@ -69,11 +80,40 @@ public final class NotifySender
         player.sendSystemMessage(Component.translatable(key, args));
     }
 
-    public static void broadcastChat(List<ServerPlayer> players, Component text)
+    /**
+     * A refusal or an invalid action, held back when the same one was already shown a moment ago. Results, rewards and
+     * state changes stay on {@link #sendChat} so no real news is ever swallowed by the cooldown.
+     */
+    public static void sendChatThrottled(ServerPlayer player, String key, Object... args)
     {
-        for (ServerPlayer player : players)
+        if (suppressNotice(player, key))
         {
-            player.sendSystemMessage(text);
+            return;
+        }
+
+        player.sendSystemMessage(Component.translatable(key, args));
+    }
+
+    /**
+     * True while the same notice was already shown inside the cooldown. The stored time only moves when a notice is
+     * actually sent, so repeated attempts still produce one line per second instead of silence.
+     */
+    private static boolean suppressNotice(ServerPlayer player, String notice)
+    {
+        long now = System.currentTimeMillis();
+
+        synchronized (LAST_NOTICE)
+        {
+            Map<String, Long> seen = LAST_NOTICE.computeIfAbsent(player, key -> new HashMap<String, Long>());
+            Long last = seen.get(notice);
+
+            if (last != null && now - last < ModConstants.NOTICE_COOLDOWN_MS)
+            {
+                return true;
+            }
+
+            seen.put(notice, now);
+            return false;
         }
     }
 

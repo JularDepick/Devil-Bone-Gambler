@@ -7,6 +7,7 @@
 package com.devilbonegambler.commands;
 
 import com.devilbonegambler.config.ServerConfigManager;
+import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.network.ServerRequestHandler;
 import com.devilbonegambler.util.ModConstants;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -75,7 +76,7 @@ public final class ModCommands
 
         if (!ServerConfigManager.isReady())
         {
-            player.sendSystemMessage(Component.translatable("gui." + ModConstants.MOD_ID + ".reason.not_ready"));
+            NotifySender.sendFailure(player, "not_ready");
             return 0;
         }
 

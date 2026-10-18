@@ -43,9 +43,10 @@ public final class ModConstants
     public static final String MANUAL_RESOURCE_EXTENSION = ".md";
     /*
      * Interval of the calibration pass over the online players, in ticks: a bound manual is granted again, deduplicated
-     * or taken away, and a copy lying in a loaded chunk is cleared, at most this long after the fact.
+     * or taken away, and a copy lying in a loaded chunk is cleared, at most this long after the fact. Ten seconds leave
+     * a player enough time to put a manual back into the inventory by hand before a pass can react.
      */
-    public static final int MANUAL_CALIBRATION_INTERVAL_TICKS = 10;
+    public static final int MANUAL_CALIBRATION_INTERVAL_TICKS = 200;
     /* A held dice reveals what it belongs to: the reach, the rescan interval and the white highlight both share. */
     public static final double DICE_SIGHT_ALTAR_RADIUS = 24.0D;
     public static final double DICE_SIGHT_DEALER_RADIUS = 24.0D;
@@ -217,6 +218,12 @@ public final class ModConstants
      */
     public static final String NOTIFY_MODE_TELLRAW = "tellraw";
     public static final String NOTIFY_MODE_NONE = "none";
+    /*
+     * A repeated identical notice is held back for this long, so a held key or the same mistake made twice in a row
+     * cannot fill the chat box with one line. A notice of another kind is never held back, and the cooldown only moves
+     * when a notice is really sent, so a player who keeps trying still gets one reminder per second.
+     */
+    public static final long NOTICE_COOLDOWN_MS = 1000L;
 
     public static final String[] NOTIFY_MODES = {
         NOTIFY_MODE_TELLRAW,
@@ -226,24 +233,49 @@ public final class ModConstants
     /*
      * Dealer: entity, feeding, pathing and the sunrise and sunset silent spawn.
      */
+    /*
+     * The dealer pocket holds gambler dice only: 32 slots at the start plus one more per whole experience point, and a
+     * fresh dealer already carries 16. Bars start at twice the player base and gain a tenth of that base per point.
+     */
+    public static final int DEALER_POCKET_BASE = 32;
+    public static final int DEALER_POCKET_INITIAL_DICE = 16;
+    public static final double DEALER_STAT_BASE_MULTIPLIER = 2.0D;
+    public static final double DEALER_STAT_PER_EXPERIENCE = 0.1D;
+    public static final int PLAYER_BASE_MAX_HEALTH = 20;
+    public static final int PLAYER_BASE_MAX_SATIETY = 20;
+    /* One eaten dice restores half of each bar, the wasted part turns into experience. */
+    public static final double DEALER_DICE_RESTORE_SHARE = 0.5D;
     public static final int DEALER_MAX_HEALTH = 40;
     public static final int DEALER_MAX_SATIETY = 40;
-    /* A dealer leaves this many gambler dice at full satiety, and nothing when starving. */
-    public static final int DEALER_DEATH_DICE_DROPS = 4;
-    public static final int DEALER_SATIETY_PER_HEALTH = 2;
+    /*
+     * Every bar cost is a share of the current ceiling, so both bars keep their meaning while experience lifts them.
+     * A wager costs 12 percent plus one more per member, a swing half a percent, and a missing two percent of satiety
+     * is paid with one percent of health.
+     */
+    public static final double DEALER_WAGER_COST_BASE_PERCENT = 12.0D;
+    public static final double DEALER_WAGER_COST_PER_MEMBER_PERCENT = 1.0D;
+    public static final double DEALER_SWING_COST_PERCENT = 0.5D;
+    public static final double DEALER_SATIETY_PERCENT_PER_HEALTH_PERCENT = 2.0D;
+    /*
+     * Both bars drain with time: one whole day empties the satiety bar, checked once per second. A recruit or a wager
+     * stops the drain and refills both bars at the same rate, because the players are feeding the dealer then.
+     */
+    public static final int DEALER_DAY_TICKS = 24000;
+    public static final int DEALER_DECAY_INTERVAL_TICKS = 20;
+    public static final double DEALER_DECAY_PERCENT_PER_INTERVAL =
+            100.0D * DEALER_DECAY_INTERVAL_TICKS / DEALER_DAY_TICKS;
     public static final int DEALER_STAY_SECONDS = 30;
     public static final int DEALER_FEED_RADIUS = 2;
     /*
-     * Eating: a dealer only reaches for a dropped dice when one of its bars is under the share of the maximum, and it
-     * waits between two meals. Only the gambler's dice is food, the devil's dice is left on the ground.
+     * Eating: a dealer starts eating from its pocket when one of its bars is at or under the share of the maximum, and
+     * it waits between two meals. Only the gambler's dice is food, the devil's dice is left on the ground.
      */
     public static final double DEALER_FEED_THRESHOLD = 0.6D;
     public static final int DEALER_FEED_INTERVAL_TICKS = 40;
     /*
-     * Fight: every other swing of a territory fight costs one satiety point, and a dealer with an empty bar cannot
-     * swing at all, so a long fight slows down and finally stops instead of running forever.
+     * Fight: every swing costs half a percent of the satiety ceiling, and a dealer with an empty bar cannot swing at
+     * all, so a long fight slows down and finally stops instead of running forever.
      */
-    public static final int DEALER_TERRITORY_SWINGS_PER_SATIETY = 2;
     public static final int DEALER_PATH_RADIUS = 8;
     public static final int DEALER_PATH_SAMPLES = 16;
     public static final int DEALER_PATH_TIMEOUT_TICKS = 400;
@@ -251,6 +283,13 @@ public final class ModConstants
     public static final double DEALER_LIQUID_WEIGHT = 3.0D;
     public static final double DEALER_DISTANCE_WEIGHT = 0.5D;
     public static final int DEALER_LIQUID_SCAN_RADIUS = 1;
+    /*
+     * A dealer in liquid climbs out at once: the shore is looked for in this radius, the target is refreshed on this
+     * interval, and the escape runs at this speed instead of the walking one.
+     */
+    public static final int DEALER_LIQUID_ESCAPE_RADIUS = 16;
+    public static final int DEALER_LIQUID_ESCAPE_REPATH_TICKS = 5;
+    public static final double DEALER_LIQUID_ESCAPE_SPEED = 1.2D;
 
     /*
      * Dealer territory: a dealer treats every other dealer inside its own radius as an intruder and fights it until
@@ -268,14 +307,23 @@ public final class ModConstants
     public static final float DEALER_TERRITORY_MAX_DAMAGE = 5.0F;
     /*
      * A struck dealer fumbles dice out of its pockets: the roll is made once per hit and never adds to the loot of a
-     * death, which keeps the death drop the only guaranteed handful.
+     * death, which keeps the death drop the only guaranteed handful. One hit frees dice on five percent of the hits in
+     * total: three dice on one percent, two on one and a half percent and one on two and a half percent.
      */
-    public static final double DEALER_HURT_DROP_CHANCE_THREE = 0.05D;
-    public static final double DEALER_HURT_DROP_CHANCE_TWO = 0.10D;
-    public static final double DEALER_HURT_DROP_CHANCE_ONE = 0.15D;
+    public static final double DEALER_HURT_DROP_CHANCE_THREE = 0.01D;
+    public static final double DEALER_HURT_DROP_CHANCE_TWO = 0.015D;
+    public static final double DEALER_HURT_DROP_CHANCE_ONE = 0.025D;
     public static final int DEALER_HURT_DROP_THREE = 3;
     public static final int DEALER_HURT_DROP_TWO = 2;
     public static final int DEALER_HURT_DROP_ONE = 1;
+    /*
+     * The fumble is rationed per dealer: a window of one minute opens with the first hit that frees dice, and at most
+     * six dice leave the pockets inside it. Once the window is spent the pockets stay empty until it runs out, so a
+     * dealer cannot be farmed faster than this.
+     */
+    /* One minute, written out because the tick helper is declared further down and cannot be read from here. */
+    public static final int DEALER_HURT_DROP_WINDOW_TICKS = 1200;
+    public static final int DEALER_HURT_DROP_WINDOW_MAX = 6;
     /*
      * The idle name of a dealer is only readable up close and only for the player who looks at it, while the hosting
      * and recruiting names are business and stay over its head for everyone.
@@ -287,7 +335,6 @@ public final class ModConstants
     public static final int DEALER_SPAWN_VERTICAL = 3;
     public static final int DEALER_SUNSET_TICK = 12000;
     public static final int DEALER_SUNRISE_TICK = 23000;
-    public static final int DEALER_DAY_TICKS = 24000;
 
     /*
      * Dealer reward: one spawn egg per this many consumed gambler's dice.

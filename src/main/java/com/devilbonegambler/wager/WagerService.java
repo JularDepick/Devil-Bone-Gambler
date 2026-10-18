@@ -141,7 +141,7 @@ public final class WagerService
 
         if (!hasOtherPlayersNearby(player))
         {
-            NotifySender.sendChat(player, KEY_NO_PLAYER);
+            NotifySender.sendChatThrottled(player, KEY_NO_PLAYER);
             return false;
         }
 
@@ -357,7 +357,7 @@ public final class WagerService
         }
 
         active.markNotified(player.getUUID());
-        NotifySender.sendChat(player, KEY_ENTERED, owner.getGameProfile().getName(),
+        NotifySender.sendChatThrottled(player, KEY_ENTERED, owner.getGameProfile().getName(),
                 Integer.valueOf(remainingSeconds(active, now)));
     }
 
@@ -396,7 +396,7 @@ public final class WagerService
         if (!state.inside)
         {
             String ownerName = owner.getGameProfile().getName();
-            NotifySender.sendChat(player, KEY_OUT_OF_RANGE, ownerName, ownerName);
+            NotifySender.sendChatThrottled(player, KEY_OUT_OF_RANGE, ownerName, ownerName);
             return;
         }
 

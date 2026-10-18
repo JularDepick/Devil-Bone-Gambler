@@ -556,6 +556,6 @@ public final class AltarService
         }
 
         player.hurt(player.damageSources().magic(), ModConstants.ALTAR_INTRUSION_DAMAGE);
-        NotifySender.sendChat(player, KEY_INTRUSION);
+        NotifySender.sendChatThrottled(player, KEY_INTRUSION);
     }
 }
