@@ -111,7 +111,8 @@ public final class ManualService
 
         for (ServerPlayer player : server.getPlayerList().getPlayers())
         {
-            calibrate(player);
+            /* A pass that runs on its own never speaks: the copy simply appears again. */
+            calibrate(player, false);
         }
     }
 
@@ -187,7 +188,7 @@ public final class ManualService
 
         if (player != null)
         {
-            calibrate(player);
+            calibrate(player, true);
         }
     }
 
@@ -204,26 +205,28 @@ public final class ManualService
             NotifySender.sendChat(player, KEY_RECEIVED, name);
         }
 
-        calibrate(player);
+        calibrate(player, true);
     }
 
     /**
      * Compares what one player owns with what the current role entitles them to.
+     * A join, a respawn and a change of the role announce what they hand out, while the periodic pass stays silent, so
+     * a manual that was dropped comes back without turning the chat box into a log of every drop.
      */
-    private static void calibrate(ServerPlayer player)
+    private static void calibrate(ServerPlayer player, boolean announce)
     {
         String playerName = player.getGameProfile().getName();
         boolean creator = isCreator(playerName);
 
-        hold(player, ManualKind.CREATOR, creator);
-        hold(player, ManualKind.ADMIN, !creator && ServerConfigManager.isManager(playerName));
+        hold(player, ManualKind.CREATOR, creator, announce);
+        hold(player, ManualKind.ADMIN, !creator && ServerConfigManager.isManager(playerName), announce);
     }
 
     /**
      * One kind of bound manual: nothing to do when the player owns exactly one, one granted when there is none, and
      * every copy beyond the first cleared when there are more, and all of them when the role does not earn any.
      */
-    private static void hold(ServerPlayer player, ManualKind kind, boolean entitled)
+    private static void hold(ServerPlayer player, ManualKind kind, boolean entitled, boolean announce)
     {
         List<Runnable> copies = copies(player, kind);
 
@@ -235,9 +238,18 @@ public final class ManualService
 
         if (copies.isEmpty())
         {
+            /*
+             * While the cursor carries anything the player is in the middle of moving items around, and a grant would
+             * race with the screen, so the copy waits for a later pass.
+             */
+            if (!player.containerMenu.getCarried().isEmpty())
+            {
+                return;
+            }
+
             Component name = grant(player, kind);
 
-            if (name != null)
+            if (name != null && announce)
             {
                 NotifySender.sendChat(player, KEY_RECEIVED, name);
             }
@@ -251,8 +263,8 @@ public final class ManualService
 
     /**
      * Every place a bound manual can sit while the player owns it, together with the action that empties that place.
-     * The cursor of the open screen comes first, then the inventory, the ender chest and finally the slots of the open
-     * screen that belong to neither, for example a chest or the crafting grid.
+     * The cursor of the open screen comes first, then the inventory, the armour and off hand slots, the ender chest
+     * and finally the slots of the open screen that belong to neither, for example a chest or the crafting grid.
      */
     private static List<Runnable> copies(ServerPlayer player, ManualKind kind)
     {
@@ -265,6 +277,8 @@ public final class ManualService
         }
 
         collect(found, player.getInventory(), kind);
+        collect(found, player.getInventory().armor, kind);
+        collect(found, player.getInventory().offhand, kind);
         collect(found, player.getEnderChestInventory(), kind);
 
         for (Slot slot : menu.slots)
@@ -288,6 +302,19 @@ public final class ManualService
             if (kindOf(container.getItem(slot)) == kind)
             {
                 found.add(() -> container.setItem(slot, ItemStack.EMPTY));
+            }
+        }
+    }
+
+    private static void collect(List<Runnable> found, List<ItemStack> stacks, ManualKind kind)
+    {
+        for (int index = 0; index < stacks.size(); index++)
+        {
+            final int slot = index;
+
+            if (kindOf(stacks.get(slot)) == kind)
+            {
+                found.add(() -> stacks.set(slot, ItemStack.EMPTY));
             }
         }
     }

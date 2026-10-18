@@ -3,12 +3,14 @@
 
 The manuals of the two roles are kept in place by a calibration pass and by nothing else, so this check proves that
 
-  1. the pass runs on the documented interval and both the constant and the service agree,
-  2. the service still counts the cursor and the slots of an open screen as owned, so picking a manual up with the
-     mouse is not mistaken for having dropped it,
+  1. the pass runs every ten seconds (200 ticks) and both the constant and the service agree,
+  2. the service still counts the cursor, the off hand, the armour slots and the slots of an open screen as owned, so
+     picking a manual up with the mouse is not mistaken for having dropped it, and a grant is deferred while the cursor
+     carries anything at all,
   3. the copies beyond the first are the ones that are cleared,
   4. the fragile handlers that had to guess where a manual went (toss, join, pickup, container close) are gone,
-  5. the item itself still refuses the hotbar drop, so the common drop key never produces a manual in the world.
+  5. the item no longer reacts to a drop, because a dropped copy is cleared by the next calibration pass instead,
+  6. every manual carries its own name colour, and the item colours its own name with it.
 Exit code 0 means the check passed.
 """
 
@@ -23,7 +25,13 @@ SOURCE_ROOT = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler"
 SERVICE = SOURCE_ROOT / "manual" / "ManualService.java"
 CONSTANTS = SOURCE_ROOT / "util" / "ModConstants.java"
 ITEM = SOURCE_ROOT / "item" / "ManualItem.java"
-INTERVAL = 10
+KIND = SOURCE_ROOT / "manual" / "ManualKind.java"
+NAME_COLORS = {
+    "GAMEPLAY": "0x00FF00",
+    "ADMIN": "0x00FFAA",
+    "CREATOR": "0xFFAA00",
+}
+INTERVAL = 200
 REMOVED_HANDLERS = (
     "ItemTossEvent",
     "EntityJoinLevelEvent",
@@ -36,6 +44,7 @@ def main() -> int:
     service = SERVICE.read_text(encoding="utf-8")
     constants = CONSTANTS.read_text(encoding="utf-8")
     item = ITEM.read_text(encoding="utf-8")
+    kind = KIND.read_text(encoding="utf-8")
 
     match = re.search(r"MANUAL_CALIBRATION_INTERVAL_TICKS\s*=\s*(\d+)", constants)
 
@@ -49,6 +58,12 @@ def main() -> int:
 
     if "getCarried()" not in service:
         problems.append("the manual service does not count the stack on the cursor as owned")
+
+    if "getCarried().isEmpty()" not in service:
+        problems.append("the manual service grants while the cursor carries an item")
+
+    if ".offhand" not in service or ".armor" not in service:
+        problems.append("the manual service does not count the off hand and the armour slots as owned")
 
     if "menu.slots" not in service or "slot.container !=" not in service:
         problems.append("the manual service does not count the slots of an open screen as owned")
@@ -69,8 +84,18 @@ def main() -> int:
     if "PlayerContainerEvent" not in service or "onContainerClosed" not in service:
         problems.append("the manual service lets a bound manual stay in a container")
 
-    if "onDroppedByPlayer" not in item:
-        problems.append("the manual item no longer refuses the hotbar drop")
+    for name, color in NAME_COLORS.items():
+        if not re.search(rf'{name}\("[a-z_]+", {re.escape(color)}\)', kind):
+            problems.append("the " + name + " manual name is not coloured " + color)
+
+    if "getName(" not in item or "withColor" not in item or "nameColor()" not in item:
+        problems.append("the manual item does not colour its own name")
+
+    if "onDroppedByPlayer" in item:
+        problems.append("the manual item handles the drop again instead of leaving it to the calibration")
+
+    if "suppressNotice" in item or "manual.kept" in item:
+        problems.append("the manual item still prompts about a drop")
 
     if problems:
         for problem in problems:

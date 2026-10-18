@@ -17,15 +17,17 @@ import com.devilbonegambler.util.ModConstants;
  */
 public enum ManualKind
 {
-    GAMEPLAY("gameplay_manual"),
-    ADMIN("admin_manual"),
-    CREATOR("creator_manual");
+    GAMEPLAY("gameplay_manual", 0x00FF00),
+    ADMIN("admin_manual", 0x00FFAA),
+    CREATOR("creator_manual", 0xFFAA00);
 
     private final String itemId;
+    private final int nameColor;
 
-    ManualKind(String itemId)
+    ManualKind(String itemId, int nameColor)
     {
         this.itemId = itemId;
+        this.nameColor = nameColor;
     }
 
     /**
@@ -34,6 +36,14 @@ public enum ManualKind
     public String itemId()
     {
         return this.itemId;
+    }
+
+    /**
+     * Colour of the item name, one per manual so the three are told apart in the inventory and in the chat.
+     */
+    public int nameColor()
+    {
+        return this.nameColor;
     }
 
     /**
