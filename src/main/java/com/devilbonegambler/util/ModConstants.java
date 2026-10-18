@@ -183,6 +183,8 @@ public final class ModConstants
      */
     public static final int VALUE_TABLE_SCREEN_ROWS = 11;
     public static final int VALUE_TABLE_SEARCH_MAX = 48;
+    /* An offering value an admin may set: whole numbers from zero up to this cap. */
+    public static final int MAX_ITEM_VALUE = 100000;
     /*
      * Chapter filters of the searchable view, cycled in this order by one button.
      */

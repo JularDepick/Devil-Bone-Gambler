@@ -167,6 +167,25 @@ def main() -> int:
     if "CHAPTER_COUNT = 3" not in text or "admin.chapter_all" not in text:
         problems.append("the three way value filter is missing")
 
+    # 价值页需要一个与输入框双向绑定的滑条, 范围 0 到 100000, 步长 100.
+    if "VALUE_MAX = ModConstants.MAX_ITEM_VALUE" not in text or "VALUE_STEP = 100" not in text:
+        problems.append("the value slider range or step is missing")
+
+    for marker in ("valueSlider", "onValueTyped", "onValueSliderMoved", "setValueListener", "setFilter"):
+        if marker not in text:
+            problems.append("the value field and slider are not bound: missing " + marker)
+
+    slider_source = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "IntSlider.java").read_text(encoding="utf-8")
+
+    for marker in ("private final int step", "snapNearest", "public void onRelease"):
+        if marker not in slider_source:
+            problems.append("the slider does not snap to its step: missing " + marker)
+
+    item_values = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "config" / "ItemValueConfig.java").read_text(encoding="utf-8")
+
+    if "ModConstants.MAX_ITEM_VALUE" not in item_values:
+        problems.append("the server accepts offering values above the cap the panel shows")
+
     if problems:
         for problem in problems:
             print("ERROR " + problem)

@@ -96,6 +96,11 @@ public class AdminConfigScreen extends Screen
     private static final int ROW_NOTIFY_Y = ROW_COMMAND_Y + CONTENT_ROW_HEIGHT;
     private static final int ROW_TOGGLE_Y = ROW_NOTIFY_Y + CONTENT_ROW_HEIGHT;
     private static final int COLUMN_BOTTOM = ROW_TOGGLE_Y + 16;
+    /* The value row of the value tab: a coarse slider on a hundred grid over the precise text field. */
+    private static final int ROW_VALUE_Y = ROW_COLOR_Y;
+    private static final int ROW_VALUE_SLIDER_Y = ROW_VALUE_Y + 20;
+    private static final int VALUE_MAX = ModConstants.MAX_ITEM_VALUE;
+    private static final int VALUE_STEP = 100;
 
     /*
      * Footer and button row hang from the bottom of the content area, so the list is the only part that grows or
@@ -177,6 +182,8 @@ public class AdminConfigScreen extends Screen
     private String baselineNotifyText = "";
     private boolean valueBaselineReady;
     private int baselineValue;
+    /* Set while one of the two value controls writes into the other, so the pair never echoes itself. */
+    private boolean syncingValue;
     private String status = "";
     private boolean widgetsReady;
     private TableLayout prizeLayout;
@@ -192,6 +199,7 @@ public class AdminConfigScreen extends Screen
     private EditBox fieldCommand;
     private EditBox fieldNotifyText;
     private EditBox fieldValue;
+    private IntSlider valueSlider;
     private EditBox fieldFilter;
     private Button notifyModeButton;
     private Button enabledButton;
@@ -349,7 +357,13 @@ public class AdminConfigScreen extends Screen
                 .pos(this.leftPos + EDIT_X + EDIT_WIDTH - TOGGLE_WIDTH, this.topPos + ROW_TOGGLE_Y)
                 .size(TOGGLE_WIDTH, 16).build());
 
-        this.fieldValue = addField(ROW_REGION_Y, Component.translatable(key("admin.label_value")), 12);
+        this.fieldValue = addField(ROW_VALUE_Y, Component.translatable(key("admin.label_value")), 6);
+        this.fieldValue.setFilter(text -> text.isEmpty()
+                || (text.matches("\\d{1,6}") && parseInt(text, -1) <= VALUE_MAX));
+        this.fieldValue.setResponder(text -> onValueTyped(text));
+        this.valueSlider = addRenderableWidget(new IntSlider(this.leftPos + EDIT_X, this.topPos + ROW_VALUE_SLIDER_Y,
+                EDIT_WIDTH, 16, Component.translatable(key("admin.label_value")), 0, VALUE_MAX, 0, VALUE_STEP));
+        this.valueSlider.setValueListener(value -> onValueSliderMoved(value));
 
         this.fieldFilter = new EditBox(this.font, this.leftPos + LIST_X, this.topPos + FILTER_Y, LIST_WIDTH, FIELD_HEIGHT,
                 Component.translatable(key("admin.filter")));
@@ -908,6 +922,44 @@ public class AdminConfigScreen extends Screen
     }
 
     /**
+     * The value field and the slider edit one number. Typing a number inside the legal range moves the slider, and the
+     * flag keeps the text write that the slider itself triggers from bouncing back.
+     */
+    private void onValueTyped(String text)
+    {
+        if (this.syncingValue || this.valueSlider == null)
+        {
+            return;
+        }
+
+        int typed = parseInt(text, -1);
+
+        if (typed < 0 || typed > VALUE_MAX)
+        {
+            return;
+        }
+
+        this.syncingValue = true;
+        this.valueSlider.setValue(typed);
+        this.syncingValue = false;
+    }
+
+    /**
+     * A drag writes the stepped number back into the field, so the field always shows what the slider stands for.
+     */
+    private void onValueSliderMoved(int value)
+    {
+        if (this.syncingValue || this.fieldValue == null)
+        {
+            return;
+        }
+
+        this.syncingValue = true;
+        this.fieldValue.setValue(Integer.toString(value));
+        this.syncingValue = false;
+    }
+
+    /**
      * The value tab button carries the filter: the first click opens the tab and keeps the search box as it is, and
      * every later click cycles the filter through all offerings, item values and creature values.
      */
@@ -1299,6 +1351,7 @@ public class AdminConfigScreen extends Screen
         setVisible(this.notifyModeButton, main && entryRow != null);
         setVisible(this.enabledButton, main && entryRow != null);
         setVisible(this.fieldValue, main && this.valueTab);
+        setVisible(this.valueSlider, main && this.valueTab);
         setVisible(this.fieldFilter, main && this.valueTab);
         setVisible(this.commandEditor, this.commandEditorOpen);
         setVisible(this.commandApplyButton, this.commandEditorOpen);
@@ -1346,6 +1399,7 @@ public class AdminConfigScreen extends Screen
         if (this.valueTab)
         {
             this.fieldValue.setValue(Integer.toString(selectedValue()));
+            this.valueSlider.setValue(selectedValue());
             this.baselineValue = selectedValue();
             this.valueBaselineReady = true;
         }
@@ -1507,7 +1561,7 @@ public class AdminConfigScreen extends Screen
 
         if (this.valueTab)
         {
-            int value = Math.max(0, parseInt(this.fieldValue.getValue(), 0));
+            int value = Math.min(VALUE_MAX, Math.max(0, parseInt(this.fieldValue.getValue(), 0)));
 
             /*
              * The value of the primary row is only written over the selection when the admin typed a different number.
