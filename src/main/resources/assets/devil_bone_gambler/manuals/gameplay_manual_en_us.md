@@ -57,6 +57,7 @@
 - A dealer keeps a pocket that holds nothing but Gambler's Dice; while it is not fighting, it picks up nearby dice as long as the pocket has room
 - When its health or food drops to six tenths, the dealer eats dice from the pocket one by one, each restoring half of a bar, and it stops once both are full; it neither picks up nor eats while fighting another dealer
 - Whatever a meal cannot restore turns into experience: the more experience, the larger the pocket, the higher both ceilings and the harder it hits
+- Eating one dice takes a second with it at the mouth, and the dealer waits another second before the next one
 - A wound may shake dice out of the pocket and an empty pocket shakes out nothing
 - A recruiting, hosting or fighting dealer takes no damage from players at all, and an idle one takes a player hit at most once per second
 - A dealer hates liquid: in water or lava it climbs out at once, and while wet it neither fights nor eats
@@ -70,6 +71,7 @@
 - A settled wager costs the dealer part of its food; the dice it just earned pays the bill first and only a remaining part is paid with health
 - A recruiting dealer can be joined by an empty hand right click; whoever started it can start it early with the button
 - The first seconds of the recruit and its last seconds carry a chime, and the countdown between them is quiet
+- While recruiting the dealer shows two lines overhead: that a wager is being called, and the members with the seconds left
 - In the last five seconds the joined players see a one second countdown in chat
 - Clicking your own cell opens your own bet box to put in and take out freely, and clicking another cell only shows that box
 - The manuals that follow a role cannot be put into a bet box, every other item can

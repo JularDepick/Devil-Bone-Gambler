@@ -156,6 +156,19 @@ public class GamblersDealerModel extends HumanoidModel<GamblersDealer>
         this.leftArm.zRot = IDLE_ARM_Z * idle;
 
         /*
+         * A meal is one second of chewing: the right hand goes to the mouth and the head nods along, so the bite reads
+         * before the dice leaves the pocket.
+         */
+        if (entity.isEating())
+        {
+            float chew = Mth.sin(ageInTicks * 0.90F);
+            this.rightArm.xRot = -1.55F + chew * 0.12F;
+            this.rightArm.yRot = -0.25F;
+            this.rightArm.zRot = -0.10F;
+            this.head.xRot = 0.25F + chew * 0.06F;
+        }
+
+        /*
          * The head takes no extra animation of its own: the inherited turn and hit animations stay in charge, and the
          * yaw is only clamped so the face can never end up pointing out of the back of the body.
          */

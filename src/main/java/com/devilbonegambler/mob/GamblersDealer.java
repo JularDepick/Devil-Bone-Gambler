@@ -57,7 +57,8 @@ public class GamblersDealer extends PathfinderMob
     private static final String TAG_HURT_DROP_COUNT = "DealerHurtDropCount";
     private static final String TAG_POCKET = "DealerPocket";
     private static final String TAG_EXPERIENCE = "DealerExperience";
-    private static final String KEY_RECRUITING = "gui." + ModConstants.MOD_ID + ".dealer.recruiting";
+    private static final String KEY_RECRUIT_TITLE = "gui." + ModConstants.MOD_ID + ".dealer.recruit_title";
+    private static final String KEY_RECRUIT_COUNT = "gui." + ModConstants.MOD_ID + ".dealer.recruit_count";
     private static final String KEY_IDLE_NAME = "gui." + ModConstants.MOD_ID + ".dealer.name_tag";
 
     private GamblersDealer rival;
@@ -74,7 +75,8 @@ public class GamblersDealer extends PathfinderMob
     private long hurtDropWindowStart = -1L;
     private int hurtDropWindowCount;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
-    private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
+    private int eatTicks;
+    private int eatCooldown;
     private int pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS;
     /* Countdown to the next look for a shore while the dealer is standing in liquid. */
     private BlockPos escapeShore;
@@ -85,6 +87,10 @@ public class GamblersDealer extends PathfinderMob
     private boolean hosting;
     /* Business names (hosting, recruiting) are shown to everyone, the idle name only to the player who looks at it. */
     private boolean showNameToEveryone;
+    /* The recruit name is two centred lines, so the renderer draws it instead of the vanilla single line name tag. */
+    private boolean recruitLines;
+    private int recruitMembers;
+    private int recruitSeconds;
 
     public GamblersDealer(EntityType<? extends GamblersDealer> type, Level level)
     {
@@ -466,15 +472,7 @@ public class GamblersDealer extends PathfinderMob
         this.tickGlow();
         this.tickSatiety();
 
-        if (this.feedCooldown > 0)
-        {
-            this.feedCooldown--;
-        }
-        else
-        {
-            this.feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
-            this.tryEat();
-        }
+        this.tickEating();
 
         if (this.pickupTicks > 0)
         {
@@ -560,20 +558,44 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * A hungry dealer eats one dice from its pocket per interval. A fight comes first: while a rival is inside the
-     * territory the dealer eats nothing, so a meal cannot stall the fight. Liquid is handled by the escape instead.
+     * A meal runs as an animation: the dealer chews for one second and only then takes the dice out of its pocket, so
+     * the bar moves exactly when the dice visibly disappears. After that it rests for one second before the next dice.
+     * A fight or liquid comes first: the meal neither starts nor continues then.
      */
-    private void tryEat()
+    private void tickEating()
     {
-        if (this.isInLiquid() || this.isDefendingTerritory())
+        if (this.eatCooldown > 0)
         {
+            this.eatCooldown--;
+        }
+
+        if (this.eatTicks > 0)
+        {
+            this.eatTicks--;
+
+            if (this.eatTicks == 0)
+            {
+                this.eatFromPocket();
+                this.eatCooldown = ModConstants.DEALER_EAT_COOLDOWN_TICKS;
+            }
+
             return;
         }
 
-        if (this.isHungry() && this.pocketDice > 0)
+        if (this.eatCooldown <= 0 && this.pocketDice > 0 && this.isHungry() && !this.isInLiquid()
+                && !this.isDefendingTerritory())
         {
-            this.eatFromPocket();
+            this.eatTicks = ModConstants.DEALER_EAT_ANIMATION_TICKS;
+            this.getNavigation().stop();
         }
+    }
+
+    /**
+     * True while the one second chewing animation runs, which the model turns into a hand to the mouth motion.
+     */
+    public boolean isEating()
+    {
+        return this.eatTicks > 0;
     }
 
     /**
@@ -825,16 +847,40 @@ public class GamblersDealer extends PathfinderMob
      */
     public void showRecruitText(int members, int seconds)
     {
-        this.setCustomName(Component.translatable(KEY_RECRUITING, Integer.valueOf(members), Integer.valueOf(seconds)));
+        this.recruitMembers = members;
+        this.recruitSeconds = seconds;
+        this.recruitLines = true;
+        this.setCustomName(Component.translatable(KEY_RECRUIT_TITLE));
         this.setCustomNameVisible(true);
         this.showNameToEveryone = true;
     }
 
     public void clearRecruitText()
     {
+        this.recruitLines = false;
         this.setCustomName(Component.translatable(KEY_IDLE_NAME));
         this.setCustomNameVisible(true);
         this.showNameToEveryone = false;
+    }
+
+    /**
+     * The recruit name is two centred lines instead of one, so the renderer asks for the two parts and draws them
+     * itself while the vanilla name tag stays in charge of every other state.
+     */
+    public boolean showsRecruitLines()
+    {
+        return this.recruitLines;
+    }
+
+    public Component recruitTitle()
+    {
+        return Component.translatable(KEY_RECRUIT_TITLE);
+    }
+
+    public Component recruitCount()
+    {
+        return Component.translatable(KEY_RECRUIT_COUNT, Integer.valueOf(this.recruitMembers),
+                Integer.valueOf(this.recruitSeconds));
     }
 
     /**

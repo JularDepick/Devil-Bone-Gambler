@@ -278,7 +278,9 @@ public final class ModConstants
      * it waits between two meals. Only the gambler's dice is food, the devil's dice is left on the ground.
      */
     public static final double DEALER_FEED_THRESHOLD = 0.6D;
-    public static final int DEALER_FEED_INTERVAL_TICKS = 40;
+    /* A meal is one second of chewing, then one second of rest before the next dice can go in. */
+    public static final int DEALER_EAT_ANIMATION_TICKS = 20;
+    public static final int DEALER_EAT_COOLDOWN_TICKS = 20;
     /* Two dice per pickup, and the next pair only after this many ticks, so a pile is emptied at a walking pace. */
     public static final int DEALER_PICKUP_INTERVAL_TICKS = 40;
     public static final int DEALER_PICKUP_PER_ACTION = 2;

@@ -345,10 +345,10 @@ def check_dealer_habits():
     check("饱食度为空时不出手", "this.satiety <= 0" in dealer and "return;" in dealer)
     check("只在六成以下才进食", "DEALER_FEED_THRESHOLD" in dealer and "isHungry" in dealer)
 
-    eat = re.search(r"private void tryEat\(\).*?\n    \}", dealer, re.S)
+    eat = re.search(r"private void tickEating\(\).*?\n    \}", dealer, re.S)
     pickup = re.search(r"private void tryPickup\(\).*?\n    \}", dealer, re.S)
     check("竞争时不吃", eat is not None and "isDefendingTerritory()" in eat.group(0),
-          "tryEat 在与别的荷官竞争时仍然会进食")
+          "tickEating 在与别的荷官竞争时仍然会进食")
     check("竞争时不捡", pickup is not None and "isDefendingTerritory()" in pickup.group(0),
           "tryPickup 在与别的荷官竞争时仍然会捡骰子")
     check("每次捡两个并有冷却", "DEALER_PICKUP_INTERVAL_TICKS = 40" in constants
@@ -357,7 +357,10 @@ def check_dealer_habits():
           and pickup is not None and "while (wanted > 0" in pickup.group(0)
           and "this.pocketDice++" in pickup.group(0))
     check("只吃赌徒的骰子", "ModItems.GAMBLERS_DICE.get()" in dealer and "DEVILS_DICE" not in dealer)
-    check("进食冷却为两秒", re.search(r"DEALER_FEED_INTERVAL_TICKS\s*=\s*40", constants) is not None)
+    check("进食有动画与一秒冷却", "DEALER_EAT_ANIMATION_TICKS = 20" in constants
+          and "DEALER_EAT_COOLDOWN_TICKS = 20" in constants
+          and "this.eatTicks = ModConstants.DEALER_EAT_ANIMATION_TICKS" in dealer
+          and "this.eatCooldown = ModConstants.DEALER_EAT_COOLDOWN_TICKS" in dealer)
     check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
     check("追击速度已放慢", re.search(r"DEALER_TERRITORY_CHASE_SPEED\s*=\s*0\.9D", constants) is not None)
     check("待机名只对看向它的玩家显示", "shouldShowName" in dealer and "isLookingAtMe" in dealer)
@@ -455,7 +458,7 @@ def check_liquid_escape():
     check("液体中不谈领地", "isInLiquid()" in step
           and step.index("tickLiquidEscape") < step.index("tickTerritory"))
 
-    eat = dealer[dealer.index("private void tryEat()"):]
+    eat = dealer[dealer.index("private void tickEating()"):]
     eat = eat[:eat.index("private ", 10)]
     check("液体中不进食", "isInLiquid()" in eat)
     check("液体中不闲逛", "isInLiquid()" in wander)
@@ -467,11 +470,15 @@ def check_recruit_text():
     service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
     lang = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang" / "zh_cn.json").read_text(encoding="utf-8")
 
-    check("招募名牌带人数与秒数", "public void showRecruitText(int members, int seconds)" in dealer
-          and dealer.count("Integer.valueOf(members)") >= 1 and dealer.count("Integer.valueOf(seconds)") >= 1)
+    check("招募名牌分成两行", "public void showRecruitText(int members, int seconds)" in dealer
+          and "showsRecruitLines()" in dealer and "recruitTitle()" in dealer and "recruitCount()" in dealer)
     check("招募名牌随人数刷新", service.count("showRecruitText(session.memberCount()") >= 2)
-    check("招募文案有两个占位符", '"gui.devil_bone_gambler.dealer.recruiting": "' in lang
-          and lang.split('"gui.devil_bone_gambler.dealer.recruiting": "')[1].split('"')[0].count("%s") == 2)
+    check("招募两行文案", '"gui.devil_bone_gambler.dealer.recruit_title": "' in lang
+          and '"gui.devil_bone_gambler.dealer.recruit_count": "' in lang
+          and lang.split('"gui.devil_bone_gambler.dealer.recruit_count": "')[1].split('"')[0].count("%s") == 2)
+    renderer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "render" / "GamblersDealerRenderer.java").read_text(encoding="utf-8")
+    check("两行各自水平居中", "renderNameTag" in renderer and "font.width(title) / 2.0F" in renderer
+          and "font.width(count) / 2.0F" in renderer)
 
 
 def check_neutrality():
@@ -520,6 +527,10 @@ def check_pocket():
     check("背包满了不再捡", "int room = this.pocketCapacity() - this.pocketDice" in dealer and "if (room <= 0)" in dealer)
     check("进食来自背包", "eatFromPocket" in dealer and "this.pocketDice--" in dealer)
     check("受伤掉落从背包扣除", "this.pocketDice -= count" in dealer)
+    hurt_drop = dealer[dealer.index("private void dropHurtDice()"):]
+    hurt_drop = hurt_drop[:hurt_drop.index("private ", 10)]
+    check("受伤只掉背包不掉手上", "this.pocketDice -= count" in hurt_drop
+          and "getMainHandItem" not in hurt_drop and "getItemInHand" not in hurt_drop)
     check("背包空后不掉骰子", "if (this.pocketDice <= 0)" in dealer)
     check("背包进存档", "tag.putInt(TAG_POCKET" in dealer and "tag.putDouble(TAG_EXPERIENCE" in dealer
           and "tag.contains(TAG_POCKET)" in dealer)
@@ -602,6 +613,14 @@ def check_bet_rule():
     check("赌注格同用一条规则", "DealerBetBox.isAllowedBet(stack)" in menu)
 
 
+def check_eating_animation():
+    """A meal is a one second chewing animation with the hand at the mouth, then one second of rest."""
+    model = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "model" / "GamblersDealerModel.java").read_text(encoding="utf-8")
+
+    check("模型有进食姿势", "entity.isEating()" in model and "this.rightArm.xRot = -1.55F" in model
+          and "this.head.xRot = 0.25F" in model)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -628,6 +647,7 @@ def main():
     check_hurt_condition()
     check_player_hits()
     check_countdown()
+    check_eating_animation()
     check_bet_rule()
 
     print("")
