@@ -1,7 +1,9 @@
 """
 Checks both dice item models: the cube geometry, the per face texture mapping and the pip count of every face.
 Exit code 0 means every face maps onto the cell that carries its own number, the six faces cover 1 to 6 exactly
-once, opposite faces sum to seven, and each cell really shows that many pips.
+once, opposite faces sum to seven, the three faces the inventory looks at are 4, 5 and 6, each cell really shows
+that many pips, and every face covers the whole height of its cell in texture space, so no face is cropped or
+stretched.
 """
 
 import json
@@ -22,15 +24,19 @@ LAYOUTS = {
     6: ((0, 0), (2, 0), (0, 1), (2, 1), (0, 2), (2, 2)),
 }
 
-# 面 -> 该面应当显示的点数, 对面之和为 7
+# 面 -> 该面应当显示的点数, 对面之和为 7; 物品栏的正视角同时看到 north, east 与 up, 这三面是 4, 5, 6
 FACES = {
-    "north": 1,
-    "south": 6,
-    "east": 3,
-    "west": 4,
-    "up": 2,
-    "down": 5,
+    "north": 6,
+    "south": 1,
+    "east": 5,
+    "west": 2,
+    "up": 4,
+    "down": 3,
 }
+GUI_FACES = ("north", "east", "up")
+GUI_NUMBERS = (4, 5, 6)
+# 模型 uv 的单位是纹理空间: 0 到 16 覆盖整张贴图, 与贴图的实际像素高度无关
+UV_MAX = 16.0
 OPPOSITE = (("north", "south"), ("east", "west"), ("up", "down"))
 MARGIN = 0.35
 
@@ -149,11 +155,16 @@ def check_model(path, texture_path):
             problems.append("%s %s face covers pixels %.2f..%.2f, expected cell %d at %d..%d"
                     % (path.name, name, left, right, number, cell, cell + FACE))
 
-        if abs(uv[1]) > MARGIN or abs(uv[3] - FACE) > MARGIN:
-            problems.append("%s %s face vertical range %s should cover the full %d pixel height"
-                    % (path.name, name, uv[1:4:2], FACE))
+        if abs(uv[1]) > MARGIN or abs(uv[3] - UV_MAX) > MARGIN:
+            problems.append("%s %s face vertical range %s should cover the whole texture (uv 0..%g), not the pixel height"
+                    % (path.name, name, uv[1:4:2], UV_MAX))
 
         seen[name] = number
+
+    shown = [seen[name] for name in GUI_FACES if name in seen]
+
+    if sorted(shown) != list(GUI_NUMBERS):
+        problems.append("%s shows %s in the inventory, expected the 4, 5 and 6 side" % (path.name, shown))
 
     for first, second in OPPOSITE:
         if first in seen and second in seen and seen[first] + seen[second] != 7:
