@@ -279,8 +279,9 @@ public final class ModConstants
      */
     public static final double DEALER_FEED_THRESHOLD = 0.6D;
     public static final int DEALER_FEED_INTERVAL_TICKS = 40;
-    /* One dice per pickup, and the next one only after this many ticks, so a pile is emptied at a walking pace. */
+    /* Two dice per pickup, and the next pair only after this many ticks, so a pile is emptied at a walking pace. */
     public static final int DEALER_PICKUP_INTERVAL_TICKS = 40;
+    public static final int DEALER_PICKUP_PER_ACTION = 2;
     /*
      * Fight: every swing costs half a percent of the satiety ceiling, and a dealer with an empty bar cannot swing at
      * all, so a long fight slows down and finally stops instead of running forever.

@@ -351,10 +351,11 @@ def check_dealer_habits():
           "tryEat 在与别的荷官竞争时仍然会进食")
     check("竞争时不捡", pickup is not None and "isDefendingTerritory()" in pickup.group(0),
           "tryPickup 在与别的荷官竞争时仍然会捡骰子")
-    check("每次只捡一个并有冷却", "DEALER_PICKUP_INTERVAL_TICKS = 40" in constants
-          and "this.pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS" in dealer
-          and pickup is not None and pickup.group(0).count("this.pocketDice++") == 1
-          and pickup.group(0).count("return;") >= 2, "捡拾一次只应拿走一个骰子")
+    check("每次捡两个并有冷却", "DEALER_PICKUP_INTERVAL_TICKS = 40" in constants
+          and "DEALER_PICKUP_PER_ACTION = 2" in constants
+          and "Math.min(ModConstants.DEALER_PICKUP_PER_ACTION, room)" in dealer
+          and pickup is not None and "while (wanted > 0" in pickup.group(0)
+          and "this.pocketDice++" in pickup.group(0))
     check("只吃赌徒的骰子", "ModItems.GAMBLERS_DICE.get()" in dealer and "DEVILS_DICE" not in dealer)
     check("进食冷却为两秒", re.search(r"DEALER_FEED_INTERVAL_TICKS\s*=\s*40", constants) is not None)
     check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
@@ -515,7 +516,7 @@ def check_pocket():
           and "DEALER_DICE_RESTORE_SHARE" in dealer)
     check("溢出转为经验", "0.5D * (overflowHealth / restoreHealth + overflowSatiety / restoreSatiety)" in dealer)
     check("捡起的骰子进入背包", "this.pocketDice++" in dealer)
-    check("背包满了不再捡", "this.pocketDice >= this.pocketCapacity()" in dealer)
+    check("背包满了不再捡", "int room = this.pocketCapacity() - this.pocketDice" in dealer and "if (room <= 0)" in dealer)
     check("进食来自背包", "eatFromPocket" in dealer and "this.pocketDice--" in dealer)
     check("受伤掉落从背包扣除", "this.pocketDice -= count" in dealer)
     check("背包空后不掉骰子", "if (this.pocketDice <= 0)" in dealer)

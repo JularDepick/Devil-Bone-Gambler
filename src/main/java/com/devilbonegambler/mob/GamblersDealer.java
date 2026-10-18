@@ -558,17 +558,25 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * A dealer with room picks up exactly one dice per interval and only returns for the next one after the cooldown,
+     * A dealer with room picks up a pair of dice per interval and only returns for the next pair after the cooldown,
      * so a pile on the ground is walked through at a visible pace instead of vanishing in one tick. Only the gambler's
      * dice is picked up, the devil's dice is left where it lies.
      */
     private void tryPickup()
     {
-        if (this.isInLiquid() || this.isDefendingTerritory() || this.pocketDice >= this.pocketCapacity())
+        if (this.isInLiquid() || this.isDefendingTerritory())
         {
             return;
         }
 
+        int room = this.pocketCapacity() - this.pocketDice;
+
+        if (room <= 0)
+        {
+            return;
+        }
+
+        int wanted = Math.min(ModConstants.DEALER_PICKUP_PER_ACTION, room);
         List<ItemEntity> drops = this.level().getEntitiesOfClass(ItemEntity.class,
                 this.getBoundingBox().inflate(ModConstants.DEALER_FEED_RADIUS));
 
@@ -581,15 +589,22 @@ public class GamblersDealer extends PathfinderMob
                 continue;
             }
 
-            stack.shrink(1);
+            while (wanted > 0 && !stack.isEmpty())
+            {
+                stack.shrink(1);
+                this.pocketDice++;
+                wanted--;
+            }
 
             if (stack.isEmpty())
             {
                 drop.discard();
             }
 
-            this.pocketDice++;
-            return;
+            if (wanted <= 0)
+            {
+                return;
+            }
         }
     }
 
