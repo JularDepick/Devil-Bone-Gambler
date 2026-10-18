@@ -995,7 +995,11 @@ public class AdminConfigScreen extends Screen
             return;
         }
 
-        this.tabValueButton.setMessage(Component.translatable(key(this.valueTab ? chapterKey() : "admin.tab_value")));
+        /*
+         * The filter lives on this button, so it keeps the filter wording while the prize tab is open; switching back
+         * to the value tab therefore shows the same filter the visitor left behind.
+         */
+        this.tabValueButton.setMessage(Component.translatable(key(chapterKey())));
     }
 
     private String chapterKey()
@@ -1915,10 +1919,10 @@ public class AdminConfigScreen extends Screen
         }
 
         this.prizeLayout = new TableLayout(this.font, LIST_WIDTH);
-        this.prizeLayout.addColumn(Component.translatable(key("admin.column_tier")), 0, tiers);
-        this.prizeLayout.addColumn(Component.translatable(key("admin.column_entry_name")), 0, names);
-        this.prizeLayout.addColumn(Component.translatable(key("admin.column_weight")), 0, weights);
-        this.prizeLayout.addColumn(Component.translatable(key("admin.column_color")), 0, colors);
+        this.prizeLayout.addColumn(Component.translatable(key("admin.column_tier")), 0, tiers, 0);
+        this.prizeLayout.addColumn(Component.translatable(key("admin.column_entry_name")), 0, names, 1);
+        this.prizeLayout.addColumn(Component.translatable(key("admin.column_weight")), 0, weights, 0);
+        this.prizeLayout.addColumn(Component.translatable(key("admin.column_color")), 0, colors, 0);
         this.prizeLayout.compute();
     }
 
@@ -1960,8 +1964,8 @@ public class AdminConfigScreen extends Screen
         }
 
         this.valueLayout = new TableLayout(this.font, LIST_WIDTH);
-        this.valueLayout.addColumn(Component.translatable(key("admin.column_value_name")), 0, names);
-        this.valueLayout.addColumn(Component.translatable(key("admin.column_value")), 0, values);
+        this.valueLayout.addColumn(Component.translatable(key("admin.column_value_name")), 0, names, 1);
+        this.valueLayout.addColumn(Component.translatable(key("admin.column_value")), 0, values, 0);
         this.valueLayout.compute();
     }
 
@@ -1983,8 +1987,8 @@ public class AdminConfigScreen extends Screen
         }
 
         this.adminLayout = new TableLayout(this.font, ADMIN_LIST_WIDTH);
-        this.adminLayout.addColumn(Component.translatable(key("admin.column_admin_name")), 0, names);
-        this.adminLayout.addColumn(Component.translatable(key("admin.column_admin_role")), 0, roles);
+        this.adminLayout.addColumn(Component.translatable(key("admin.column_admin_name")), 0, names, 1);
+        this.adminLayout.addColumn(Component.translatable(key("admin.column_admin_role")), 0, roles, 0);
         this.adminLayout.compute();
     }
 

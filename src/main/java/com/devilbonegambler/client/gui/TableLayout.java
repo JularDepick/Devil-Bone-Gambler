@@ -15,9 +15,11 @@ import net.minecraft.network.chat.Component;
 
 /**
  * Fixed column widths of a list table.
- * A column first asks for the width of its longest content, never more than the equal share of the table, and the
- * leftover width is then handed out again in proportion to those widths; a column that already reached the equal
- * share never grows again, so a wide column cannot starve the others.
+ * A column starts at the width of its longest content, header included, so a narrow column such as the tier number
+ * stays narrow instead of taking a share of the table. Only the columns that declare a growth weight take the
+ * leftover width, in proportion to that weight, so the widest text column absorbs the free space while the short
+ * columns stay at their measured width. When the content does not fit, the flexible columns are shrunk towards their
+ * share and the widest one gives way first.
  * A column may also be declared fixed, for example the icon column of the value table, and then it takes part in
  * neither step.
  * Every cell is centred inside its own column and clipped to it; the caller shows the full text as a hover tooltip.
@@ -29,6 +31,7 @@ public final class TableLayout
     private final List<Component> titles = new ArrayList<Component>();
     private final List<Integer> declaredWidths = new ArrayList<Integer>();
     private final List<Integer> naturalWidths = new ArrayList<Integer>();
+    private final List<Integer> growWeights = new ArrayList<Integer>();
     private final List<Integer> widths = new ArrayList<Integer>();
 
     public TableLayout(Font font, int totalWidth)
@@ -43,11 +46,21 @@ public final class TableLayout
      */
     public void addColumn(Component title, int fixedWidth, List<String> cells)
     {
+        addColumn(title, fixedWidth, cells, 0);
+    }
+
+    /**
+     * Adds one column with an explicit growth weight. A positive weight lets the column take part of the leftover
+     * width; a weight of zero keeps the column at its measured width, which is what a narrow column like the tier
+     * number wants.
+     */
+    public void addColumn(Component title, int fixedWidth, List<String> cells, int growWeight)
+    {
         int natural = fixedWidth;
 
         if (fixedWidth <= 0)
         {
-            int widest = 0;
+            int widest = this.font.width(title == null ? "" : title.getString());
 
             for (String cell : cells)
             {
@@ -60,6 +73,7 @@ public final class TableLayout
         this.titles.add(title);
         this.declaredWidths.add(Integer.valueOf(fixedWidth));
         this.naturalWidths.add(Integer.valueOf(natural));
+        this.growWeights.add(Integer.valueOf(Math.max(0, growWeight)));
     }
 
     /**
@@ -82,9 +96,10 @@ public final class TableLayout
     {
         int count = this.titles.size();
         int[] result = new int[count];
-        int cap = Math.max(1, this.totalWidth / Math.max(1, count));
-        int used = 0;
+        int fixedSum = 0;
+        int flexibleSum = 0;
         List<Integer> flexible = new ArrayList<Integer>();
+        int growSum = 0;
 
         for (int index = 0; index < count; index++)
         {
@@ -93,87 +108,66 @@ public final class TableLayout
             if (declared > 0)
             {
                 result[index] = declared;
+                fixedSum += declared;
             }
             else
             {
-                result[index] = Math.min(this.naturalWidths.get(index).intValue(), cap);
+                result[index] = Math.max(1, this.naturalWidths.get(index).intValue());
+                flexibleSum += result[index];
                 flexible.add(Integer.valueOf(index));
+                growSum += this.growWeights.get(index).intValue();
             }
-
-            used += result[index];
         }
 
-        int remaining = this.totalWidth - used;
+        int available = Math.max(1, this.totalWidth - fixedSum);
 
-        while (remaining > 0 && !flexible.isEmpty())
+        if (flexibleSum > available)
         {
-            int sumFree = 0;
-            int freeCount = 0;
+            shrinkToFit(result, flexible, available);
+            flexibleSum = 0;
 
             for (Integer holder : flexible)
             {
-                int index = holder.intValue();
-
-                if (result[index] < cap)
-                {
-                    sumFree += result[index];
-                    freeCount++;
-                }
+                flexibleSum += result[holder.intValue()];
             }
+        }
 
-            if (freeCount == 0)
-            {
-                break;
-            }
+        int remaining = available - flexibleSum;
 
-            int added = 0;
+        if (remaining > 0 && !flexible.isEmpty())
+        {
+            List<Integer> growers = new ArrayList<Integer>();
 
             for (Integer holder : flexible)
             {
-                int index = holder.intValue();
-
-                if (result[index] >= cap)
+                if (this.growWeights.get(holder.intValue()).intValue() > 0)
                 {
-                    continue;
-                }
-
-                int share = (int) ((long) remaining * result[index] / Math.max(1, sumFree));
-                int grow = Math.min(share, cap - result[index]);
-
-                if (grow > 0)
-                {
-                    result[index] += grow;
-                    added += grow;
+                    growers.add(holder);
                 }
             }
 
-            if (added == 0)
+            /* When no column asks for growth, the free width goes out evenly so the table still fills its row. */
+            if (growSum <= 0)
             {
-                /* Rounding left a remainder that no proportional share could take, so it goes out one pixel a column. */
-                for (Integer holder : flexible)
-                {
-                    if (remaining <= 0)
-                    {
-                        break;
-                    }
-
-                    int index = holder.intValue();
-
-                    if (result[index] < cap)
-                    {
-                        result[index]++;
-                        added++;
-                        remaining--;
-                    }
-                }
-
-                if (added == 0)
-                {
-                    break;
-                }
+                growers.clear();
+                growers.addAll(flexible);
             }
 
-            remaining -= added;
+            int handed = 0;
+
+            for (Integer holder : growers)
+            {
+                int index = holder.intValue();
+                int weight = growSum <= 0 ? 1 : this.growWeights.get(index).intValue();
+                int share = (int) ((long) remaining * weight / Math.max(1, growSum <= 0 ? growers.size() : growSum));
+                result[index] += share;
+                handed += share;
+            }
+
+            if (handed < remaining)
+            {
+                result[growers.get(growers.size() - 1).intValue()] += remaining - handed;
+            }
         }
 
         this.widths.clear();
@@ -181,6 +175,45 @@ public final class TableLayout
         for (int index = 0; index < count; index++)
         {
             this.widths.add(Integer.valueOf(result[index]));
+        }
+    }
+
+    /**
+     * Shrinks the flexible columns until their sum fits the available width. The widest column gives way first, so a
+     * long entry name is clipped while the short columns keep their readable width.
+     */
+    private void shrinkToFit(int[] result, List<Integer> flexible, int available)
+    {
+        int sum = 0;
+
+        for (Integer holder : flexible)
+        {
+            sum += result[holder.intValue()];
+        }
+
+        while (sum > available)
+        {
+            int widest = -1;
+            int widestIndex = -1;
+
+            for (Integer holder : flexible)
+            {
+                int index = holder.intValue();
+
+                if (result[index] > 1 && (widest < 0 || result[index] > widest) && result[index] > 0)
+                {
+                    widest = result[index];
+                    widestIndex = index;
+                }
+            }
+
+            if (widestIndex < 0)
+            {
+                break;
+            }
+
+            result[widestIndex]--;
+            sum--;
         }
     }
 

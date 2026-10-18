@@ -185,8 +185,8 @@ public class ValueTableScreen extends Screen
 
         this.layout = new TableLayout(this.font, LIST_WIDTH);
         this.layout.addColumn(Component.empty(), ICON_WIDTH, new ArrayList<String>());
-        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_name"), 0, names);
-        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_value"), 0, values);
+        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_name"), 0, names, 1);
+        this.layout.addColumn(Component.translatable(KEY_PREFIX + "column_value"), 0, values, 0);
         this.layout.compute();
     }
 

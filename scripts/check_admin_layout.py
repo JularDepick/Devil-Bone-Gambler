@@ -186,6 +186,27 @@ def main() -> int:
     if "ModConstants.MAX_ITEM_VALUE" not in item_values:
         problems.append("the server accepts offering values above the cap the panel shows")
 
+    table = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "TableLayout.java").read_text(encoding="utf-8")
+    screen_source = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "AdminConfigScreen.java").read_text(encoding="utf-8")
+
+    if "private final List<Integer> growWeights" not in table:
+        problems.append("the table has no growth weight per column")
+
+    if "this.growWeights.get(holder.intValue()).intValue() > 0" not in table or "shrinkToFit(" not in table:
+        problems.append("the table does not keep narrow columns narrow or shrink the widest column first")
+
+    if "this.font.width(title == null ? \"\" : title.getString())" not in table:
+        problems.append("the table does not measure the header width")
+
+    if "addColumn(Component.translatable(key(\"admin.column_entry_name\")), 0, names, 1)" not in screen_source:
+        problems.append("the entry name column does not take the leftover width")
+
+    if "addColumn(Component.translatable(key(\"admin.column_tier\")), 0, tiers, 0)" not in screen_source:
+        problems.append("the tier column still takes a share of the table")
+
+    if "setMessage(Component.translatable(key(chapterKey())))" not in screen_source:
+        problems.append("the value tab button drops the filter text when the prize tab is open")
+
     mod_config = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "ModConfigScreen.java"
     entry = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "DevilBoneGambler.java").read_text(encoding="utf-8")
     actions = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "ClientActions.java").read_text(encoding="utf-8")

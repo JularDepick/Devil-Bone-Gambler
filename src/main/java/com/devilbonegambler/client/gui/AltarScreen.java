@@ -609,7 +609,7 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
         }
 
         this.mobLayout = new TableLayout(this.font, MOB_TABLE_WIDTH);
-        this.mobLayout.addColumn(Component.translatable(key("altar.mobs")), 0, names);
+        this.mobLayout.addColumn(Component.translatable(key("altar.mobs")), 0, names, 1);
         this.mobLayout.addColumn(Component.translatable(key("altar.column_health")), MOB_HEALTH_WIDTH, healths);
         this.mobLayout.compute();
     }
