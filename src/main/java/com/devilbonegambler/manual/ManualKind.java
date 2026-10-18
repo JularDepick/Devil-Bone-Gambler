@@ -17,7 +17,7 @@ import com.devilbonegambler.util.ModConstants;
  */
 public enum ManualKind
 {
-    GAMEPLAY("gameplay_manual", 0x00FF00),
+    GAMEPLAY("gameplay_manual", 0x00AA00),
     ADMIN("admin_manual", 0x00FFAA),
     CREATOR("creator_manual", 0xFFAA00);
 

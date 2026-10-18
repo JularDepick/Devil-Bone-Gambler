@@ -17,13 +17,14 @@
 - The columns are the region, the entry name, the weight and the colour
 - Adding a region appends one, and the region number matches a dice point; removing a selected region removes its entries as well
 - Adding an entry appends one row in the current region, with the fields region number, entry name, weight, colour, major event, enabled, command text and display text
-- The entry name is only a note, and a preset entry follows the language of the game
+- The entry name is a plain string: a preset name is written in the game language when the file is created and never follows a later language change
 - A higher weight is drawn more often; red is positive and black is negative
 - The colour, the major event and the enabled state are buttons, one click toggles one of them
 - The command text may hold several lines, one vanilla command per line, and a leading slash may be left out
 - Commands support the placeholders ${player} and ${x} ${y} ${z}, and random tokens such as ${random:item}
 - An entry whose command fails validation is never drawn, and the status line tells the reason
-- An empty display text falls back to the default wording
+- The display text is a plain string that describes the reward only, because the chat line already reads You received s; never add such a prefix yourself, and a translation key or component JSON never appears here again
+- An empty display text means no message at all for that entry
 
 ## Selecting and removing
 
@@ -36,8 +37,9 @@
 ## Offering value configuration
 
 - The columns are the name and the value
-- The button on the top cycles the offering values and the creature values, and the filter box matches both names and registry names
+- The value tab opens this page on the first click, and every later click cycles the filter through offering values, item values and creature values without clearing the filter box; the box matches both names and registry names
 - An entry that is not registered is drawn in a muted colour, and resting the pointer on it explains why
+- The value field sits under the filter box, and the slider beneath it shows the same number: the slider drags in hundreds from 0 to 100000, while the field is for the exact number
 - A filled value is written into every selected entry
 
 ## The admin list

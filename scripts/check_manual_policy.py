@@ -11,7 +11,7 @@ The manuals of the two roles are kept in place by a calibration pass and by noth
   4. the fragile handlers that had to guess where a manual went (toss, join, pickup, container close) are gone,
   5. the item no longer reacts to a drop, because a dropped copy is cleared by the next calibration pass instead,
   6. every manual carries its own name colour, the item colours its own name with it, and the book icon of every
-     manual is painted with the very same colour: gameplay 00FF00, admin 00FFAA, creator FFAA00.
+     manual is painted with the very same colour: gameplay 00AA00, admin 00FFAA, creator FFAA00.
 Exit code 0 means the check passed.
 """
 
@@ -31,7 +31,7 @@ ITEM = SOURCE_ROOT / "item" / "ManualItem.java"
 KIND = SOURCE_ROOT / "manual" / "ManualKind.java"
 TEXTURES = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "textures" / "item"
 NAME_COLORS = {
-    "GAMEPLAY": "0x00FF00",
+    "GAMEPLAY": "0x00AA00",
     "ADMIN": "0x00FFAA",
     "CREATOR": "0xFFAA00",
 }

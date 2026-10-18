@@ -13,6 +13,7 @@
 - A point above the region number leaves an overflow, and the higher the overflow the more often an uncommon entry of that region comes up
 - The colour comes from the luck value: a red point draws only red entries and a black point only black entries
 - Red entries tend to be positive and black entries tend to be negative, so the colour alone already tells roughly what is coming
+- After the roll the point and the colour appear in one line above the hotbar, for example Gambler's Dice 5 points Red; this is the only mod line that uses that area, and the overflow value is not shown there
 - The luck value stays at its base value for now, the full luck gameplay is still being designed
 
 ## Devil's Altar
@@ -53,14 +54,17 @@
 ## Gambler's Dealer
 
 - Dealers show up in the world and keep walking inside their own territory; a dealer is neutral, never attacks another kind of creature and is never targeted by monsters, and every other dealer inside its territory is fought until one of them dies
-- Right click a dealer with an empty hand to open the dealer page: a nine grid laid around the dealer, one member in every cell, the dealer itself in the middle cell and its health and food under the portrait
+- Right click a dealer with an empty hand to open the dealer page: a nine grid laid around the dealer, one member in every cell, the dealer itself in the middle cell and its health and food under the portrait; hovering the middle cell also shows its experience
 - A dealer keeps a pocket that holds nothing but Gambler's Dice; while it is not fighting, it picks up nearby dice as long as the pocket has room
+- Dice beat light for a dealer: it walks to nearby dice on the ground, or to the item frame that holds one, and a full pocket only stops the pickup, not the walk
 - When its health or food drops to six tenths, the dealer eats dice from the pocket one by one, each restoring half of a bar, and it stops once both are full; it neither picks up nor eats while fighting another dealer
+- A dealer that recruits or hosts a wager sits out of the dealer against dealer fights and is neither attacker nor target
 - Whatever a meal cannot restore turns into experience: the more experience, the larger the pocket, the higher both ceilings and the harder it hits
 - Eating one dice takes a second with it at the mouth, and the dealer waits another second before the next one
 - A wound may shake dice out of the pocket and an empty pocket shakes out nothing
 - A recruiting, hosting or fighting dealer takes no damage from players at all, and an idle one takes a player hit at most once per second
 - A dealer hates liquid: in water or lava it climbs out at once, and while wet it neither fights nor eats
+- It dislikes altars on the ground as well: a walk never ends inside an altar range and the route does not cut through one
 - Its food drains with time and runs out over a whole day; during a recruit or a wager it stops draining and both bars refill slowly instead, as if the players were feeding it
 - A fallen dealer drops the dice still left in its pocket
 - A dealer speaks with the village voice, and a hit or a death is heard as well
@@ -71,7 +75,7 @@
 - A settled wager costs the dealer part of its food; the dice it just earned pays the bill first and only a remaining part is paid with health
 - A recruiting dealer can be joined by an empty hand right click; whoever started it can start it early with the button
 - The first seconds of the recruit and its last seconds carry a chime, and the countdown between them is quiet
-- While recruiting the dealer shows two lines overhead: that a wager is being called, and the members with the seconds left
+- While recruiting the dealer shows one line overhead: the wager is being called, with the member count and the seconds left inside the same line
 - In the last five seconds the joined players see a one second countdown in chat
 - Clicking your own cell opens your own bet box to put in and take out freely, and clicking another cell only shows that box
 - The manuals that follow a role cannot be put into a bet box, every other item can
