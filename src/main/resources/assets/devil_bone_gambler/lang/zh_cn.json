@@ -18,7 +18,7 @@
   "gui.devil_bone_gambler.altar.summary": "祭品 %s 项, 共 %s 件",
   "gui.devil_bone_gambler.altar.offer": "献祭",
   "gui.devil_bone_gambler.altar.cancel": "取消",
-  "gui.devil_bone_gambler.altar.waiting": "正在结算, 请稍候",
+  "gui.devil_bone_gambler.altar.waiting": "请等待结算",
   "gui.devil_bone_gambler.altar.empty": "祭坛为空, 无法献祭",
   "gui.devil_bone_gambler.altar.timeout": "请求超时, 请重试",
   "gui.devil_bone_gambler.altar.mobs": "生物祭品",

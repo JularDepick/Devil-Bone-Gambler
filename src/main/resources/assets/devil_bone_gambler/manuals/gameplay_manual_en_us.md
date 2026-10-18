@@ -33,6 +33,7 @@
 - Items and mobs of this mod cannot be offered: they do not go into the grid and never appear in the mob list
 - The sliders on the right choose the health and the food to offer, and only the box next to each one makes that value count
 - Pulling the health slider to the top stakes the whole health bar, and only then does the option to offer the inventory on death show up; a world that keeps the inventory on death never offers it
+- The screen closes as soon as the offering is submitted and shows Please wait for the settlement; when it settles, the chat box first reports the converted value of the offering, then the draw result
 - The more valuable the offering, the more the range and the level of the altar grow, and the chat reports the settled value after the submission
 
 ## Offering Value Table

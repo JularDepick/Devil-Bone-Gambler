@@ -18,7 +18,7 @@
   "gui.devil_bone_gambler.altar.summary": "%s offering entries, %s items in total",
   "gui.devil_bone_gambler.altar.offer": "Offer",
   "gui.devil_bone_gambler.altar.cancel": "Cancel",
-  "gui.devil_bone_gambler.altar.waiting": "Resolving, please wait",
+  "gui.devil_bone_gambler.altar.waiting": "Please wait for the settlement",
   "gui.devil_bone_gambler.altar.empty": "The altar is empty",
   "gui.devil_bone_gambler.altar.timeout": "Request timed out, please retry",
   "gui.devil_bone_gambler.altar.mobs": "Creature offerings",

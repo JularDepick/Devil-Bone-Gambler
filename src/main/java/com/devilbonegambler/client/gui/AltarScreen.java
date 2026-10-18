@@ -7,6 +7,7 @@
 package com.devilbonegambler.client.gui;
 
 import com.devilbonegambler.client.ClientActions;
+import com.devilbonegambler.client.ClientNotices;
 import com.devilbonegambler.client.ClientPacketHandler;
 import com.devilbonegambler.draw.Offering;
 import com.devilbonegambler.draw.OfferingBundle;
@@ -562,15 +563,17 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
         this.pendingSequence = ClientActions.nextSequence();
         this.submitting = true;
         this.submitTime = System.currentTimeMillis();
-        this.status = Component.translatable(key("altar.waiting")).getString();
 
         /*
          * The item part travels empty on purpose: the server takes the stacks straight out of the altar container, so
-         * the grid is the only authority on what the player really offers.
+         * the grid is the only authority on what the player really offers. The request is sent before the screen
+         * closes, therefore the server takes the stacks first and the close only follows it.
          */
         ModNetwork.sendToServer(new DevilsDiceRequestPacket(this.pendingSequence,
                 minecraft.player.getGameProfile().getName(), ClientActions.devilsDiceId(),
                 new OfferingBundle(new ArrayList<Offering>(), mobs, health, food, allHealth, deathDrop)));
+        ClientNotices.sendThrottled(key("altar.waiting"));
+        onClose();
     }
 
     private List<UUID> selectedMobIds()

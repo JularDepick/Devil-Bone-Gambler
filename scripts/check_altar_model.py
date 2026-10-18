@@ -304,6 +304,16 @@ check("MID_TEXT_X = 192" in screen_source and "MID_TEXT_WIDTH = 106" in screen_s
       "the altar summary block is not laid out right of the offering grid")
 check(screen_source.count("MID_TEXT_X") >= 5,
       "a summary line still sits in the creature column")
+engine_source = open(ROOT + "/src/main/java/com/devilbonegambler/draw/DrawEngine.java", encoding="utf-8").read()
+check(engine_source.index("altar.offered_total") < engine_source.index("sendEntryResult(player"),
+      "the draw result is announced before the offering value")
+check("ClientNotices.sendThrottled(key(\"altar.waiting\"));" in screen_source
+      and screen_source.index("ModNetwork.sendToServer(new DevilsDiceRequestPacket(this.pendingSequence")
+      < screen_source.index("ClientNotices.sendThrottled(key(\"altar.waiting\"));"),
+      "the offering screen does not close after sending the request")
+zh_wait = open(ROOT + "/src/main/resources/assets/devil_bone_gambler/lang/zh_cn.json", encoding="utf-8").read()
+check("请等待结算" in zh_wait and "正在结算, 请稍候" not in zh_wait,
+      "the offering screen still says it is settling instead of asking the player to wait")
 check("MOB_LIST_Y = 20" in screen_source, "the creature list still leaves a blank strip above its header")
 zh_lang = open(ROOT + "/src/main/resources/assets/devil_bone_gambler/lang/zh_cn.json", encoding="utf-8").read()
 en_lang = open(ROOT + "/src/main/resources/assets/devil_bone_gambler/lang/en_us.json", encoding="utf-8").read()

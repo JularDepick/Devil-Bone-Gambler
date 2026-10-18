@@ -241,8 +241,10 @@ public final class DrawEngine
                     pending.hit.id);
         }
 
-        NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault());
-
+        /*
+         * The offering value is announced before the result, so the chat box reads as a settlement: what was offered
+         * first, then what the draw turned it into.
+         */
         if (offeringsTaken)
         {
             settleOfferingValue(player, pending.totalValue);
@@ -253,6 +255,8 @@ public final class DrawEngine
                         Long.valueOf(pending.totalValue));
             }
         }
+
+        NotifySender.sendEntryResult(player, pending.hit.notifyOrDefault());
 
         if (pending.hit.isMajorEvent())
         {
