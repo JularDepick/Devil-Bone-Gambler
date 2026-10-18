@@ -376,6 +376,17 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
             return true;
         }
 
+        /*
+         * A container screen swallows drags and never hands them to its widgets, because vanilla only puts buttons in
+         * menus. Without this the two number sliders jump on a click but cannot be dragged, so the focused slider gets
+         * the drag itself.
+         */
+        if (this.getFocused() instanceof IntSlider slider && slider.isDraggingValue()
+                && slider.mouseDragged(mouseX, mouseY, button, dragX, dragY))
+        {
+            return true;
+        }
+
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
@@ -385,6 +396,11 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
         if (this.mobScrollBar.mouseReleased(mouseX, mouseY, button))
         {
             return true;
+        }
+
+        if (this.getFocused() instanceof IntSlider slider)
+        {
+            slider.stopDraggingValue();
         }
 
         return super.mouseReleased(mouseX, mouseY, button);

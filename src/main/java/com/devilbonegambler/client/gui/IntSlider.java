@@ -20,6 +20,8 @@ public class IntSlider extends AbstractSliderButton
     private final Component label;
     private int minimum;
     private int maximum;
+    /* True between a press on the track and the release, so a drag can be routed to this slider alone. */
+    private boolean draggingValue;
 
     public IntSlider(int x, int y, int width, int height, Component label, int minimum, int maximum, int value)
     {
@@ -63,6 +65,36 @@ public class IntSlider extends AbstractSliderButton
         this.maximum = Math.max(minimum, maximum);
         this.value = fraction(this.minimum, this.maximum, current);
         refreshMessage();
+    }
+
+    /**
+     * A container screen never forwards a drag to its widgets, so the screen asks this flag before it hands a drag over.
+     */
+    public boolean isDraggingValue()
+    {
+        return this.draggingValue;
+    }
+
+    /**
+     * The release arrives from the screen rather than through the normal widget chain, which is why the flag is cleared
+     * from the outside as well.
+     */
+    public void stopDraggingValue()
+    {
+        this.draggingValue = false;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button)
+    {
+        boolean handled = super.mouseClicked(mouseX, mouseY, button);
+
+        if (handled)
+        {
+            this.draggingValue = true;
+        }
+
+        return handled;
     }
 
     /**
