@@ -445,9 +445,10 @@ def check_liquid_escape():
     check("岸边不含岩浆与火", "MAGMA_BLOCK" in dealer and "Blocks.FIRE" in dealer and "SOUL_FIRE" in dealer)
     check("岸边需要实地与空位", "isFaceSturdy" in dealer and "getFluidState().isEmpty()" in dealer)
 
-    check("离开半径与重算间隔",
-          "DEALER_LIQUID_ESCAPE_RADIUS = 16" in constants and "DEALER_LIQUID_ESCAPE_REPATH_TICKS = 5" in constants)
-    check("离开速度高于走路", "DEALER_LIQUID_ESCAPE_SPEED = 1.2D" in constants)
+    check("离开半径与岸边缓存",
+          "DEALER_LIQUID_ESCAPE_RADIUS = 16" in constants and "this.escapeShore = this.findShore()" in escape)
+    check("离开速度高于走路", "DEALER_LIQUID_ESCAPE_SPEED = 1.6D" in constants)
+    check("靠近岸边短促上浮", "setDeltaMovement" in escape and "hasImpulse" in escape)
 
     step = dealer[dealer.index("protected void customServerAiStep()"):]
     step = step[:step.index("this.tickGlow()")]
@@ -582,6 +583,8 @@ def check_countdown():
     service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
     constants = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "util" / "ModConstants.java").read_text(encoding="utf-8")
 
+    check("招募六十秒与十五秒提醒", "DEALER_WAGER_RECRUIT_SECONDS = 60" in constants
+          and "DEALER_WAGER_REMIND_SECONDS = 15" in constants)
     check("开始前五秒读秒", "DEALER_WAGER_COUNTDOWN_SECONDS = 5" in constants
           and "KEY_COUNTDOWN = LANG + \"countdown\"" in service
           and "remaining <= ModConstants.DEALER_WAGER_COUNTDOWN_SECONDS" in service

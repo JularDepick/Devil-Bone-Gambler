@@ -300,8 +300,7 @@ public final class ModConstants
      * interval, and the escape runs at this speed instead of the walking one.
      */
     public static final int DEALER_LIQUID_ESCAPE_RADIUS = 16;
-    public static final int DEALER_LIQUID_ESCAPE_REPATH_TICKS = 5;
-    public static final double DEALER_LIQUID_ESCAPE_SPEED = 1.2D;
+    public static final double DEALER_LIQUID_ESCAPE_SPEED = 1.6D;
 
     /*
      * Dealer territory: a dealer treats every other dealer inside its own radius as an intruder and fights it until
@@ -359,8 +358,8 @@ public final class ModConstants
     /*
      * Dealer wager and dealer panel.
      */
-    public static final int DEALER_WAGER_RECRUIT_SECONDS = 120;
-    public static final int DEALER_WAGER_REMIND_SECONDS = 30;
+    public static final int DEALER_WAGER_RECRUIT_SECONDS = 60;
+    public static final int DEALER_WAGER_REMIND_SECONDS = 15;
     /* The recruit chime only rings at the start of a wager and again shortly before it begins. */
     public static final int DEALER_WAGER_CHIME_HEAD_SECONDS = 3;
     public static final int DEALER_WAGER_CHIME_TAIL_SECONDS = 10;

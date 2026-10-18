@@ -77,7 +77,7 @@ public class GamblersDealer extends PathfinderMob
     private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
     private int pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS;
     /* Countdown to the next look for a shore while the dealer is standing in liquid. */
-    private int escapeCooldown;
+    private BlockPos escapeShore;
     /* Countdown to the next drain or recovery step of the two bars. */
     private int decayTicks = ModConstants.DEALER_DECAY_INTERVAL_TICKS;
     /* The tick of the last player hit that really landed, for the one second window of an idle dealer. */
@@ -340,31 +340,47 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * A dealer in liquid leaves it at once. The nearest dry spot is picked on a short interval and the move control
-     * drives straight at it, so neither a stray path nor a rival can keep it in the water; the float goal keeps its
-     * head above the surface in the meantime.
+     * A dealer in liquid leaves it at once. The nearest dry spot is searched once and then kept until it holds, so the
+     * move control can drive straight at it every tick without rescanning the ring by ring search, and neither a stray
+     * path nor a rival can keep it in the water; the float goal keeps its head above the surface in the meantime.
      */
     private void tickLiquidEscape()
     {
         this.getNavigation().stop();
 
-        if (this.escapeCooldown > 0)
+        if (this.escapeShore == null || !this.isDryStand(this.escapeShore))
         {
-            this.escapeCooldown--;
-            return;
+            this.escapeShore = this.findShore();
         }
 
-        this.escapeCooldown = ModConstants.DEALER_LIQUID_ESCAPE_REPATH_TICKS;
-        BlockPos shore = this.findShore();
-
-        if (shore == null)
+        if (this.escapeShore == null)
         {
             return;
         }
 
-        this.getMoveControl().setWantedPosition(shore.getX() + 0.5D, shore.getY(), shore.getZ() + 0.5D,
+        double targetX = this.escapeShore.getX() + 0.5D;
+        double targetY = this.escapeShore.getY();
+        double targetZ = this.escapeShore.getZ() + 0.5D;
+
+        this.getMoveControl().setWantedPosition(targetX, targetY, targetZ,
                 ModConstants.DEALER_LIQUID_ESCAPE_SPEED);
-        this.getLookControl().setLookAt(shore.getX() + 0.5D, shore.getY() + 0.5D, shore.getZ() + 0.5D, 30.0F, 30.0F);
+        this.getLookControl().setLookAt(targetX, targetY + 0.5D, targetZ, 30.0F, 30.0F);
+
+        /*
+         * Liquid swallows a walk, so once the shore is within reach the dealer shoves itself out with a short upward
+         * burst instead of letting the drag decide how long it stays in the lava or the water.
+         */
+        if (this.distanceToSqr(targetX, this.getY(), targetZ) < 9.0D)
+        {
+            Vec3 direction = new Vec3(targetX - this.getX(), 0.0D, targetZ - this.getZ());
+
+            if (direction.lengthSqr() > 1.0E-4D)
+            {
+                direction = direction.normalize();
+                this.setDeltaMovement(this.getDeltaMovement().add(direction.x * 0.09D, 0.14D, direction.z * 0.09D));
+                this.hasImpulse = true;
+            }
+        }
     }
 
     /**
@@ -443,6 +459,7 @@ public class GamblersDealer extends PathfinderMob
         }
         else
         {
+            this.escapeShore = null;
             this.tickTerritory();
         }
 

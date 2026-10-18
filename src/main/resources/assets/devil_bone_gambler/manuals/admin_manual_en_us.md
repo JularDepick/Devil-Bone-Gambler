@@ -50,7 +50,7 @@
 
 ## Running a dealer wager
 
-- One dealer hosts one wager at a time and recruits for two minutes
+- One dealer hosts one wager at a time and recruits for one minute
 - A wager with too few members or without the one who started it is cancelled with every stake and the dice returned
 - A dealer killed while a wager runs stops that wager as well, returns every stake and the dice, and closes the dealer page a player still has open
 - A fallen dealer drops the gambler dice still left in its pocket
