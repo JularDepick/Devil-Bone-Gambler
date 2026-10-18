@@ -345,9 +345,16 @@ def check_dealer_habits():
     check("饱食度为空时不出手", "this.satiety <= 0" in dealer and "return;" in dealer)
     check("只在六成以下才进食", "DEALER_FEED_THRESHOLD" in dealer and "isHungry" in dealer)
 
-    feed = re.search(r"private void tryFeed\(\).*?\n    \}", dealer, re.S)
-    check("竞争时不捡骰子进食", feed is not None and "isDefendingTerritory()" in feed.group(0),
-          "tryFeed 在与别的荷官竞争时仍然会捡骰子")
+    eat = re.search(r"private void tryEat\(\).*?\n    \}", dealer, re.S)
+    pickup = re.search(r"private void tryPickup\(\).*?\n    \}", dealer, re.S)
+    check("竞争时不吃", eat is not None and "isDefendingTerritory()" in eat.group(0),
+          "tryEat 在与别的荷官竞争时仍然会进食")
+    check("竞争时不捡", pickup is not None and "isDefendingTerritory()" in pickup.group(0),
+          "tryPickup 在与别的荷官竞争时仍然会捡骰子")
+    check("每次只捡一个并有冷却", "DEALER_PICKUP_INTERVAL_TICKS = 40" in constants
+          and "this.pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS" in dealer
+          and pickup is not None and pickup.group(0).count("this.pocketDice++") == 1
+          and pickup.group(0).count("return;") >= 2, "捡拾一次只应拿走一个骰子")
     check("只吃赌徒的骰子", "ModItems.GAMBLERS_DICE.get()" in dealer and "DEVILS_DICE" not in dealer)
     check("进食冷却为两秒", re.search(r"DEALER_FEED_INTERVAL_TICKS\s*=\s*40", constants) is not None)
     check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
@@ -446,9 +453,9 @@ def check_liquid_escape():
     check("液体中不谈领地", "isInLiquid()" in step
           and step.index("tickLiquidEscape") < step.index("tickTerritory"))
 
-    feed = dealer[dealer.index("private void tryFeed()"):]
-    feed = feed[:feed.index("private ", 10)]
-    check("液体中不进食", "isInLiquid()" in feed)
+    eat = dealer[dealer.index("private void tryEat()"):]
+    eat = eat[:eat.index("private ", 10)]
+    check("液体中不进食", "isInLiquid()" in eat)
     check("液体中不闲逛", "isInLiquid()" in wander)
 
 

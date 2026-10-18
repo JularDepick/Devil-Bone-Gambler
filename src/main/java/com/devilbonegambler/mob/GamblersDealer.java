@@ -75,6 +75,7 @@ public class GamblersDealer extends PathfinderMob
     private int hurtDropWindowCount;
     private int stayTicks = ModConstants.DEALER_STAY_SECONDS * ModConstants.TICKS_PER_SECOND;
     private int feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
+    private int pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS;
     /* Countdown to the next look for a shore while the dealer is standing in liquid. */
     private int escapeCooldown;
     /* Countdown to the next drain or recovery step of the two bars. */
@@ -453,7 +454,17 @@ public class GamblersDealer extends PathfinderMob
         else
         {
             this.feedCooldown = ModConstants.DEALER_FEED_INTERVAL_TICKS;
-            this.tryFeed();
+            this.tryEat();
+        }
+
+        if (this.pickupTicks > 0)
+        {
+            this.pickupTicks--;
+        }
+        else
+        {
+            this.pickupTicks = ModConstants.DEALER_PICKUP_INTERVAL_TICKS;
+            this.tryPickup();
         }
 
         if (this.hosting)
@@ -530,16 +541,11 @@ public class GamblersDealer extends PathfinderMob
     }
 
     /**
-     * A dealer looks at its pocket once per interval. A hungry one eats a dice from the pocket; a fed one that still has
-     * room picks one off the ground. Only the gambler's dice is food, the devil's dice is left where it lies.
+     * A hungry dealer eats one dice from its pocket per interval. A fight comes first: while a rival is inside the
+     * territory the dealer eats nothing, so a meal cannot stall the fight. Liquid is handled by the escape instead.
      */
-    private void tryFeed()
+    private void tryEat()
     {
-        /*
-         * A fight comes first: while a rival is inside the territory the dealer neither picks up dice nor eats, so a
-         * meal cannot stall the fight and the dice on the ground wait for whoever wins. Feeding resumes once the rival
-         * is gone, and liquid is handled by the escape before this ever runs.
-         */
         if (this.isInLiquid() || this.isDefendingTerritory())
         {
             return;
@@ -548,10 +554,17 @@ public class GamblersDealer extends PathfinderMob
         if (this.isHungry() && this.pocketDice > 0)
         {
             this.eatFromPocket();
-            return;
         }
+    }
 
-        if (this.pocketDice >= this.pocketCapacity())
+    /**
+     * A dealer with room picks up exactly one dice per interval and only returns for the next one after the cooldown,
+     * so a pile on the ground is walked through at a visible pace instead of vanishing in one tick. Only the gambler's
+     * dice is picked up, the devil's dice is left where it lies.
+     */
+    private void tryPickup()
+    {
+        if (this.isInLiquid() || this.isDefendingTerritory() || this.pocketDice >= this.pocketCapacity())
         {
             return;
         }

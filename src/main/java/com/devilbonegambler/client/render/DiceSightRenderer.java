@@ -12,6 +12,7 @@ import com.devilbonegambler.client.model.GamblersDealerModel;
 import com.devilbonegambler.mob.GamblersDealer;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.ArrayList;
@@ -35,9 +36,10 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
 /**
- * Dice sight: holding the Devil's Dice marks the altars around the player and holding the Gambler's Dice marks the
- * dealers, both as a white silhouette of the real geometry drawn without a depth test, so the highlight is visible
- * through walls instead of being hidden by the blocks in front of it.
+ * Dice sight: sneaking with the Devil's Dice marks the altars around the player and sneaking with the Gambler's Dice
+ * marks the dealers. The mark is a halo, not a repaint: a slightly larger copy of the real geometry is pushed a little
+ * away from the camera and drawn additively with the depth test on, so the model keeps its own texture and only the rim
+ * around it glows.
  * The altar spots come from the block entities of the loaded chunks, so the scan never walks every block of the area.
  * The dealer geometry is collected by {@link DiceSightLayer} while the dealer model is posed in the entity pass, and
  * both kinds of geometry share one immediate mode batch that is uploaded last.
@@ -67,7 +69,7 @@ public final class DiceSightRenderer
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
 
-        if (player == null || minecraft.level == null || !holds(player, ModItems.DEVILS_DICE.get()))
+        if (player == null || minecraft.level == null || !showsSight(player, ModItems.DEVILS_DICE.get()))
         {
             ALTARS.clear();
             return;
@@ -93,7 +95,7 @@ public final class DiceSightRenderer
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
 
-        if (player == null || !dealer.isAlive() || !holds(player, ModItems.GAMBLERS_DICE.get()))
+        if (player == null || !dealer.isAlive() || !showsSight(player, ModItems.GAMBLERS_DICE.get()))
         {
             return;
         }
@@ -142,8 +144,8 @@ public final class DiceSightRenderer
             return;
         }
 
-        boolean altarSight = holds(player, ModItems.DEVILS_DICE.get());
-        boolean dealerSight = holds(player, ModItems.GAMBLERS_DICE.get());
+        boolean altarSight = showsSight(player, ModItems.DEVILS_DICE.get());
+        boolean dealerSight = showsSight(player, ModItems.GAMBLERS_DICE.get());
 
         if (!altarSight && !dealerSight)
         {
@@ -152,30 +154,35 @@ public final class DiceSightRenderer
 
         float[] shaderColor = RenderSystem.getShaderColor().clone();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.disableDepthTest();
+        /*
+         * The depth test stays on so the model itself covers the middle of the halo, and the halo only survives as the
+         * rim around the halo. Additive blending turns that rim into light instead of a flat decal.
+         */
+        RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
 
-        WhiteSilhouette silhouette = WhiteSilhouette.begin(ModConstants.DICE_SIGHT_HIGHLIGHT_COLOR,
+        SightHalo halo = SightHalo.begin(ModConstants.DICE_SIGHT_HIGHLIGHT_COLOR,
                 ModConstants.DICE_SIGHT_HIGHLIGHT_ALPHA);
 
         try
         {
             if (altarSight)
             {
-                drawAltars(silhouette, level, event.getCamera().getPosition());
+                drawAltars(halo, level, event.getCamera().getPosition());
             }
 
             if (dealerSight)
             {
-                drawDealers(silhouette);
+                drawDealers(halo, event.getCamera().getPosition());
             }
         }
         finally
         {
-            silhouette.finish();
+            halo.finish();
             RenderSystem.disableBlend();
+            RenderSystem.defaultBlendFunc();
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
             RenderSystem.setShaderColor(shaderColor[0], shaderColor[1], shaderColor[2], shaderColor[3]);
@@ -185,7 +192,7 @@ public final class DiceSightRenderer
     /**
      * The altar model itself is the highlight, so the player sees the altar shape and not a box around it.
      */
-    private static void drawAltars(WhiteSilhouette silhouette, ClientLevel level, Vec3 camera)
+    private static void drawAltars(SightHalo halo, ClientLevel level, Vec3 camera)
     {
         for (BlockPos pos : ALTARS)
         {
@@ -196,17 +203,41 @@ public final class DiceSightRenderer
                 continue;
             }
 
-            PoseStack pose = new PoseStack();
+            Vec3 centre = new Vec3(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D).subtract(camera);
+            PoseStack pose = haloPose(centre);
             pose.translate(pos.getX() - camera.x, pos.getY() - camera.y, pos.getZ() - camera.z);
-            silhouette.block(Minecraft.getInstance().getBlockRenderer(), state, pose);
+            halo.block(Minecraft.getInstance().getBlockRenderer(), state, pose);
         }
+    }
+
+    /**
+     * The halo transform around a camera relative centre: the geometry is scaled up about that centre and the whole
+     * shell is pushed away from the camera, so its front lies behind the real model and the depth test keeps only the
+     * rim around the halo.
+     */
+    private static PoseStack haloPose(Vec3 centre)
+    {
+        Vec3 pushed = centre;
+        double length = centre.length();
+
+        if (length > 1.0E-4D)
+        {
+            pushed = centre.subtract(centre.scale(ModConstants.DICE_SIGHT_HALO_PUSH / length));
+        }
+
+        PoseStack pose = new PoseStack();
+        pose.translate(pushed.x, pushed.y, pushed.z);
+        pose.scale(ModConstants.DICE_SIGHT_HALO_SCALE, ModConstants.DICE_SIGHT_HALO_SCALE,
+                ModConstants.DICE_SIGHT_HALO_SCALE);
+        pose.translate(-centre.x, -centre.y, -centre.z);
+        return pose;
     }
 
     /**
      * Every collected dealer is reposed into this frame before it is drawn, because one model instance is shared by
      * all dealers and it keeps only the pose of the last dealer the entity pass rendered.
      */
-    private static void drawDealers(WhiteSilhouette silhouette)
+    private static void drawDealers(SightHalo halo, Vec3 camera)
     {
         for (DealerSighting sighting : DEALERS)
         {
@@ -224,10 +255,21 @@ public final class DiceSightRenderer
             model.setupAnim(dealer, sighting.limbSwing, sighting.limbSwingAmount, sighting.ageInTicks,
                     sighting.netHeadYaw, sighting.headPitch);
 
-            PoseStack pose = new PoseStack();
+            Vec3 centre = new Vec3(dealer.getX(), dealer.getY() + dealer.getBbHeight() * 0.5D, dealer.getZ())
+                    .subtract(camera);
+            PoseStack pose = haloPose(centre);
             pose.mulPoseMatrix(sighting.pose);
-            silhouette.model(pose, model);
+            halo.model(pose, model);
         }
+    }
+
+    /**
+     * The sight only shows while the player is sneaking with the dice in hand, so a normal walk with the dice never
+     * floods the view with halos.
+     */
+    private static boolean showsSight(Player player, Item item)
+    {
+        return player.isShiftKeyDown() && holds(player, item);
     }
 
     private static void scanAltars(ClientLevel level, LocalPlayer player)
@@ -269,7 +311,7 @@ public final class DiceSightRenderer
 
     /**
      * One dealer collected for the current frame: the world matrix of its model and the animation parameters that
-     * produced the pose, so the silhouette repeats exactly what the entity pass drew.
+     * produced the pose, so the halo repeats exactly what the entity pass drew.
      */
     private static final class DealerSighting
     {

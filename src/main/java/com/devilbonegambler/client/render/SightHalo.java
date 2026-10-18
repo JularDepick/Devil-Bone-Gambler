@@ -25,12 +25,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelData;
 
 /**
- * White silhouette painter: the geometry of a block model or of an entity model is collected as colour quads and
- * uploaded as one immediate mode batch, which the caller draws with the depth test switched off.
- * The batch ignores textures and light, so every collected shape becomes the same flat highlight colour.
+ * Halo painter: the geometry of a block model or of an entity model is collected as colour quads and uploaded as one
+ * immediate mode batch, which the caller draws as an additive rim around the real model.
+ * The batch ignores textures and light, so every collected shape becomes the same soft highlight colour.
  * Placement belongs to the pose stack, because the consumer receives already transformed positions.
  */
-public final class WhiteSilhouette implements VertexConsumer, MultiBufferSource
+public final class SightHalo implements VertexConsumer, MultiBufferSource
 {
     private final BufferBuilder builder;
     private final float red;
@@ -41,7 +41,7 @@ public final class WhiteSilhouette implements VertexConsumer, MultiBufferSource
     private float y;
     private float z;
 
-    private WhiteSilhouette(int color, float alpha)
+    private SightHalo(int color, float alpha)
     {
         this.red = (color >> 16 & 0xFF) / 255.0F;
         this.green = (color >> 8 & 0xFF) / 255.0F;
@@ -54,9 +54,9 @@ public final class WhiteSilhouette implements VertexConsumer, MultiBufferSource
     /**
      * Opens one batch; the caller owns the depth, blend and shader colour state around {@link #finish()}.
      */
-    public static WhiteSilhouette begin(int color, float alpha)
+    public static SightHalo begin(int color, float alpha)
     {
-        return new WhiteSilhouette(color, alpha);
+        return new SightHalo(color, alpha);
     }
 
     /**
@@ -78,8 +78,8 @@ public final class WhiteSilhouette implements VertexConsumer, MultiBufferSource
     }
 
     /**
-     * Uploads the batch through the colour shader; the caller must have switched the depth test off beforehand,
-     * otherwise the shader state of a render type would re-enable it.
+     * Uploads the batch through the colour shader; the caller owns the depth and blend state, because the halo relies
+     * on the real model covering the middle of the shell.
      */
     public void finish()
     {

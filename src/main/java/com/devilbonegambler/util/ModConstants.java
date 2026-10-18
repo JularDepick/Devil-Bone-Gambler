@@ -51,8 +51,15 @@ public final class ModConstants
     public static final double DICE_SIGHT_ALTAR_RADIUS = 24.0D;
     public static final double DICE_SIGHT_DEALER_RADIUS = 24.0D;
     public static final int DICE_SIGHT_SCAN_INTERVAL_TICKS = 10;
-    public static final int DICE_SIGHT_HIGHLIGHT_COLOR = 0xFFFFFF;
-    public static final float DICE_SIGHT_HIGHLIGHT_ALPHA = 0.5F;
+    /*
+     * The sight is a halo around the real model, not a repaint of it: a slightly larger copy of the geometry is pushed
+     * a little away from the camera and drawn additively with the depth test on, so the model keeps its own texture and
+     * only the rim around it glows.
+     */
+    public static final int DICE_SIGHT_HIGHLIGHT_COLOR = 0xFFF2C0;
+    public static final float DICE_SIGHT_HIGHLIGHT_ALPHA = 0.8F;
+    public static final float DICE_SIGHT_HALO_SCALE = 1.08F;
+    public static final float DICE_SIGHT_HALO_PUSH = 0.08F;
 
     /*
      * Luck
@@ -272,6 +279,8 @@ public final class ModConstants
      */
     public static final double DEALER_FEED_THRESHOLD = 0.6D;
     public static final int DEALER_FEED_INTERVAL_TICKS = 40;
+    /* One dice per pickup, and the next one only after this many ticks, so a pile is emptied at a walking pace. */
+    public static final int DEALER_PICKUP_INTERVAL_TICKS = 40;
     /*
      * Fight: every swing costs half a percent of the satiety ceiling, and a dealer with an empty bar cannot swing at
      * all, so a long fight slows down and finally stops instead of running forever.

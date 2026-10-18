@@ -2,8 +2,8 @@
 
 ## The two dice
 
-- **Devil's Dice**: right click to draw; right click inside an altar range opens the offering screen; holding it shows the altars around you through walls
-- **Gambler's Dice**: right click to draw; sneak and right click with another player nearby starts a wager instead; holding it shows the dealers around you through walls
+- **Devil's Dice**: right click to draw; right click inside an altar range opens the offering screen; sneaking with it makes the altars around you glow
+- **Gambler's Dice**: right click to draw; sneak and right click with another player nearby starts a wager instead; sneaking with it makes the dealers around you glow
 - Every draw spends one dice, so a hand without dice cannot draw
 - A dice cannot be used again while the previous draw is still settling, and nothing is spent in that case; a draw that fails hands the dice back
 
