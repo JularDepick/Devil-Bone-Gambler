@@ -62,6 +62,7 @@
 - A wound may shake dice out of the pocket and an empty pocket shakes out nothing
 - A recruiting, hosting or fighting dealer takes no damage from players at all, and an idle one takes a player hit at most once per second
 - A dealer hates liquid: in water or lava it climbs out at once, and while wet it neither fights nor eats
+- It dislikes altars on the ground as well: a walk never ends inside an altar range and the route does not cut through one
 - Its food drains with time and runs out over a whole day; during a recruit or a wager it stops draining and both bars refill slowly instead, as if the players were feeding it
 - A fallen dealer drops the dice still left in its pocket
 - A dealer speaks with the village voice, and a hit or a death is heard as well

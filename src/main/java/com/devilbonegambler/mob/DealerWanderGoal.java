@@ -106,7 +106,7 @@ public class DealerWanderGoal extends Goal
         {
             BlockPos lure = this.lureToDice(level);
 
-            if (lure != null)
+            if (lure != null && !this.dealer.walkCrossesAltarRange(lure))
             {
                 return lure;
             }
@@ -119,7 +119,7 @@ public class DealerWanderGoal extends Goal
             int dz = random.nextInt(radius * 2 + 1) - radius;
             BlockPos candidate = origin.offset(dx, dy, dz);
 
-            if (!isStandable(level, candidate))
+            if (!isStandable(level, candidate) || this.dealer.isInsideAltarRange(candidate))
             {
                 continue;
             }
@@ -133,7 +133,7 @@ public class DealerWanderGoal extends Goal
             }
         }
 
-        if (best == null || best.equals(origin))
+        if (best == null || best.equals(origin) || this.dealer.walkCrossesAltarRange(best))
         {
             return null;
         }
@@ -180,7 +180,7 @@ public class DealerWanderGoal extends Goal
         {
             BlockPos candidate = dropPos.relative(direction);
 
-            if (this.isStandable(level, candidate))
+            if (this.isStandable(level, candidate) && !this.dealer.isInsideAltarRange(candidate))
             {
                 return candidate;
             }

@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.registry.ModEntities;
@@ -42,6 +43,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -356,6 +358,63 @@ public class GamblersDealer extends PathfinderMob
     public boolean isInLiquid()
     {
         return this.isInWaterOrBubble() || this.isInLava();
+    }
+
+    /**
+     * A dealer hates altars standing on the ground, so its walk keeps out of their ranges. The range of an altar grows
+     * with its offering value, exactly like the range the altar itself enforces.
+     */
+    public boolean isInsideAltarRange(BlockPos pos)
+    {
+        int reach = ModConstants.ALTAR_MAX_RADIUS;
+
+        for (BlockPos cursor : BlockPos.betweenClosed(pos.offset(-reach, -1, -reach), pos.offset(reach, 1, reach)))
+        {
+            if (!this.level().getBlockState(cursor).is(ModBlocks.DEVILS_ALTAR.get()))
+            {
+                continue;
+            }
+
+            if (!(this.level().getBlockEntity(cursor) instanceof DevilsAltarBlockEntity altar))
+            {
+                continue;
+            }
+
+            double radius = ModConstants.altarRadiusFor(altar.offeringValue());
+
+            if (cursor.distSqr(pos) <= radius * radius)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True when a straight walk from the dealer to the target would touch an altar range at any point, not only at its
+     * end, so a chosen spot outside a range cannot be reached through one either.
+     */
+    public boolean walkCrossesAltarRange(BlockPos target)
+    {
+        BlockPos origin = this.blockPosition();
+        double distance = Math.sqrt(origin.distSqr(target));
+        int steps = Math.max(1, (int) Math.ceil(distance));
+
+        for (int step = 1; step <= steps; step++)
+        {
+            double ratio = (double) step / (double) steps;
+            int x = (int) Math.round(origin.getX() + (target.getX() - origin.getX()) * ratio);
+            int y = (int) Math.round(origin.getY() + (target.getY() - origin.getY()) * ratio);
+            int z = (int) Math.round(origin.getZ() + (target.getZ() - origin.getZ()) * ratio);
+
+            if (this.isInsideAltarRange(new BlockPos(x, y, z)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

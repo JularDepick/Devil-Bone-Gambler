@@ -559,6 +559,10 @@ def check_bar_economy():
           and "DEALER_TERRITORY_MAX_DAMAGE" in dealer)
     check("每二十刻掉一次", "DEALER_DECAY_INTERVAL_TICKS = 20" in constants and "tickSatiety" in dealer)
     wander = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "DealerWanderGoal.java").read_text(encoding="utf-8")
+    check("寻路避开祭坛范围", "isInsideAltarRange" in dealer and "walkCrossesAltarRange" in dealer
+          and "ModBlocks.DEVILS_ALTAR" in dealer and "altarRadiusFor" in dealer
+          and "isInsideAltarRange(candidate)" in wander and "walkCrossesAltarRange(best)" in wander
+          and "walkCrossesAltarRange(lure)" in wander)
     check("寻路会靠近骰子", "DEALER_DICE_LURE_RADIUS = 8" in constants
           and "lureToDice" in wander
           and "this.dealer.pocketDice() < this.dealer.pocketCapacity()" in wander)
