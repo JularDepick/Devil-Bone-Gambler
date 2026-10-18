@@ -5,8 +5,9 @@ The panel is hand placed, so this check recomputes the vertical bands from the c
 
   1. no band of the right column, the list, the footer and the button row overlaps another,
   2. the footer clears the right column and the button row clears the footer,
-  3. the whole panel still fits the 480 by 270 GUI a 1080p screen gets at its default scale,
-  4. the default list still shows at least the documented minimum of rows.
+  3. the whole panel still fits the 480 by 270 GUI a 1080p screen gets at its default scale, margin included,
+  4. both tab lists fill the left column, because their last row ends within one row of the space above the footer
+     and never runs past the right column.
 Exit code 0 means the check passed.
 """
 
@@ -18,6 +19,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "AdminConfigScreen.java"
+SMALLEST_GUI_WIDTH = 480
 SMALLEST_GUI_HEIGHT = 270
 HEADER_HEIGHT = 12
 ROW_HEIGHT = 12
@@ -33,6 +35,7 @@ COLUMN_ROWS = (
     ("ROW_NOTIFY_Y", TEXT_FIELD_HEIGHT),
     ("ROW_TOGGLE_Y", BUTTON_HEIGHT),
 )
+LIST_TOPS = ("PRIZE_LIST_Y", "VALUE_LIST_Y")
 
 
 def constants(text: str) -> dict[str, int]:
@@ -64,19 +67,15 @@ def main() -> int:
 
         return values[name]
 
-    padding = value("PANEL_PADDING")
-    label_gap = value("LABEL_GAP")
+    padding_x = value("PANEL_PADDING")
+    padding_y = value("PANEL_PADDING_Y")
+    margin = value("PANEL_MARGIN")
     column_bottom = value("COLUMN_BOTTOM")
     content_height = value("BASE_CONTENT_HEIGHT")
     footer_top = content_height - value("FOOTER_FROM_BOTTOM")
     footer_bottom = footer_top + TEXT_HEIGHT
     button_top = content_height - value("BUTTON_ROW_FROM_BOTTOM")
     button_bottom = button_top + value("BUTTON_ROW_HEIGHT")
-    rows = value("LIST_DEFAULT_ROWS")
-    list_bottom = value("VALUE_LIST_Y") + HEADER_HEIGHT + rows * ROW_HEIGHT
-
-    if list_bottom > column_bottom:
-        problems.append("the list runs past the right column: " + str(list_bottom) + " > " + str(column_bottom))
 
     if footer_top < column_bottom + 4:
         problems.append("the footer touches the right column: " + str(footer_top) + " < " + str(column_bottom + 4))
@@ -88,18 +87,46 @@ def main() -> int:
         problems.append("the button row does not end the content area: "
                         + str(button_bottom) + " plus margin against " + str(content_height))
 
-    if content_height + 2 * padding > SMALLEST_GUI_HEIGHT:
-        problems.append("the panel does not fit the smallest supported window: "
-                        + str(content_height + 2 * padding) + " > " + str(SMALLEST_GUI_HEIGHT))
+    if content_height + 2 * padding_y + 2 * margin > SMALLEST_GUI_HEIGHT:
+        problems.append("the panel and its margin do not fit the smallest supported window: "
+                        + str(content_height + 2 * padding_y + 2 * margin) + " > " + str(SMALLEST_GUI_HEIGHT))
 
-    if rows < value("LIST_MIN_ROWS"):
-        problems.append("the default list is shorter than the minimum: " + str(rows))
+    if value("PANEL_WIDTH") + 2 * padding_x > SMALLEST_GUI_WIDTH:
+        problems.append("the panel is wider than the smallest supported window")
+
+    if padding_y * 2 != padding_x:
+        problems.append("the vertical padding is not half the horizontal one: "
+                        + str(padding_y) + " against " + str(padding_x))
+
+    """
+    竖排列表的高度必须把左列填满: 首行到页脚之间的可用高度除以行高, 得到的行数至少是最小行数,
+    并且余下的空白不足一行, 否则列表下方会重新留出一条空白.
+    """
+    list_limit = content_height - value("FOOTER_FROM_BOTTOM") - value("LIST_BOTTOM_GAP")
+
+    for name in LIST_TOPS:
+        top = value(name)
+        rows = (list_limit - top - HEADER_HEIGHT) // ROW_HEIGHT
+        bottom = top + HEADER_HEIGHT + rows * ROW_HEIGHT
+
+        if rows < value("LIST_MIN_ROWS"):
+            problems.append(name + " shows fewer than the minimum rows: " + str(rows))
+
+        if bottom > list_limit:
+            problems.append(name + " runs into the gap above the footer: " + str(bottom) + " > " + str(list_limit))
+
+        if list_limit - bottom >= ROW_HEIGHT:
+            problems.append(name + " leaves a blank row band under the list: "
+                            + str(list_limit - bottom) + " pixels")
+
+        if bottom > column_bottom:
+            problems.append(name + " runs past the right column: " + str(bottom) + " > " + str(column_bottom))
 
     previous_bottom = 0
 
     for name, control in COLUMN_ROWS:
         top = value(name)
-        label_top = top - label_gap
+        label_top = top - value("LABEL_GAP")
 
         if label_top < previous_bottom and name != "ROW_REGION_Y":
             problems.append(name + " starts on top of the row above it")

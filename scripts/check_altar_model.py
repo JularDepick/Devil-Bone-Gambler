@@ -287,6 +287,11 @@ check("ALTAR_LABEL_RANGE" in label_source and "ALTAR_LABEL_LOOK_DOT" in label_so
       "the label does not require the player to be close and facing the altar")
 check("rotationY" in label_source and "rotationX" in label_source,
       "the label does not face the viewer")
+check("textBackground" in label_source, "the label does not draw a plate behind the number")
+check("uv2(" in label_source,
+      "the label plate fills no lightmap element, which makes the vertex builder reject the vertex")
+check(".uv(" not in label_source,
+      "the label plate writes texture coordinates that its render type has no slot for, hiding a missing element")
 check("drawAltarValue" in screen_source and "altar.altar_value" in screen_source,
       "the offering screen does not show the altar offering value")
 check("if (!ClientActions.hasAltar())" in screen_source,

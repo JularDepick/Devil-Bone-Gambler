@@ -49,12 +49,13 @@ public class AdminConfigScreen extends Screen
 
     private static final int PANEL_WIDTH = 380;
     /*
-     * The content keeps a frame of padding on every side. The panel used to end four pixels below its button row and
-     * eight below its title, and it was taller than the 480 by 270 GUI that a 1080p screen gets at the default scale,
-     * so the title and the bottom row were clipped by the edges; the content now fits that window and every edge keeps
-     * its distance.
+     * The frame keeps a margin from the window edge and the content keeps a padding inside the frame. The vertical
+     * padding is half the horizontal one, and the half taken away shows up as the margin outside the frame, so the
+     * left column gains the height the old padding spent below the list.
      */
     private static final int PANEL_PADDING = 6;
+    private static final int PANEL_PADDING_Y = 3;
+    private static final int PANEL_MARGIN = 3;
     private static final int PANEL_COLOR = 0xC0101010;
     private static final int PANEL_BORDER_COLOR = 0xF03C3C3C;
     private static final int ROW_COLOR = 0x20FFFFFF;
@@ -103,6 +104,7 @@ public class AdminConfigScreen extends Screen
     private static final int LIST_MIN_ROWS = 5;
     private static final int LIST_MAX_ROWS = 10;
     private static final int LIST_DEFAULT_ROWS = 9;
+    private static final int LIST_BOTTOM_GAP = 4;
     private static final int COMMAND_FIELD_WIDTH = 126;
     private static final int COMMAND_WINDOW_X = 80;
     private static final int COMMAND_WINDOW_Y = 89;
@@ -292,9 +294,9 @@ public class AdminConfigScreen extends Screen
     protected void init()
     {
         super.init();
-        /* The padding stays visible even in a window too small for the whole content. */
+        /* The padding and the margin stay visible even in a window too small for the whole content. */
         this.leftPos = Math.max(PANEL_PADDING, (this.width - PANEL_WIDTH) / 2);
-        this.topPos = Math.max(PANEL_PADDING, (this.height - contentHeight()) / 2);
+        this.topPos = Math.max(PANEL_PADDING_Y + PANEL_MARGIN, (this.height - contentHeight()) / 2);
 
         this.tabPrizeButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.tab_prize")),
                 button -> switchTab(false)).pos(this.leftPos + 8, this.topPos + TAB_Y).size(88, 16).build());
@@ -463,7 +465,7 @@ public class AdminConfigScreen extends Screen
 
     private int panelTop()
     {
-        return this.topPos - PANEL_PADDING;
+        return this.topPos - PANEL_PADDING_Y;
     }
 
     private int panelRight()
@@ -473,7 +475,7 @@ public class AdminConfigScreen extends Screen
 
     private int panelBottom()
     {
-        return this.topPos + contentHeight() + PANEL_PADDING;
+        return this.topPos + contentHeight() + PANEL_PADDING_Y;
     }
 
     /*
@@ -482,9 +484,20 @@ public class AdminConfigScreen extends Screen
      */
     private int listRows()
     {
-        int spare = this.height - 2 * PANEL_PADDING - BASE_CONTENT_HEIGHT;
+        int spare = this.height - 2 * (PANEL_PADDING_Y + PANEL_MARGIN) - BASE_CONTENT_HEIGHT;
         int rows = LIST_DEFAULT_ROWS + spare / ModConstants.TABLE_ROW_HEIGHT;
         return Math.max(LIST_MIN_ROWS, Math.min(LIST_MAX_ROWS, rows));
+    }
+
+    /*
+     * Rows the visible list of the current tab fills: the height between its header and the gap above the footer, so
+     * the table reaches the bottom of the left column instead of leaving empty space under its last row.
+     */
+    private int visibleRows()
+    {
+        int listTop = this.valueTab ? VALUE_LIST_Y : PRIZE_LIST_Y;
+        int listBottom = contentHeight() - FOOTER_FROM_BOTTOM - LIST_BOTTOM_GAP;
+        return Math.max(1, (listBottom - listTop - ModConstants.TABLE_HEADER_HEIGHT) / ModConstants.TABLE_ROW_HEIGHT);
     }
 
     private int contentHeight()
@@ -854,7 +867,7 @@ public class AdminConfigScreen extends Screen
         int rowsY = headerY + ModConstants.TABLE_HEADER_HEIGHT;
         TableLayout layout = this.valueTab ? this.valueLayout : this.prizeLayout;
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
-        int visible = Math.min(listRows(), Math.max(0, total - this.scrollBar.value()));
+        int visible = Math.min(visibleRows(), Math.max(0, total - this.scrollBar.value()));
 
         graphics.fill(listX, headerY, listX + LIST_WIDTH, headerY + ModConstants.TABLE_HEADER_HEIGHT, HEADER_COLOR);
         layout.drawHeader(graphics, listX, headerY + 2, HEADER_TEXT_COLOR);
@@ -1028,7 +1041,7 @@ public class AdminConfigScreen extends Screen
 
         int line = (int) Math.floor((mouseY - listY) / ModConstants.TABLE_ROW_HEIGHT);
 
-        if (line < 0 || line >= listRows())
+        if (line < 0 || line >= visibleRows())
         {
             return -1;
         }
@@ -1215,8 +1228,8 @@ public class AdminConfigScreen extends Screen
         int total = this.valueTab ? this.valueKeys.size() : this.prizeRows.size();
         this.scrollBar.setBounds(this.leftPos + LIST_X + LIST_WIDTH + SCROLL_GAP,
                 this.topPos + (this.valueTab ? VALUE_LIST_Y : PRIZE_LIST_Y), ModConstants.TABLE_HEADER_HEIGHT
-                        + listRows() * ModConstants.TABLE_ROW_HEIGHT);
-        this.scrollBar.setRange(Math.max(0, total - listRows()), listRows());
+                        + visibleRows() * ModConstants.TABLE_ROW_HEIGHT);
+        this.scrollBar.setRange(Math.max(0, total - visibleRows()), visibleRows());
         reportCommandStatus();
     }
 

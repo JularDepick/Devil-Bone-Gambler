@@ -13,6 +13,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -120,27 +121,36 @@ public final class AltarValueLabelRenderer
         float top = -font.lineHeight / 2.0F;
 
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        VertexConsumer background = buffers.getBuffer(RenderType.textBackground());
+        RenderType backgroundType = RenderType.textBackgroundSeeThrough();
+        VertexConsumer background = buffers.getBuffer(backgroundType);
+
+        /*
+         * The text background render type is POSITION_COLOR_LIGHTMAP: position, colour and a packed lightmap value,
+         * with no texture coordinate slot at all. A vertex therefore has to fill the lightmap element, otherwise
+         * BufferBuilder refuses to close it and the game dies on "Not filled all elements of the vertex". The
+         * see through variant matches the text, which is drawn through blocks as well, so the plate never goes
+         * missing while the number stays visible.
+         */
         background.vertex(matrix, -half - BACKGROUND_PADDING, top - BACKGROUND_PADDING, 0.0F)
                 .color(BACKGROUND_COLOR)
-                .uv(0.0F, 0.0F)
+                .uv2(LightTexture.FULL_BRIGHT)
                 .endVertex();
         background.vertex(matrix, -half - BACKGROUND_PADDING, -top + BACKGROUND_PADDING, 0.0F)
                 .color(BACKGROUND_COLOR)
-                .uv(0.0F, 1.0F)
+                .uv2(LightTexture.FULL_BRIGHT)
                 .endVertex();
         background.vertex(matrix, half + BACKGROUND_PADDING, -top + BACKGROUND_PADDING, 0.0F)
                 .color(BACKGROUND_COLOR)
-                .uv(1.0F, 1.0F)
+                .uv2(LightTexture.FULL_BRIGHT)
                 .endVertex();
         background.vertex(matrix, half + BACKGROUND_PADDING, top - BACKGROUND_PADDING, 0.0F)
                 .color(BACKGROUND_COLOR)
-                .uv(1.0F, 0.0F)
+                .uv2(LightTexture.FULL_BRIGHT)
                 .endVertex();
-        buffers.endBatch(RenderType.textBackground());
+        buffers.endBatch(backgroundType);
 
         font.drawInBatch(text, -half, top, 0xFFFFFF, false, matrix, buffers, Font.DisplayMode.SEE_THROUGH,
-                0x000000, 15728880);
+                0x000000, LightTexture.FULL_BRIGHT);
         buffers.endBatch();
 
         pose.popPose();
