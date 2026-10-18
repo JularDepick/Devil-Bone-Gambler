@@ -68,6 +68,8 @@ public class DealerPanelPacket
     private final float dealerMaxHealth;
     private final int dealerSatiety;
     private final int dealerMaxSatiety;
+    private final double dealerExperience;
+    private final int dealerPocketFree;
     private final boolean hasWager;
     private final int phase;
     private final int remainingSeconds;
@@ -81,12 +83,13 @@ public class DealerPanelPacket
     private final List<MemberEntry> members;
 
     public DealerPanelPacket(int dealerEntityId, float dealerHealth, float dealerMaxHealth, int dealerSatiety,
-            int dealerMaxSatiety, boolean hasWager, int phase, int remainingSeconds, UUID ownerId,
-            boolean selfIsOwner, boolean selfIsMember, boolean canCreate, boolean canStart, boolean openScreen,
-            List<MemberEntry> members)
+            int dealerMaxSatiety, double dealerExperience, int dealerPocketFree, boolean hasWager, int phase,
+            int remainingSeconds, UUID ownerId, boolean selfIsOwner, boolean selfIsMember, boolean canCreate,
+            boolean canStart, boolean openScreen, List<MemberEntry> members)
     {
-        this(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety, hasWager, phase,
-                remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate, canStart, openScreen, false, members);
+        this(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety, dealerExperience,
+                dealerPocketFree, hasWager, phase, remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate,
+                canStart, openScreen, false, members);
     }
 
     /**
@@ -94,20 +97,22 @@ public class DealerPanelPacket
      */
     public static DealerPanelPacket closing(int dealerEntityId)
     {
-        return new DealerPanelPacket(dealerEntityId, 0.0F, 0.0F, 0, 0, false, DealerBetMenu.PHASE_NONE, 0, null, false,
-                false, false, false, false, true, java.util.Collections.<MemberEntry>emptyList());
+        return new DealerPanelPacket(dealerEntityId, 0.0F, 0.0F, 0, 0, 0.0D, 0, false, DealerBetMenu.PHASE_NONE, 0,
+                null, false, false, false, false, false, true, java.util.Collections.<MemberEntry>emptyList());
     }
 
     private DealerPanelPacket(int dealerEntityId, float dealerHealth, float dealerMaxHealth, int dealerSatiety,
-            int dealerMaxSatiety, boolean hasWager, int phase, int remainingSeconds, UUID ownerId,
-            boolean selfIsOwner, boolean selfIsMember, boolean canCreate, boolean canStart, boolean openScreen,
-            boolean closeScreen, List<MemberEntry> members)
+            int dealerMaxSatiety, double dealerExperience, int dealerPocketFree, boolean hasWager, int phase,
+            int remainingSeconds, UUID ownerId, boolean selfIsOwner, boolean selfIsMember, boolean canCreate,
+            boolean canStart, boolean openScreen, boolean closeScreen, List<MemberEntry> members)
     {
         this.dealerEntityId = dealerEntityId;
         this.dealerHealth = dealerHealth;
         this.dealerMaxHealth = dealerMaxHealth;
         this.dealerSatiety = dealerSatiety;
         this.dealerMaxSatiety = dealerMaxSatiety;
+        this.dealerExperience = dealerExperience;
+        this.dealerPocketFree = dealerPocketFree;
         this.hasWager = hasWager;
         this.phase = phase;
         this.remainingSeconds = remainingSeconds;
@@ -126,6 +131,12 @@ public class DealerPanelPacket
     public float dealerMaxHealth() { return this.dealerMaxHealth; }
     public int dealerSatiety() { return this.dealerSatiety; }
     public int dealerMaxSatiety() { return this.dealerMaxSatiety; }
+    public double dealerExperience() { return this.dealerExperience; }
+
+    /**
+     * How many more dice the pocket of the dealer can still take, which is what the middle cell shows first.
+     */
+    public int dealerPocketFree() { return this.dealerPocketFree; }
     public boolean hasWager() { return this.hasWager; }
     public int phase() { return this.phase; }
     public int remainingSeconds() { return this.remainingSeconds; }
@@ -153,6 +164,8 @@ public class DealerPanelPacket
         buffer.writeFloat(message.dealerMaxHealth);
         buffer.writeVarInt(message.dealerSatiety);
         buffer.writeVarInt(message.dealerMaxSatiety);
+        buffer.writeDouble(message.dealerExperience);
+        buffer.writeVarInt(message.dealerPocketFree);
         buffer.writeBoolean(message.hasWager);
         buffer.writeVarInt(message.phase);
         buffer.writeVarInt(message.remainingSeconds);
@@ -188,6 +201,8 @@ public class DealerPanelPacket
         float dealerMaxHealth = buffer.readFloat();
         int dealerSatiety = buffer.readVarInt();
         int dealerMaxSatiety = buffer.readVarInt();
+        double dealerExperience = buffer.readDouble();
+        int dealerPocketFree = buffer.readVarInt();
         boolean hasWager = buffer.readBoolean();
         int phase = buffer.readVarInt();
         int remainingSeconds = buffer.readVarInt();
@@ -211,8 +226,8 @@ public class DealerPanelPacket
         }
 
         return new DealerPanelPacket(dealerEntityId, dealerHealth, dealerMaxHealth, dealerSatiety, dealerMaxSatiety,
-                hasWager, phase, remainingSeconds, ownerId, selfIsOwner, selfIsMember, canCreate, canStart, openScreen,
-                closeScreen, members);
+                dealerExperience, dealerPocketFree, hasWager, phase, remainingSeconds, ownerId, selfIsOwner,
+                selfIsMember, canCreate, canStart, openScreen, closeScreen, members);
     }
 
     public static void handle(DealerPanelPacket message, Supplier<NetworkEvent.Context> contextSupplier)

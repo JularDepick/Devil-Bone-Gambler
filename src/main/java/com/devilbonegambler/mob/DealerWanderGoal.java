@@ -13,13 +13,16 @@ import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * Pathing preference of the dealer: a brighter spot wins over a drier one, and both win over a distant one.
+ * Pathing preference of the dealer: dice win over everything, a brighter spot wins over a drier one, and both win over
+ * a distant one. Dice on the ground and dice in an item frame both count, and the dealer walks over even when its
+ * pocket is full, because the preference is about what it likes, not only about what it can carry.
  * The goal only starts once the previous stay is over, and it hands the dealer back to the stay countdown as soon
  * as the walk ends or times out.
  */
@@ -99,17 +102,14 @@ public class DealerWanderGoal extends Goal
         int radius = ModConstants.DEALER_PATH_RADIUS;
 
         /*
-         * A dealer that still has room in its pocket walks to the nearest dice on the ground instead of a random spot,
-         * so the walk itself brings it within reach of the pickup.
+         * Dice beat light: the dealer walks to the nearest dice on the ground or in an item frame before it considers a
+         * bright spot. A full pocket does not stop the walk, only the pickup.
          */
-        if (this.dealer.pocketDice() < this.dealer.pocketCapacity())
-        {
-            BlockPos lure = this.lureToDice(level);
+        BlockPos lure = this.lureToDice(level);
 
-            if (lure != null)
-            {
-                return lure;
-            }
+        if (lure != null && !this.dealer.walkCrossesAltarRange(lure))
+        {
+            return lure;
         }
 
         for (int index = 0; index < ModConstants.DEALER_PATH_SAMPLES; index++)
@@ -119,7 +119,7 @@ public class DealerWanderGoal extends Goal
             int dz = random.nextInt(radius * 2 + 1) - radius;
             BlockPos candidate = origin.offset(dx, dy, dz);
 
-            if (!isStandable(level, candidate))
+            if (!isStandable(level, candidate) || this.dealer.isInsideAltarRange(candidate))
             {
                 continue;
             }
@@ -133,7 +133,7 @@ public class DealerWanderGoal extends Goal
             }
         }
 
-        if (best == null || best.equals(origin))
+        if (best == null || best.equals(origin) || this.dealer.walkCrossesAltarRange(best))
         {
             return null;
         }
@@ -142,20 +142,22 @@ public class DealerWanderGoal extends Goal
     }
 
     /**
-     * A standable block right next to the nearest gambler's dice, or null when nothing lies within the lure radius.
+     * A standable block right next to the nearest gambler's dice, on the ground or in an item frame, or null when
+     * nothing lies within the lure radius.
      */
     private BlockPos lureToDice(Level level)
     {
-        List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class, this.dealer.getBoundingBox().inflate(
-                ModConstants.DEALER_DICE_LURE_RADIUS));
-        ItemEntity nearest = null;
+        double radius = ModConstants.DEALER_DICE_LURE_RADIUS;
+        List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class,
+                this.dealer.getBoundingBox().inflate(radius));
+        List<ItemFrame> frames = level.getEntitiesOfClass(ItemFrame.class,
+                this.dealer.getBoundingBox().inflate(radius));
+        Entity nearest = null;
         double bestDistance = Double.MAX_VALUE;
 
         for (ItemEntity drop : drops)
         {
-            ItemStack stack = drop.getItem();
-
-            if (!stack.is(ModItems.GAMBLERS_DICE.get()))
+            if (!drop.getItem().is(ModItems.GAMBLERS_DICE.get()))
             {
                 continue;
             }
@@ -166,6 +168,22 @@ public class DealerWanderGoal extends Goal
             {
                 bestDistance = distance;
                 nearest = drop;
+            }
+        }
+
+        for (ItemFrame frame : frames)
+        {
+            if (!frame.getItem().is(ModItems.GAMBLERS_DICE.get()))
+            {
+                continue;
+            }
+
+            double distance = frame.distanceToSqr(this.dealer);
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                nearest = frame;
             }
         }
 
@@ -180,7 +198,7 @@ public class DealerWanderGoal extends Goal
         {
             BlockPos candidate = dropPos.relative(direction);
 
-            if (this.isStandable(level, candidate))
+            if (this.isStandable(level, candidate) && !this.dealer.isInsideAltarRange(candidate))
             {
                 return candidate;
             }

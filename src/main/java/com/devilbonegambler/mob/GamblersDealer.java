@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
 import com.devilbonegambler.registry.ModEntities;
@@ -42,6 +43,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -57,8 +59,7 @@ public class GamblersDealer extends PathfinderMob
     private static final String TAG_HURT_DROP_COUNT = "DealerHurtDropCount";
     private static final String TAG_POCKET = "DealerPocket";
     private static final String TAG_EXPERIENCE = "DealerExperience";
-    private static final String KEY_RECRUIT_TITLE = "gui." + ModConstants.MOD_ID + ".dealer.recruit_title";
-    private static final String KEY_RECRUIT_COUNT = "gui." + ModConstants.MOD_ID + ".dealer.recruit_count";
+    private static final String KEY_RECRUIT_LINE = "gui." + ModConstants.MOD_ID + ".dealer.recruit_line";
     private static final String KEY_IDLE_NAME = "gui." + ModConstants.MOD_ID + ".dealer.name_tag";
 
     private GamblersDealer rival;
@@ -87,10 +88,6 @@ public class GamblersDealer extends PathfinderMob
     private boolean hosting;
     /* Business names (hosting, recruiting) are shown to everyone, the idle name only to the player who looks at it. */
     private boolean showNameToEveryone;
-    /* The recruit name is two centred lines, so the renderer draws it instead of the vanilla single line name tag. */
-    private boolean recruitLines;
-    private int recruitMembers;
-    private int recruitSeconds;
 
     public GamblersDealer(EntityType<? extends GamblersDealer> type, Level level)
     {
@@ -143,7 +140,8 @@ public class GamblersDealer extends PathfinderMob
      */
     public boolean isDefendingTerritory()
     {
-        return this.rival != null;
+        /* A dealer that recruits or hosts a wager sits out of the dealer against dealer fights. */
+        return this.rival != null && !this.isHosting();
     }
 
     /**
@@ -153,6 +151,18 @@ public class GamblersDealer extends PathfinderMob
      */
     private void tickTerritory()
     {
+        /*
+         * Business comes first: while a wager recruits or runs the dealer neither chases a rival nor keeps one, so a
+         * fight cannot start or continue around a table that is in use.
+         */
+        if (this.isHosting())
+        {
+            this.rival = null;
+            this.territoryCheckTicks = 0;
+            this.getNavigation().stop();
+            return;
+        }
+
         if (this.territoryCheckTicks > 0)
         {
             this.territoryCheckTicks--;
@@ -168,7 +178,7 @@ public class GamblersDealer extends PathfinderMob
             return;
         }
 
-        if (!this.rival.isAlive() || this.rival.level() != this.level())
+        if (!this.rival.isAlive() || this.rival.level() != this.level() || this.rival.isHosting())
         {
             this.rival = null;
             this.getNavigation().stop();
@@ -223,7 +233,7 @@ public class GamblersDealer extends PathfinderMob
     {
         List<GamblersDealer> others = this.level().getEntitiesOfClass(GamblersDealer.class,
                 this.getBoundingBox().inflate(ModConstants.DEALER_TERRITORY_RADIUS),
-                other -> other != this && other.isAlive());
+                other -> other != this && other.isAlive() && !other.isHosting());
         double limit = ModConstants.DEALER_TERRITORY_RADIUS * ModConstants.DEALER_TERRITORY_RADIUS;
         GamblersDealer nearest = null;
         double nearestDistance = Double.MAX_VALUE;
@@ -343,6 +353,63 @@ public class GamblersDealer extends PathfinderMob
     public boolean isInLiquid()
     {
         return this.isInWaterOrBubble() || this.isInLava();
+    }
+
+    /**
+     * A dealer hates altars standing on the ground, so its walk keeps out of their ranges. The range of an altar grows
+     * with its offering value, exactly like the range the altar itself enforces.
+     */
+    public boolean isInsideAltarRange(BlockPos pos)
+    {
+        int reach = ModConstants.ALTAR_MAX_RADIUS;
+
+        for (BlockPos cursor : BlockPos.betweenClosed(pos.offset(-reach, -1, -reach), pos.offset(reach, 1, reach)))
+        {
+            if (!this.level().getBlockState(cursor).is(ModBlocks.DEVILS_ALTAR.get()))
+            {
+                continue;
+            }
+
+            if (!(this.level().getBlockEntity(cursor) instanceof DevilsAltarBlockEntity altar))
+            {
+                continue;
+            }
+
+            double radius = ModConstants.altarRadiusFor(altar.offeringValue());
+
+            if (cursor.distSqr(pos) <= radius * radius)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True when a straight walk from the dealer to the target would touch an altar range at any point, not only at its
+     * end, so a chosen spot outside a range cannot be reached through one either.
+     */
+    public boolean walkCrossesAltarRange(BlockPos target)
+    {
+        BlockPos origin = this.blockPosition();
+        double distance = Math.sqrt(origin.distSqr(target));
+        int steps = Math.max(1, (int) Math.ceil(distance));
+
+        for (int step = 1; step <= steps; step++)
+        {
+            double ratio = (double) step / (double) steps;
+            int x = (int) Math.round(origin.getX() + (target.getX() - origin.getX()) * ratio);
+            int y = (int) Math.round(origin.getY() + (target.getY() - origin.getY()) * ratio);
+            int z = (int) Math.round(origin.getZ() + (target.getZ() - origin.getZ()) * ratio);
+
+            if (this.isInsideAltarRange(new BlockPos(x, y, z)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -847,40 +914,17 @@ public class GamblersDealer extends PathfinderMob
      */
     public void showRecruitText(int members, int seconds)
     {
-        this.recruitMembers = members;
-        this.recruitSeconds = seconds;
-        this.recruitLines = true;
-        this.setCustomName(Component.translatable(KEY_RECRUIT_TITLE));
+        this.setCustomName(Component.translatable(KEY_RECRUIT_LINE, Integer.valueOf(members),
+                Integer.valueOf(seconds)));
         this.setCustomNameVisible(true);
         this.showNameToEveryone = true;
     }
 
     public void clearRecruitText()
     {
-        this.recruitLines = false;
         this.setCustomName(Component.translatable(KEY_IDLE_NAME));
         this.setCustomNameVisible(true);
         this.showNameToEveryone = false;
-    }
-
-    /**
-     * The recruit name is two centred lines instead of one, so the renderer asks for the two parts and draws them
-     * itself while the vanilla name tag stays in charge of every other state.
-     */
-    public boolean showsRecruitLines()
-    {
-        return this.recruitLines;
-    }
-
-    public Component recruitTitle()
-    {
-        return Component.translatable(KEY_RECRUIT_TITLE);
-    }
-
-    public Component recruitCount()
-    {
-        return Component.translatable(KEY_RECRUIT_COUNT, Integer.valueOf(this.recruitMembers),
-                Integer.valueOf(this.recruitSeconds));
     }
 
     /**
@@ -1048,6 +1092,12 @@ public class GamblersDealer extends PathfinderMob
     public boolean hurt(DamageSource source, float amount)
     {
         boolean fromPlayer = source.getEntity() instanceof Player;
+
+        /* A rival cannot land a hit on a dealer that is busy with a wager; it has to wait until the table is free. */
+        if (this.isHosting() && source.getEntity() instanceof GamblersDealer)
+        {
+            return false;
+        }
 
         if (fromPlayer)
         {

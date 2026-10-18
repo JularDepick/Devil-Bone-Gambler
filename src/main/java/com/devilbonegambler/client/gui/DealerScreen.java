@@ -327,11 +327,19 @@ public class DealerScreen extends Screen
         if (mouseX >= dealerX && mouseX < dealerX + CELL - 2 && mouseY >= dealerY && mouseY < dealerY + CELL - 2)
         {
             List<Component> lines = new ArrayList<Component>();
+            /*
+             * The pocket comes first, then the two bars and the experience. The vanilla tooltip keeps one line height
+             * between them, so the block stays evenly spaced however long the numbers get.
+             */
+            lines.add(Component.translatable(LANG + "pocket_space",
+                    Integer.valueOf(this.panel.dealerPocketFree())));
             lines.add(Component.translatable(LANG + "health",
                     Integer.valueOf((int) this.panel.dealerHealth()),
                     Integer.valueOf((int) this.panel.dealerMaxHealth())));
             lines.add(Component.translatable(LANG + "satiety", Integer.valueOf(this.panel.dealerSatiety()),
                     Integer.valueOf(this.panel.dealerMaxSatiety())));
+            lines.add(Component.translatable(LANG + "experience",
+                    Component.literal(String.format(java.util.Locale.ROOT, "%.1f", this.panel.dealerExperience()))));
             this.tooltip.render(graphics, this.font, "dealer", lines, mouseX, mouseY);
             return;
         }

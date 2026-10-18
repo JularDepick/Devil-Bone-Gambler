@@ -470,15 +470,14 @@ def check_recruit_text():
     service = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "dealer" / "DealerWagerService.java").read_text(encoding="utf-8")
     lang = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang" / "zh_cn.json").read_text(encoding="utf-8")
 
-    check("招募名牌分成两行", "public void showRecruitText(int members, int seconds)" in dealer
-          and "showsRecruitLines()" in dealer and "recruitTitle()" in dealer and "recruitCount()" in dealer)
+    check("招募名牌合并成一行", "public void showRecruitText(int members, int seconds)" in dealer
+          and "KEY_RECRUIT_LINE" in dealer and "showsRecruitLines" not in dealer
+          and "recruitTitle()" not in dealer and "recruitCount()" not in dealer)
     check("招募名牌随人数刷新", service.count("showRecruitText(session.memberCount()") >= 2)
-    check("招募两行文案", '"gui.devil_bone_gambler.dealer.recruit_title": "' in lang
-          and '"gui.devil_bone_gambler.dealer.recruit_count": "' in lang
-          and lang.split('"gui.devil_bone_gambler.dealer.recruit_count": "')[1].split('"')[0].count("%s") == 2)
+    check("招募单行文案", '"gui.devil_bone_gambler.dealer.recruit_line": "' in lang
+          and lang.split('"gui.devil_bone_gambler.dealer.recruit_line": "')[1].split('"')[0].count("%s") == 2)
     renderer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "render" / "GamblersDealerRenderer.java").read_text(encoding="utf-8")
-    check("两行各自水平居中", "renderNameTag" in renderer and "font.width(title) / 2.0F" in renderer
-          and "font.width(count) / 2.0F" in renderer)
+    check("招募不再自绘名牌", "renderNameTag" not in renderer)
 
 
 def check_neutrality():
@@ -559,9 +558,15 @@ def check_bar_economy():
           and "DEALER_TERRITORY_MAX_DAMAGE" in dealer)
     check("每二十刻掉一次", "DEALER_DECAY_INTERVAL_TICKS = 20" in constants and "tickSatiety" in dealer)
     wander = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "DealerWanderGoal.java").read_text(encoding="utf-8")
+    check("寻路避开祭坛范围", "isInsideAltarRange" in dealer and "walkCrossesAltarRange" in dealer
+          and "ModBlocks.DEVILS_ALTAR" in dealer and "altarRadiusFor" in dealer
+          and "isInsideAltarRange(candidate)" in wander and "walkCrossesAltarRange(best)" in wander
+          and "walkCrossesAltarRange(lure)" in wander)
     check("寻路会靠近骰子", "DEALER_DICE_LURE_RADIUS = 8" in constants
-          and "lureToDice" in wander
-          and "this.dealer.pocketDice() < this.dealer.pocketCapacity()" in wander)
+          and "lureToDice(level)" in wander)
+    check("骰子优先于亮处并包含展示框", "ItemFrame" in wander
+          and "frame.getItem().is(ModItems.GAMBLERS_DICE.get())" in wander
+          and "this.dealer.pocketDice() < this.dealer.pocketCapacity()" not in wander)
 
 
     check("一昼夜掉一百点", "DEALER_DAY_TICKS" in constants
@@ -621,6 +626,30 @@ def check_eating_animation():
           and "this.head.xRot = 0.25F" in model)
 
 
+def check_dealer_tooltip_and_busy():
+    """The dealer cell tooltip carries the experience, and a busy dealer sits out of dealer against dealer fights."""
+    screen = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "DealerScreen.java").read_text(encoding="utf-8")
+    packet = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "network" / "packet" / "DealerPanelPacket.java").read_text(encoding="utf-8")
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+
+    check("荷官格提示显示经验值", "LANG + \"experience\"" in screen and "dealerExperience()" in screen,
+          "九宫格正中一格的提示缺少经验值")
+    check("经验值随面板同步", "dealerExperience" in packet and "writeDouble(message.dealerExperience)" in packet)
+    check("荷官格提示显示背包空间", "LANG + \"pocket_space\"" in screen
+          and "dealerPocketFree()" in screen,
+          "九宫格正中一格的提示缺少背包空间")
+    check("背包空间随面板同步", "dealerPocketFree" in packet
+          and "writeVarInt(message.dealerPocketFree)" in packet
+          and "readVarInt()" in packet)
+    order = ["LANG + \"pocket_space\"", "LANG + \"health\"", "LANG + \"satiety\"", "LANG + \"experience\""]
+    indices = [screen.index(marker) for marker in order]
+    check("提示四行顺序", indices == sorted(indices), "背包空间, 生命值, 饱食度与经验值的顺序不对")
+    check("招募主持时退出竞争", "this.rival != null && !this.isHosting()" in dealer
+          and "if (this.isHosting())" in dealer
+          and "!other.isHosting()" in dealer)
+    check("忙碌时挡下同类伤害", "this.isHosting() && source.getEntity() instanceof GamblersDealer" in dealer)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -648,6 +677,7 @@ def main():
     check_player_hits()
     check_countdown()
     check_eating_animation()
+    check_dealer_tooltip_and_busy()
     check_bet_rule()
 
     print("")
