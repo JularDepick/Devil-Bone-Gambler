@@ -332,6 +332,8 @@ public class DealerScreen extends Screen
                     Integer.valueOf((int) this.panel.dealerMaxHealth())));
             lines.add(Component.translatable(LANG + "satiety", Integer.valueOf(this.panel.dealerSatiety()),
                     Integer.valueOf(this.panel.dealerMaxSatiety())));
+            lines.add(Component.translatable(LANG + "experience",
+                    Component.literal(String.format(java.util.Locale.ROOT, "%.1f", this.panel.dealerExperience()))));
             this.tooltip.render(graphics, this.font, "dealer", lines, mouseX, mouseY);
             return;
         }

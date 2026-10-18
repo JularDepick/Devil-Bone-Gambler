@@ -199,6 +199,7 @@
   "gui.devil_bone_gambler.dealer.bet_count": "Bet items %s",
   "gui.devil_bone_gambler.dealer.bet_total": "My total bet value %s",
   "gui.devil_bone_gambler.dealer.health": "Health %s/%s",
+  "gui.devil_bone_gambler.dealer.experience": "Experience: %s",
   "gui.devil_bone_gambler.dealer.satiety": "Satiety %s/%s",
   "gui.devil_bone_gambler.dealer.egg_reward": "You received a Gambler's Dealer spawn egg",
   "gui.devil_bone_gambler.dealer.created": "Dealer wager created, players holding the Gambler's Dice join with an empty hand",

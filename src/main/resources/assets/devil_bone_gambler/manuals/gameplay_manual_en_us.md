@@ -53,9 +53,10 @@
 ## Gambler's Dealer
 
 - Dealers show up in the world and keep walking inside their own territory; a dealer is neutral, never attacks another kind of creature and is never targeted by monsters, and every other dealer inside its territory is fought until one of them dies
-- Right click a dealer with an empty hand to open the dealer page: a nine grid laid around the dealer, one member in every cell, the dealer itself in the middle cell and its health and food under the portrait
+- Right click a dealer with an empty hand to open the dealer page: a nine grid laid around the dealer, one member in every cell, the dealer itself in the middle cell and its health and food under the portrait; hovering the middle cell also shows its experience
 - A dealer keeps a pocket that holds nothing but Gambler's Dice; while it is not fighting, it picks up nearby dice as long as the pocket has room
 - When its health or food drops to six tenths, the dealer eats dice from the pocket one by one, each restoring half of a bar, and it stops once both are full; it neither picks up nor eats while fighting another dealer
+- A dealer that recruits or hosts a wager sits out of the dealer against dealer fights and is neither attacker nor target
 - Whatever a meal cannot restore turns into experience: the more experience, the larger the pocket, the higher both ceilings and the harder it hits
 - Eating one dice takes a second with it at the mouth, and the dealer waits another second before the next one
 - A wound may shake dice out of the pocket and an empty pocket shakes out nothing

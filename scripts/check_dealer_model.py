@@ -621,6 +621,21 @@ def check_eating_animation():
           and "this.head.xRot = 0.25F" in model)
 
 
+def check_dealer_tooltip_and_busy():
+    """The dealer cell tooltip carries the experience, and a busy dealer sits out of dealer against dealer fights."""
+    screen = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "client" / "gui" / "DealerScreen.java").read_text(encoding="utf-8")
+    packet = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "network" / "packet" / "DealerPanelPacket.java").read_text(encoding="utf-8")
+    dealer = (ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "mob" / "GamblersDealer.java").read_text(encoding="utf-8")
+
+    check("荷官格提示显示经验值", "LANG + \"experience\"" in screen and "dealerExperience()" in screen,
+          "九宫格正中一格的提示缺少经验值")
+    check("经验值随面板同步", "dealerExperience" in packet and "writeDouble(message.dealerExperience)" in packet)
+    check("招募主持时退出竞争", "this.rival != null && !this.isHosting()" in dealer
+          and "if (this.isHosting())" in dealer
+          and "!other.isHosting()" in dealer)
+    check("忙碌时挡下同类伤害", "this.isHosting() && source.getEntity() instanceof GamblersDealer" in dealer)
+
+
 def main():
     if not TEXTURE.is_file():
         print("缺少贴图: " + str(TEXTURE))
@@ -648,6 +663,7 @@ def main():
     check_player_hits()
     check_countdown()
     check_eating_animation()
+    check_dealer_tooltip_and_busy()
     check_bet_rule()
 
     print("")

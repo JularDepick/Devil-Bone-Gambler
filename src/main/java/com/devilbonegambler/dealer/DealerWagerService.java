@@ -993,9 +993,9 @@ public final class DealerWagerService
         boolean canCreate = !hasWager && !isInAnyWager(player);
         boolean canStart = owner && session.memberCount() >= ModConstants.DEALER_WAGER_MIN_PLAYERS;
         ModNetwork.sendToPlayer(player, new DealerPanelPacket(dealer.getId(), dealer.getHealth(),
-                dealer.getMaxHealth(), (int) Math.round(dealer.satiety()), dealer.maxSatiety(), hasWager, phase,
-                remaining,
-                hasWager ? session.ownerId() : null, owner, member, canCreate, canStart, openScreen, entries));
+                dealer.getMaxHealth(), (int) Math.round(dealer.satiety()), dealer.maxSatiety(), dealer.experience(),
+                hasWager, phase, remaining, hasWager ? session.ownerId() : null, owner, member, canCreate, canStart,
+                openScreen, entries));
     }
 
     private static void broadcastMembers(MinecraftServer server, DealerWagerSession session, Component text)

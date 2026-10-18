@@ -143,7 +143,8 @@ public class GamblersDealer extends PathfinderMob
      */
     public boolean isDefendingTerritory()
     {
-        return this.rival != null;
+        /* A dealer that recruits or hosts a wager sits out of the dealer against dealer fights. */
+        return this.rival != null && !this.isHosting();
     }
 
     /**
@@ -153,6 +154,18 @@ public class GamblersDealer extends PathfinderMob
      */
     private void tickTerritory()
     {
+        /*
+         * Business comes first: while a wager recruits or runs the dealer neither chases a rival nor keeps one, so a
+         * fight cannot start or continue around a table that is in use.
+         */
+        if (this.isHosting())
+        {
+            this.rival = null;
+            this.territoryCheckTicks = 0;
+            this.getNavigation().stop();
+            return;
+        }
+
         if (this.territoryCheckTicks > 0)
         {
             this.territoryCheckTicks--;
@@ -168,7 +181,7 @@ public class GamblersDealer extends PathfinderMob
             return;
         }
 
-        if (!this.rival.isAlive() || this.rival.level() != this.level())
+        if (!this.rival.isAlive() || this.rival.level() != this.level() || this.rival.isHosting())
         {
             this.rival = null;
             this.getNavigation().stop();
@@ -223,7 +236,7 @@ public class GamblersDealer extends PathfinderMob
     {
         List<GamblersDealer> others = this.level().getEntitiesOfClass(GamblersDealer.class,
                 this.getBoundingBox().inflate(ModConstants.DEALER_TERRITORY_RADIUS),
-                other -> other != this && other.isAlive());
+                other -> other != this && other.isAlive() && !other.isHosting());
         double limit = ModConstants.DEALER_TERRITORY_RADIUS * ModConstants.DEALER_TERRITORY_RADIUS;
         GamblersDealer nearest = null;
         double nearestDistance = Double.MAX_VALUE;
@@ -1048,6 +1061,12 @@ public class GamblersDealer extends PathfinderMob
     public boolean hurt(DamageSource source, float amount)
     {
         boolean fromPlayer = source.getEntity() instanceof Player;
+
+        /* A rival cannot land a hit on a dealer that is busy with a wager; it has to wait until the table is free. */
+        if (this.isHosting() && source.getEntity() instanceof GamblersDealer)
+        {
+            return false;
+        }
 
         if (fromPlayer)
         {

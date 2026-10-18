@@ -199,6 +199,7 @@
   "gui.devil_bone_gambler.dealer.bet_count": "赌注件数 %s",
   "gui.devil_bone_gambler.dealer.bet_total": "我的赌注总价值 %s",
   "gui.devil_bone_gambler.dealer.health": "生命值 %s/%s",
+  "gui.devil_bone_gambler.dealer.experience": "经验值: %s",
   "gui.devil_bone_gambler.dealer.satiety": "饱食度 %s/%s",
   "gui.devil_bone_gambler.dealer.egg_reward": "你获得了一个赌徒的荷官生物蛋",
   "gui.devil_bone_gambler.dealer.created": "你创建了荷官赌局, 附近手持赌徒的骰子的玩家空手右击荷官即可加入",
