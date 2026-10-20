@@ -98,6 +98,13 @@ Placeholders go into the entry command and are replaced when the draw runs. The 
 - A /dbgr run trial has no draw context and stays uniform inside the range
 - Example: give ${player} minecraft:bread %(4,16)
 
+### --R(n) repeat
+
+- It only counts at the very end of a command line, trailing spaces ignored, and n is an integer from 1 to 10
+- The line runs n times, and every other placeholder is expanded again for each repetition, so random integers and sample spaces may differ
+- An entry with an invalid n or a suffix that is not at the end fails validation
+- Example: give ${player} minecraft:bread 1 --R(5)
+
 ### Random tokens
 
 - ${random:item}, ${random:effect}, ${random:entity}, ${random:enchantment} and ${random:potion} pick a random registry id of that kind

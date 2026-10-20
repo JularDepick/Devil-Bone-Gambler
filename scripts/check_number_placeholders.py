@@ -49,7 +49,7 @@ def main() -> int:
     check("bounds", "MAX_NUMBER_PLACEHOLDER" in source, "the value bounds are missing")
     check("runner expansion", "NumberPlaceholders.expand(command, context)" in runner,
           "the command runner does not expand the numeric placeholder")
-    check("runner validation", "NumberPlaceholders.findProblem(line)" in runner,
+    check("runner validation", "NumberPlaceholders.findProblem(body)" in runner,
           "the command runner does not validate the numeric placeholder")
     check("sample form", "NumberPlaceholders.sampleForm(" in runner,
           "the parser never sees a representative number")

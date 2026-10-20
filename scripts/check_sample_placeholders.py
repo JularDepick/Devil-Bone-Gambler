@@ -96,7 +96,7 @@ def main() -> int:
 
     check("runner expansion", "SamplePlaceholders.expand(command, context, sampledNames)" in runner,
           "the prize commands do not expand the sample placeholders")
-    check("runner validation", "SamplePlaceholders.findProblem(line)" in runner
+    check("runner validation", "SamplePlaceholders.findProblem(body)" in runner
           and "SamplePlaceholders.sampleForm(" in runner, "validation does not know the sample placeholders")
     check("draw context", "new SampleContext(pending.roll.point(), pending.overflow, pending.luck,"
           in engine, "the draw does not pass its roll attributes")

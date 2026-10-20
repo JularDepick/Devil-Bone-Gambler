@@ -91,55 +91,74 @@ public final class CommandRunner
 
         for (String line : lines(raw))
         {
-            String sampled = RandomPoolSampler.sample(line, server, trigger.getRandom());
+            String repeatProblem = RepeatPlaceholders.findProblem(line);
 
-            if (sampled == null)
+            if (repeatProblem != null)
             {
                 DevilBoneGambler.LOGGER.warn(
-                        "Skipped a prize command line, a random pool is unknown or empty, line={}", line);
+                        "Skipped a prize command line, repeat placeholder is invalid: {}, line={}", repeatProblem, line);
                 continue;
             }
 
-            String command = CommandPlaceholders.expand(sampled, trigger, CommandRunner::altarOf, trigger.getRandom());
+            String body = RepeatPlaceholders.body(line);
+            int repeats = RepeatPlaceholders.count(line);
 
-            if (command == null)
+            /*
+             * Each repetition expands its own placeholders, so a repeated line really runs as several independent
+             * commands instead of copying one sampled value into every repetition.
+             */
+            for (int repetition = 0; repetition < repeats; repetition++)
             {
-                DevilBoneGambler.LOGGER.warn(
-                        "Skipped a prize command line, a referenced player or altar is unavailable, line={}", line);
-                continue;
-            }
+                String sampled = RandomPoolSampler.sample(body, server, trigger.getRandom());
 
-            command = SamplePlaceholders.expand(command, context, sampledNames);
+                if (sampled == null)
+                {
+                    DevilBoneGambler.LOGGER.warn(
+                            "Skipped a prize command line, a random pool is unknown or empty, line={}", body);
+                    continue;
+                }
 
-            if (command == null)
-            {
-                DevilBoneGambler.LOGGER.warn(
-                        "Skipped a prize command line, a sample space is unknown or empty, line={}", line);
-                continue;
-            }
+                String command = CommandPlaceholders.expand(sampled, trigger, CommandRunner::altarOf, trigger.getRandom());
 
-            command = NumberPlaceholders.expand(command, context);
+                if (command == null)
+                {
+                    DevilBoneGambler.LOGGER.warn(
+                            "Skipped a prize command line, a referenced player or altar is unavailable, line={}", body);
+                    continue;
+                }
 
-            if (command.isEmpty())
-            {
-                continue;
-            }
+                command = SamplePlaceholders.expand(command, context, sampledNames);
 
-            try
-            {
-                /*
-                 * Output is suppressed so that a prize command never echoes its own vanilla feedback into the chat box:
-                 * the chat box carries exactly one line per draw, the mod result notice, and nothing else.
-                 */
-                CommandSourceStack source = trigger.createCommandSourceStack()
-                        .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL)
-                        .withSuppressedOutput();
-                server.getCommands().performPrefixedCommand(source, command);
-                executed++;
-            }
-            catch (RuntimeException exception)
-            {
-                DevilBoneGambler.LOGGER.error("Prize command failed, line={}", line, exception);
+                if (command == null)
+                {
+                    DevilBoneGambler.LOGGER.warn(
+                            "Skipped a prize command line, a sample space is unknown or empty, line={}", body);
+                    continue;
+                }
+
+                command = NumberPlaceholders.expand(command, context);
+
+                if (command.isEmpty())
+                {
+                    continue;
+                }
+
+                try
+                {
+                    /*
+                     * Output is suppressed so that a prize command never echoes its own vanilla feedback into the chat
+                     * box: the chat box carries exactly one line per draw, the mod result notice, and nothing else.
+                     */
+                    CommandSourceStack source = trigger.createCommandSourceStack()
+                            .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL)
+                            .withSuppressedOutput();
+                    server.getCommands().performPrefixedCommand(source, command);
+                    executed++;
+                }
+                catch (RuntimeException exception)
+                {
+                    DevilBoneGambler.LOGGER.error("Prize command failed, line={}", body, exception);
+                }
             }
         }
 
@@ -156,21 +175,29 @@ public final class CommandRunner
     {
         for (String line : lines(raw))
         {
-            String placeholderProblem = CommandPlaceholders.findProblem(line);
+            String repeatProblem = RepeatPlaceholders.findProblem(line);
+
+            if (repeatProblem != null)
+            {
+                return repeatProblem;
+            }
+
+            String body = RepeatPlaceholders.body(line);
+            String placeholderProblem = CommandPlaceholders.findProblem(body);
 
             if (placeholderProblem != null)
             {
                 return placeholderProblem;
             }
 
-            String sampleProblem = SamplePlaceholders.findProblem(line);
+            String sampleProblem = SamplePlaceholders.findProblem(body);
 
             if (sampleProblem != null)
             {
                 return sampleProblem;
             }
 
-            String numberProblem = NumberPlaceholders.findProblem(line);
+            String numberProblem = NumberPlaceholders.findProblem(body);
 
             if (numberProblem != null)
             {
@@ -185,7 +212,7 @@ public final class CommandRunner
             try
             {
                 ParseResults<S> results = dispatcher.parse(
-                        SamplePlaceholders.sampleForm(CommandPlaceholders.sampleForm(NumberPlaceholders.sampleForm(line))), source);
+                        SamplePlaceholders.sampleForm(CommandPlaceholders.sampleForm(NumberPlaceholders.sampleForm(body))), source);
 
                 if (!results.getExceptions().isEmpty())
                 {

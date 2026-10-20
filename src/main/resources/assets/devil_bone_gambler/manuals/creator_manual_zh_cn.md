@@ -124,6 +124,13 @@
 - /dbgr run 试跑没有抽取上下文, 在区间内均匀抽取
 - 例: give ${player} minecraft:bread %(4,16)
 
+### --R(n) 重复执行
+
+- 只能写在指令行末, 行末空白不计; n 是 1 到 10 的整数
+- 这一行会执行 n 次, 每次的其他占位符都重新展开, 因此随机整数与样本空间可以每次不同
+- 有非法 n 或占位符不在行末的条目不会通过校验
+- 例: give ${player} minecraft:bread 1 --R(5)
+
 ### 随机令牌
 
 - ${random:item} 随机物品, ${random:effect} 随机效果, ${random:entity} 随机实体, ${random:enchantment} 随机附魔, ${random:potion} 随机药水
