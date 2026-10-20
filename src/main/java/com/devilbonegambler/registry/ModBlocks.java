@@ -8,6 +8,7 @@ package com.devilbonegambler.registry;
 
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.block.DealerGlowBlock;
+import com.devilbonegambler.block.PlacedDiceBlock;
 import com.devilbonegambler.block.DevilsAltarBlock;
 import com.devilbonegambler.item.DevilsAltarItem;
 import com.devilbonegambler.util.ModConstants;
@@ -48,6 +49,18 @@ public final class ModBlocks
      * offers it; it only ever exists in the world under a dealer.
      */
     public static final RegistryObject<Block> DEALER_GLOW = BLOCKS.register("dealer_glow", DealerGlowBlock::new);
+
+    /*
+     * A die placed on the ground. The two kinds are separate blocks so each one has its own texture and model.
+     */
+    public static final RegistryObject<Block> PLACED_GAMBLERS_DICE = BLOCKS.register("placed_gamblers_dice",
+            () -> new PlacedDiceBlock(false, BlockBehaviour.Properties.of()
+                    .strength(0.5F)
+                    .sound(SoundType.WOOD)));
+    public static final RegistryObject<Block> PLACED_DEVILS_DICE = BLOCKS.register("placed_devils_dice",
+            () -> new PlacedDiceBlock(true, BlockBehaviour.Properties.of()
+                    .strength(0.5F)
+                    .sound(SoundType.WOOD)));
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",
             () -> new DevilsAltarItem(DEVILS_ALTAR.get(), new Item.Properties().stacksTo(1)));

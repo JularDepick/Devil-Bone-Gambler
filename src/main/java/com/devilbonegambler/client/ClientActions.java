@@ -147,6 +147,15 @@ public final class ClientActions
             return;
         }
 
+        sendDevilsDiceDraw();
+    }
+
+    /**
+     * The direct draw of the devil's die, used both by its right click outside a range and by a placed die broken in
+     * a place without an altar.
+     */
+    public static void sendDevilsDiceDraw()
+    {
         Minecraft minecraft = Minecraft.getInstance();
 
         if (minecraft.player == null)

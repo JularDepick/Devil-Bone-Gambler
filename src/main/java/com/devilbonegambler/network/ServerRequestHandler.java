@@ -9,6 +9,7 @@ package com.devilbonegambler.network;
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.altar.AltarMobScan;
 import com.devilbonegambler.altar.AltarService;
+import com.devilbonegambler.block.PlacedDiceService;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.menu.AltarMenu;
 import com.devilbonegambler.dealer.DealerRewardService;
@@ -27,10 +28,12 @@ import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
+import com.devilbonegambler.network.packet.DiceModifierPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.MobListRequestPacket;
+import com.devilbonegambler.network.packet.PlaceDicePacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ValueTableBook;
@@ -54,6 +57,16 @@ public final class ServerRequestHandler
 {
     private ServerRequestHandler()
     {
+    }
+
+    public static void handlePlaceDice(ServerPlayer player, PlaceDicePacket message)
+    {
+        PlacedDiceService.place(player, message.pos(), message.face(), message.offhand());
+    }
+
+    public static void handleDiceModifier(ServerPlayer player, DiceModifierPacket message)
+    {
+        PlacedDiceService.setModifier(player, message.held());
     }
 
     public static void handleGamblersDice(ServerPlayer player, GamblersDiceRequestPacket message)

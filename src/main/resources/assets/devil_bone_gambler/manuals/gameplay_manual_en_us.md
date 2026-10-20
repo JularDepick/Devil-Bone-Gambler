@@ -14,6 +14,9 @@
 - The colour comes from the luck value: a red point draws only red entries and a black point only black entries
 - Red entries tend to be positive and black entries tend to be negative, so the colour alone already tells roughly what is coming
 - After the roll the point and the colour appear in one line above the hotbar, for example Gambler's Dice 5 points Red; this is the only mod line that uses that area, and the overflow value is not shown there
+- While holding either die, hold the placement key (Tab by default, rebindable in the controls) and right click to put the die down as a block instead of using it
+- Breaking that placed die with an empty hand uses the die; sneaking uses the gambler's die as a sneak use, and breaking a devil's die inside an altar range uses it in range, with the die staying in the inventory when the screen is cancelled
+- Empty handed and holding the placement key, breaking the placed die only returns it as a drop and never triggers a use
 - The luck value changes over time and is shown in the top right corner, coloured by its band; a higher value leans to red points and rare rewards, a lower one leans to black points and common entries
 
 ## Devil's Altar

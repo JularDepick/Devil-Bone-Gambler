@@ -19,12 +19,15 @@ import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
 import com.devilbonegambler.network.packet.DealerInteractPacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
+import com.devilbonegambler.network.packet.DiceModifierPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.LuckSyncPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
+import com.devilbonegambler.network.packet.PlaceDicePacket;
+import com.devilbonegambler.network.packet.PlacedDiceUsePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableSyncPacket;
@@ -103,6 +106,12 @@ public final class ModNetwork
                 DealerPanelPacket::encode, DealerPanelPacket::decode, DealerPanelPacket::handle);
         CHANNEL.registerMessage(index++, LuckSyncPacket.class,
                 LuckSyncPacket::encode, LuckSyncPacket::decode, LuckSyncPacket::handle);
+        CHANNEL.registerMessage(index++, PlaceDicePacket.class,
+                PlaceDicePacket::encode, PlaceDicePacket::decode, PlaceDicePacket::handle);
+        CHANNEL.registerMessage(index++, DiceModifierPacket.class,
+                DiceModifierPacket::encode, DiceModifierPacket::decode, DiceModifierPacket::handle);
+        CHANNEL.registerMessage(index++, PlacedDiceUsePacket.class,
+                PlacedDiceUsePacket::encode, PlacedDiceUsePacket::decode, PlacedDiceUsePacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

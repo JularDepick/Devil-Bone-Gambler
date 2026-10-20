@@ -16,6 +16,7 @@ import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.LuckSyncPacket;
+import com.devilbonegambler.network.packet.PlacedDiceUsePacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
@@ -41,6 +42,22 @@ public final class ClientPacketHandler
     public static ValueTableSnapshot valueTable()
     {
         return valueTable;
+    }
+
+    public static void handlePlacedDiceUse(PlacedDiceUsePacket message)
+    {
+        if (message.mode() == PlacedDiceUsePacket.GAMBLERS_DRAW)
+        {
+            ClientActions.sendGamblersDiceRequest();
+        }
+        else if (message.mode() == PlacedDiceUsePacket.DEVILS_ALTAR)
+        {
+            ClientActions.requestAltarScreen();
+        }
+        else if (message.mode() == PlacedDiceUsePacket.DEVILS_DRAW)
+        {
+            ClientActions.sendDevilsDiceDraw();
+        }
     }
 
     public static void handleLuckSync(LuckSyncPacket message)

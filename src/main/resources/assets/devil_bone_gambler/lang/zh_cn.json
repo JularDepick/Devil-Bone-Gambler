@@ -145,6 +145,8 @@
   "gui.devil_bone_gambler.admin.label_command": "指令内容",
   "gui.devil_bone_gambler.admin.label_notify_text": "触发提示",
   "gui.devil_bone_gambler.admin.label_value": "价值",
+  "key.devil_bone_gambler.place_dice": "放置骰子",
+  "key.categories.devil_bone_gambler": "恶魔骨赌徒",
   "gui.devil_bone_gambler.hud.luck": "幸运值 %s",
   "gui.devil_bone_gambler.draw.reward": "你获得了 %s",
   "gui.devil_bone_gambler.language": "zh_cn",
