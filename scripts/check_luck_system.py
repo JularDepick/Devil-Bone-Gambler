@@ -30,6 +30,7 @@ BEHAVIOR = JAVA / "luck" / "SubjectiveBehaviorService.java"
 BEHAVIOR_PACKET = JAVA / "network" / "packet" / "BehaviorStatePacket.java"
 BEHAVIOR_CLIENT = JAVA / "client" / "ClientBehaviorState.java"
 DEALER = JAVA / "mob" / "GamblersDealer.java"
+PROVENANCE = JAVA / "item" / "DiceProvenance.java"
 OVERLAY = JAVA / "client" / "gui" / "LuckOverlay.java"
 PACKET = JAVA / "network" / "packet" / "LuckSyncPacket.java"
 NETWORK = JAVA / "network" / "ModNetwork.java"
@@ -57,6 +58,7 @@ def main() -> int:
     behavior_packet = read(BEHAVIOR_PACKET)
     behavior_client = read(BEHAVIOR_CLIENT)
     dealer = read(DEALER)
+    provenance = read(PROVENANCE)
     overlay = read(OVERLAY)
     packet = read(PACKET)
     network = read(NETWORK)
@@ -74,6 +76,10 @@ def main() -> int:
           "the upper luck bound is not 100")
     check("behaviour limit", re.search(r"SUBJECTIVE_BEHAVIOR_LIMIT\s*=\s*10", constants) is not None,
           "the subjective behaviour limit is not 10")
+    check("pickup delta", re.search(r"DEALER_PICKUP_BEHAVIOR_DELTA\s*=\s*2", constants) is not None,
+          "the dealer pickup delta is not 2")
+    check("owner tag", re.search(r"DICE_OWNER_TAG\s*=\s*\"", constants) is not None,
+          "the dice owner tag is missing")
 
     check("birth stored", "TAG_BIRTH" in data and "birth" in data,
           "the first join instant is not stored")
@@ -109,6 +115,21 @@ def main() -> int:
           "attacking the dealer is not wired to the behaviour variable")
     check("dealer hook", "recordAttackDealer" in dealer,
           "the dealer does not report a accepted player hit")
+    check("pickup behavior", "BEHAVIOR_DEALER_PICKUP_DICE" in behavior and "recordDealerPickup" in behavior,
+          "the dealer pickup behaviour is missing")
+    check("pickup amount", "recordAmount(player, behavior, 1)" in behavior and "delta * amount" in behavior,
+          "a pickup cannot add the delta once per die")
+    check("provenance events", "ItemTossEvent" in provenance and "LivingDropsEvent" in provenance
+          and "mark(event.getEntity().getItem()" in provenance,
+          "player drops are not tagged with their owner")
+    check("provenance read", "DICE_OWNER_TAG" in provenance and "DiceProvenance.owner(stack)" in dealer,
+          "the dealer does not read the die owner")
+    check("pickup aggregation", "pickedByOwner" in dealer and "awardPickups" in dealer
+          and "recordDealerPickup(owner, entry.getValue().intValue())" in dealer,
+          "multiple picked dice are not aggregated per player")
+    check("refund provenance", "DiceProvenance.mark(stack, pending.playerId)" in read(JAVA / "draw" / "DrawEngine.java")
+          and "DiceProvenance.mark(stack, player.getUUID())" in read(JAVA / "dealer" / "DealerWagerService.java"),
+          "dice refunded to or dropped for a player lose their provenance")
     check("client mirror", "ClientBehaviorState.set" in handler and "triggered" in behavior_client,
           "the behaviour callback is not mirrored on the client")
     check("behaviour packet", "BehaviorStatePacket.class" in network and "handleBehaviorState" in handler,

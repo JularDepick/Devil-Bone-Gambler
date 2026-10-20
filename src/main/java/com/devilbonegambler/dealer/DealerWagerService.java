@@ -14,6 +14,7 @@ import com.devilbonegambler.draw.DiceRoll;
 import com.devilbonegambler.draw.DrawEngine;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.menu.DealerBetMenu;
+import com.devilbonegambler.item.DiceProvenance;
 import com.devilbonegambler.mob.GamblersDealer;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.ModNetwork;
@@ -875,6 +876,8 @@ public final class DealerWagerService
 
         if (player != null)
         {
+            DiceProvenance.mark(stack, player.getUUID());
+
             if (!player.getInventory().add(stack))
             {
                 player.drop(stack, false);

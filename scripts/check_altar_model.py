@@ -329,5 +329,10 @@ check("isDraggingValue()" in screen_source and "slider.mouseDragged" in screen_s
       and "public boolean mouseClicked(double mouseX, double mouseY, int button)" in slider_source,
       "the number sliders can only be clicked, not dragged")
 
+placeholders = open(ROOT + "/src/main/java/com/devilbonegambler/util/CommandPlaceholders.java", encoding="utf-8").read()
+check('"(".equals(open) && ")".equals(close)' in placeholders
+      and '"[".equals(open) && "]".equals(close)' in placeholders,
+      "the altar placeholder no longer accepts both documented round brackets and square brackets")
+
 print("RESULT: %s" % ("OK" if not failures else "%d failure(s)" % len(failures)))
 sys.exit(0 if not failures else 1)

@@ -266,8 +266,8 @@ public final class CommandPlaceholders
     }
 
     /**
-     * Each function owns its argument delimiter: the position function takes round brackets and the altar
-     * function takes square brackets, so the two forms never mix.
+     * The position function takes round brackets. The altar function accepts both #(name) and #[name], because the
+     * manuals documented the round form while older configurations may already use the square form.
      */
     private static String delimiterProblem(String function, String open, String close)
     {
@@ -276,9 +276,10 @@ public final class CommandPlaceholders
             return "the position function takes round brackets";
         }
 
-        if ("#".equals(function) && !("[".equals(open) && "]".equals(close)))
+        if ("#".equals(function)
+                && !(("(".equals(open) && ")".equals(close)) || ("[".equals(open) && "]".equals(close))))
         {
-            return "the altar function takes square brackets";
+            return "the altar function takes round or square brackets";
         }
 
         return null;

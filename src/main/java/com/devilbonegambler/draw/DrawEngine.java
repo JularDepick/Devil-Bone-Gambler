@@ -15,6 +15,7 @@ import com.devilbonegambler.config.PrizeRegion;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.dealer.DealerRewardService;
+import com.devilbonegambler.item.DiceProvenance;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
@@ -592,6 +593,7 @@ public final class DrawEngine
         }
 
         ItemStack stack = new ItemStack(dice);
+        DiceProvenance.mark(stack, pending.playerId);
         Component name = player == null ? null : InventoryHandover.handOver(player, stack);
 
         if (name != null)

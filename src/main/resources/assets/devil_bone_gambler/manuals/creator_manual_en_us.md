@@ -114,7 +114,7 @@ Placeholders go into the entry command and are replaced when the draw runs. The 
 - ${player} is the name of the player who made the draw
 - ${x} ${y} ${z} are that player's coordinates
 - @(name) is the position of a named player; empty brackets mean the drawing player
-- #(name) is the altar position of a named player, which is the player's feet while an altar is worn
+- #(name) or #[name] is the altar position of a named player, which is the player's feet while an altar is worn
 - A position token may carry [random=mode&range] with a range of at most 64: mode 0 keeps the position, 1 spreads along the Z axis, 2 spreads over the horizontal plane and 3 spreads over the whole sphere; without it mode 0 and range 6 apply
 
 ### %(n,m) random integer

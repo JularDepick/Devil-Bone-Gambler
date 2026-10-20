@@ -29,6 +29,7 @@ import net.minecraftforge.fml.common.Mod;
 public final class SubjectiveBehaviorService
 {
     public static final int BEHAVIOR_ATTACK_DEALER = 1;
+    public static final int BEHAVIOR_DEALER_PICKUP_DICE = 2;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -42,11 +43,25 @@ public final class SubjectiveBehaviorService
     }
 
     /**
+     * A dealer picked up dice that came from this player: every die adds its fixed delta, but the whole pickup still
+     * shares the one trigger of the round with every other behaviour.
+     */
+    public static void recordDealerPickup(ServerPlayer player, int dice)
+    {
+        recordAmount(player, BEHAVIOR_DEALER_PICKUP_DICE, dice);
+    }
+
+    /**
      * Applies one behaviour if this round has not triggered yet and sends the mirror to the player.
      */
     public static void record(ServerPlayer player, int behavior)
     {
-        if (player == null)
+        recordAmount(player, behavior, 1);
+    }
+
+    private static void recordAmount(ServerPlayer player, int behavior, int amount)
+    {
+        if (player == null || amount <= 0)
         {
             return;
         }
@@ -66,7 +81,7 @@ public final class SubjectiveBehaviorService
         }
 
         state.triggered = true;
-        state.value = Mth.clamp(state.value + delta, -ModConstants.SUBJECTIVE_BEHAVIOR_LIMIT,
+        state.value = Mth.clamp(state.value + delta * amount, -ModConstants.SUBJECTIVE_BEHAVIOR_LIMIT,
                 ModConstants.SUBJECTIVE_BEHAVIOR_LIMIT);
         ModNetwork.sendToPlayer(player, new BehaviorStatePacket(true, state.value));
     }
@@ -110,6 +125,11 @@ public final class SubjectiveBehaviorService
         if (behavior == BEHAVIOR_ATTACK_DEALER)
         {
             return ModConstants.ATTACK_DEALER_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_DEALER_PICKUP_DICE)
+        {
+            return ModConstants.DEALER_PICKUP_BEHAVIOR_DELTA;
         }
 
         return 0;

@@ -15,12 +15,16 @@ import net.minecraft.world.level.block.state.BlockState;
 import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
+import com.devilbonegambler.item.DiceProvenance;
 import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -703,6 +707,7 @@ public class GamblersDealer extends PathfinderMob
         int wanted = Math.min(ModConstants.DEALER_PICKUP_PER_ACTION, room);
         List<ItemEntity> drops = this.level().getEntitiesOfClass(ItemEntity.class,
                 this.getBoundingBox().inflate(ModConstants.DEALER_FEED_RADIUS));
+        Map<UUID, Integer> pickedByOwner = new HashMap<UUID, Integer>();
 
         for (ItemEntity drop : drops)
         {
@@ -713,11 +718,20 @@ public class GamblersDealer extends PathfinderMob
                 continue;
             }
 
+            UUID owner = DiceProvenance.owner(stack);
+            int taken = 0;
+
             while (wanted > 0 && !stack.isEmpty())
             {
                 stack.shrink(1);
                 this.pocketDice++;
                 wanted--;
+                taken++;
+            }
+
+            if (owner != null && taken > 0)
+            {
+                pickedByOwner.merge(owner, Integer.valueOf(taken), Integer::sum);
             }
 
             if (stack.isEmpty())
@@ -727,7 +741,32 @@ public class GamblersDealer extends PathfinderMob
 
             if (wanted <= 0)
             {
+                awardPickups(pickedByOwner);
                 return;
+            }
+        }
+
+        awardPickups(pickedByOwner);
+    }
+
+    /**
+     * A picked die that came from a player raises that player's subjective behaviour variable; every die adds its
+     * delta, while the whole pickup still shares the one trigger of the round.
+     */
+    private void awardPickups(Map<UUID, Integer> pickedByOwner)
+    {
+        if (pickedByOwner.isEmpty() || this.getServer() == null)
+        {
+            return;
+        }
+
+        for (Map.Entry<UUID, Integer> entry : pickedByOwner.entrySet())
+        {
+            ServerPlayer owner = this.getServer().getPlayerList().getPlayer(entry.getKey());
+
+            if (owner != null)
+            {
+                SubjectiveBehaviorService.recordDealerPickup(owner, entry.getValue().intValue());
             }
         }
     }

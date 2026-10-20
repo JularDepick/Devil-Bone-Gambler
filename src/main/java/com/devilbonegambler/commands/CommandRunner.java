@@ -237,7 +237,7 @@ public final class CommandRunner
     }
 
     /**
-     * Altar anchor of a player: the worn altar anchor is the player position, otherwise the governing altar block.
+     * Altar anchor of a player: the worn altar anchor is the player position, otherwise the nearest altar block.
      */
     private static BlockPos altarOf(ServerPlayer player)
     {
