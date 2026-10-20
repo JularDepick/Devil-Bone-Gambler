@@ -14,7 +14,7 @@
 - The colour comes from the luck value: a red point draws only red entries and a black point only black entries
 - Red entries tend to be positive and black entries tend to be negative, so the colour alone already tells roughly what is coming
 - After the roll the point and the colour appear in one line above the hotbar, for example Gambler's Dice 5 points Red; this is the only mod line that uses that area, and the overflow value is not shown there
-- The luck value stays at its base value for now, the full luck gameplay is still being designed
+- The luck value changes over time and is shown in the top right corner, coloured by its band; a higher value leans to red points and rare rewards, a lower one leans to black points and common entries
 
 ## Devil's Altar
 
@@ -24,6 +24,7 @@
 - Only the strongest altar counts: several altars, or standing in a range while wearing one, never add up
 - Two altar ranges may never overlap; placing one inside somebody else range is undone, and the notice says whether the range comes from a placed altar, from a worn one, or from both at once
 - Wearing an altar into somebody else range keeps hurting the wearer, who is told to leave
+- Only an iron pickaxe or a better one can take the altar down and make it drop; other tools, explosions, pistons and creatures cannot
 
 ### The offering screen
 

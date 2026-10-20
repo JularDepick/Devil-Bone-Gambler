@@ -17,21 +17,29 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Tier;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.TierSortingRegistry;
 
 /**
  * The devil's altar: a single decorative block that carries the accumulated offering value.
@@ -73,12 +81,82 @@ public class DevilsAltarBlock extends Block implements EntityBlock
     @Override
     public float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos)
     {
-        if (!ForgeHooks.isCorrectToolForDrops(state, player))
+        if (!canMine(state, player))
         {
             return 0.0F;
         }
 
         return super.getDestroyProgress(state, player, level, pos);
+    }
+
+    /**
+     * The altar behaves like a low grade bedrock: only an iron pickaxe or a better one may take it down.
+     * A correct tool of a lower tier still deals no progress at all, so the block never breaks and never drops.
+     */
+    public static boolean canMine(BlockState state, Player player)
+    {
+        if (!ForgeHooks.isCorrectToolForDrops(state, player))
+        {
+            return false;
+        }
+
+        ItemStack tool = player.getMainHandItem();
+
+        if (!(tool.getItem() instanceof TieredItem tiered))
+        {
+            return false;
+        }
+
+        Tier tier = tiered.getTier();
+
+        if (TierSortingRegistry.isTierSorted(tier))
+        {
+            return !TierSortingRegistry.getTiersLowerThan(Tiers.IRON).contains(tier);
+        }
+
+        return tier.getLevel() >= Tiers.IRON.getLevel();
+    }
+
+    /**
+     * A caller that removes the block directly, like a modded tool, still has to pass the same iron gate.
+     */
+    @Override
+    public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, boolean willHarvest,
+            FluidState fluid)
+    {
+        if (player == null || !canMine(state, player))
+        {
+            return false;
+        }
+
+        return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
+    }
+
+    /**
+     * Explosions of any size leave the altar untouched.
+     */
+    @Override
+    public float getExplosionResistance(BlockState state, BlockGetter level, BlockPos pos, Explosion explosion)
+    {
+        return ModConstants.ALTAR_EXPLOSION_RESISTANCE;
+    }
+
+    /**
+     * Pistons cannot move the altar, so it cannot be broken by pushing it into a wall or replacing it.
+     */
+    @Override
+    public PushReaction getPistonPushReaction(BlockState state)
+    {
+        return PushReaction.BLOCK;
+    }
+
+    /**
+     * The ender dragon and the wither are refused as well, which is the same gate bedrock uses.
+     */
+    @Override
+    public boolean canEntityDestroy(BlockState state, BlockGetter level, BlockPos pos, Entity entity)
+    {
+        return false;
     }
 
     /**
@@ -98,6 +176,13 @@ public class DevilsAltarBlock extends Block implements EntityBlock
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder params)
     {
+        ItemStack tool = params.getOptionalParameter(LootContextParams.TOOL);
+
+        if (tool == null || !tool.isCorrectToolForDrops(state) || !isIronTier(tool))
+        {
+            return Collections.emptyList();
+        }
+
         BlockEntity blockEntity = params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
 
         if (!(blockEntity instanceof DevilsAltarBlockEntity altar) || altar.offeringValue() <= 0L)
@@ -108,6 +193,26 @@ public class DevilsAltarBlock extends Block implements EntityBlock
         ItemStack drop = new ItemStack(this);
         drop.getOrCreateTag().putLong(ModConstants.ALTAR_VALUE_TAG, altar.offeringValue());
         return Collections.singletonList(drop);
+    }
+
+    /**
+     * A drop needs the same iron tier as the break itself, so no other path can yield the altar item.
+     */
+    private static boolean isIronTier(ItemStack tool)
+    {
+        if (!(tool.getItem() instanceof TieredItem tiered))
+        {
+            return false;
+        }
+
+        Tier tier = tiered.getTier();
+
+        if (TierSortingRegistry.isTierSorted(tier))
+        {
+            return !TierSortingRegistry.getTiersLowerThan(Tiers.IRON).contains(tier);
+        }
+
+        return tier.getLevel() >= Tiers.IRON.getLevel();
     }
 
     @Override

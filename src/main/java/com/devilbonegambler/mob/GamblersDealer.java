@@ -640,6 +640,12 @@ public class GamblersDealer extends PathfinderMob
         {
             this.eatTicks--;
 
+            /* The chew is audible for the whole second instead of only on the last tick. */
+            if (this.eatTicks > 0 && this.eatTicks % ModConstants.DEALER_EAT_SOUND_INTERVAL_TICKS == 0)
+            {
+                this.playEatingSound();
+            }
+
             if (this.eatTicks == 0)
             {
                 this.eatFromPocket();
@@ -654,7 +660,16 @@ public class GamblersDealer extends PathfinderMob
         {
             this.eatTicks = ModConstants.DEALER_EAT_ANIMATION_TICKS;
             this.getNavigation().stop();
+            this.playEatingSound();
         }
+    }
+
+    /**
+     * One short chew. The animation calls it on a fixed interval so the sound covers the whole meal.
+     */
+    private void playEatingSound()
+    {
+        this.playSound(SoundEvents.GENERIC_EAT, 0.9F, 0.95F + this.random.nextFloat() * 0.1F);
     }
 
     /**

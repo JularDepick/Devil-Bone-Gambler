@@ -473,6 +473,11 @@ public class AltarScreen extends AbstractContainerScreen<AltarMenu>
             return;
         }
 
+        if (ModConstants.REASON_TOO_FREQUENT.equals(message.reasonKey()))
+        {
+            return;
+        }
+
         this.status = Component.translatable(key("reason." + message.reasonKey())).getString();
     }
 

@@ -56,7 +56,8 @@ public final class NotifySender
 
     public static void sendFailure(ServerPlayer player, String reasonKey)
     {
-        if (suppressNotice(player, "reason." + reasonKey))
+        /* A throttled request is rejected in silence: the client must not scold the player for clicking again. */
+        if (ModConstants.REASON_TOO_FREQUENT.equals(reasonKey) || suppressNotice(player, "reason." + reasonKey))
         {
             return;
         }

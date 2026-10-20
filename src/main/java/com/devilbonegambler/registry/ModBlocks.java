@@ -37,7 +37,7 @@ public final class ModBlocks
 
     public static final RegistryObject<Block> DEVILS_ALTAR = BLOCKS.register("devils_altar",
             () -> new DevilsAltarBlock(BlockBehaviour.Properties.of()
-                    .strength(3.0F, 6.0F)
+                    .strength(3.0F, ModConstants.ALTAR_EXPLOSION_RESISTANCE)
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.STONE)
                     .noOcclusion()

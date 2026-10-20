@@ -108,12 +108,12 @@ public final class RequestGuard
 
         if (throttled && now < state.busyUntil)
         {
-            return "too_frequent";
+            return ModConstants.REASON_TOO_FREQUENT;
         }
 
         if (throttled && now - state.timestamp < ModConstants.MIN_REQUEST_INTERVAL_MS)
         {
-            return "too_frequent";
+            return ModConstants.REASON_TOO_FREQUENT;
         }
 
         state.sequence = sequence;

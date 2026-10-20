@@ -361,6 +361,12 @@ def check_dealer_habits():
           and "DEALER_EAT_COOLDOWN_TICKS = 20" in constants
           and "this.eatTicks = ModConstants.DEALER_EAT_ANIMATION_TICKS" in dealer
           and "this.eatCooldown = ModConstants.DEALER_EAT_COOLDOWN_TICKS" in dealer)
+    interval = re.search(r"DEALER_EAT_SOUND_INTERVAL_TICKS\s*=\s*(\d+)", constants)
+    check("进食音效覆盖整段动画", interval is not None and 20 % int(interval.group(1)) == 0
+          and "this.eatTicks % ModConstants.DEALER_EAT_SOUND_INTERVAL_TICKS == 0" in dealer
+          and eat is not None and eat.group(0).count("this.playEatingSound()") >= 2
+          and "SoundEvents.GENERIC_EAT" in dealer,
+          "进食音效只在结束时响一次, 没有覆盖一秒动画")
     check("竞争中不可交互", "this.rival != null" in dealer and "VILLAGER_NO" in dealer)
     check("追击速度已放慢", re.search(r"DEALER_TERRITORY_CHASE_SPEED\s*=\s*0\.9D", constants) is not None)
     check("待机名只对看向它的玩家显示", "shouldShowName" in dealer and "isLookingAtMe" in dealer)

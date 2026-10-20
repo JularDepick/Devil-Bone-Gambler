@@ -74,6 +74,15 @@ def cooldown_problems():
     if "sendFailure" not in sender or "suppressNotice" not in sender:
         problems.append("a repeated failure notice is no longer held back")
 
+    if "ModConstants.REASON_TOO_FREQUENT" not in sender:
+        problems.append("a throttled request is no longer rejected in silence")
+
+    altar_screen = (SOURCE_ROOT / "com" / "devilbonegambler" / "client" / "gui" / "AltarScreen.java").read_text(
+        encoding="utf-8")
+
+    if "ModConstants.REASON_TOO_FREQUENT" not in altar_screen:
+        problems.append("the altar screen still shows the throttled request reason")
+
     if "sendChatThrottled(player, KEY_NO_PLAYER)" not in wager:
         problems.append("the no-player wager hint is no longer held back")
 
