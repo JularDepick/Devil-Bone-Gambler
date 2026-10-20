@@ -6,9 +6,10 @@ Checks that
   1. the default value is 80 and the update interval is 200 ticks,
   2. the stored entry keeps the first join instant and reads old bare values,
   3. the fate model is deterministic, argument driven and clamped to [-50, 50],
-  4. the periodic increment combines the fate value with a player seeded random term,
-  5. the client receives the value and paints it in the top right corner,
-  6. the colour bands and the language key are present.
+  4. the periodic increment combines the fate value, a player seeded random term and the subjective behaviour value,
+  5. the value is clamped to 0..100 and the behaviour round resets after the increment,
+  6. the client receives the value and paints it in the top right corner,
+  7. the colour bands and the language key are present.
 Exit code 0 means the check passed.
 """
 
@@ -25,6 +26,10 @@ CONSTANTS = JAVA / "util" / "ModConstants.java"
 DATA = JAVA / "data" / "LuckData.java"
 MODEL = JAVA / "luck" / "FateModel.java"
 SERVICE = JAVA / "luck" / "LuckService.java"
+BEHAVIOR = JAVA / "luck" / "SubjectiveBehaviorService.java"
+BEHAVIOR_PACKET = JAVA / "network" / "packet" / "BehaviorStatePacket.java"
+BEHAVIOR_CLIENT = JAVA / "client" / "ClientBehaviorState.java"
+DEALER = JAVA / "mob" / "GamblersDealer.java"
 OVERLAY = JAVA / "client" / "gui" / "LuckOverlay.java"
 PACKET = JAVA / "network" / "packet" / "LuckSyncPacket.java"
 NETWORK = JAVA / "network" / "ModNetwork.java"
@@ -48,6 +53,10 @@ def main() -> int:
     data = read(DATA)
     model = read(MODEL)
     service = read(SERVICE)
+    behavior = read(BEHAVIOR)
+    behavior_packet = read(BEHAVIOR_PACKET)
+    behavior_client = read(BEHAVIOR_CLIENT)
+    dealer = read(DEALER)
     overlay = read(OVERLAY)
     packet = read(PACKET)
     network = read(NETWORK)
@@ -61,6 +70,10 @@ def main() -> int:
           "the update interval is not 200 ticks")
     check("random span", re.search(r"LUCK_INCREMENT_RANDOM_SPAN\s*=\s*50", constants) is not None,
           "the random span is not 50")
+    check("upper bound", re.search(r"MAX_LUCK\s*=\s*100", constants) is not None,
+          "the upper luck bound is not 100")
+    check("behaviour limit", re.search(r"SUBJECTIVE_BEHAVIOR_LIMIT\s*=\s*10", constants) is not None,
+          "the subjective behaviour limit is not 10")
 
     check("birth stored", "TAG_BIRTH" in data and "birth" in data,
           "the first join instant is not stored")
@@ -81,8 +94,27 @@ def main() -> int:
 
     check("fate used", "FateModel.value(birth, now)" in service,
           "the periodic increment does not use the fate value")
-    check("random combined", "random" in service and "fate + random" in service,
-          "the random term is not added to the fate value")
+    check("random combined", "random" in service and "fate + random + behavior" in service,
+          "the random term and the behaviour value are not added to the fate value")
+    check("behaviour read", "SubjectiveBehaviorService.value(player)" in service,
+          "the increment does not read the subjective behaviour value")
+    check("behaviour reset after", service.index("SubjectiveBehaviorService.finishRound(player)")
+          > service.index("Math.round(fate + random + behavior)"),
+          "the behaviour round is not reset after the increment")
+    check("behaviour applied", "state.value + delta" in behavior and "Mth.clamp" in behavior,
+          "a behaviour does not change and clamp the variable")
+    check("behaviour shared trigger", "state.triggered" in behavior and "if (state.triggered)" in behavior,
+          "behaviours do not share one trigger per round")
+    check("attack delta", "BEHAVIOR_ATTACK_DEALER" in behavior and "ATTACK_DEALER_BEHAVIOR_DELTA" in behavior,
+          "attacking the dealer is not wired to the behaviour variable")
+    check("dealer hook", "recordAttackDealer" in dealer,
+          "the dealer does not report a accepted player hit")
+    check("client mirror", "ClientBehaviorState.set" in handler and "triggered" in behavior_client,
+          "the behaviour callback is not mirrored on the client")
+    check("behaviour packet", "BehaviorStatePacket.class" in network and "handleBehaviorState" in handler,
+          "the behaviour state packet is not registered or handled")
+    check("behaviour packet payload", "writeBoolean" in behavior_packet and "writeVarInt" in behavior_packet,
+          "the behaviour packet does not carry the trigger and the value")
     check("seed state", all(token in service for token in (
         "getMostSignificantBits", "getLeastSignificantBits", "birth", "current")),
         "the random seed ignores part of the player state")

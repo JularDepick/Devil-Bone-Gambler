@@ -15,6 +15,7 @@ import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
+import com.devilbonegambler.network.packet.BehaviorStatePacket;
 import com.devilbonegambler.network.packet.LuckSyncPacket;
 import com.devilbonegambler.network.packet.PlacedDiceUsePacket;
 import com.devilbonegambler.network.packet.MobListPacket;
@@ -42,6 +43,11 @@ public final class ClientPacketHandler
     public static ValueTableSnapshot valueTable()
     {
         return valueTable;
+    }
+
+    public static void handleBehaviorState(BehaviorStatePacket message)
+    {
+        ClientBehaviorState.set(message.triggered(), message.value());
     }
 
     public static void handlePlacedDiceUse(PlacedDiceUsePacket message)

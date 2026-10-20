@@ -9,6 +9,7 @@ package com.devilbonegambler.network;
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
+import com.devilbonegambler.network.packet.BehaviorStatePacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
@@ -112,6 +113,8 @@ public final class ModNetwork
                 DiceModifierPacket::encode, DiceModifierPacket::decode, DiceModifierPacket::handle);
         CHANNEL.registerMessage(index++, PlacedDiceUsePacket.class,
                 PlacedDiceUsePacket::encode, PlacedDiceUsePacket::decode, PlacedDiceUsePacket::handle);
+        CHANNEL.registerMessage(index++, BehaviorStatePacket.class,
+                BehaviorStatePacket::encode, BehaviorStatePacket::decode, BehaviorStatePacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

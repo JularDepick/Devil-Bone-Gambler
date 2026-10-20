@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.dealer.DealerWagerService;
+import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.registry.ModEntities;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
@@ -1139,6 +1140,11 @@ public class GamblersDealer extends PathfinderMob
         if (taken && fromPlayer)
         {
             this.lastPlayerHitTick = this.level().getGameTime();
+
+            if (source.getEntity() instanceof ServerPlayer player)
+            {
+                SubjectiveBehaviorService.recordAttackDealer(player);
+            }
         }
 
         return taken;
