@@ -132,7 +132,7 @@ def main() -> int:
     if only_en:
         problems.append("keys only in en_us.json: " + ", ".join(only_en))
 
-    # 预设条目的名称与展示文本属于配置数据, 已随 DefaultPrizePoolData 以双语字面量冻结, 语言文件里不得再有它们.
+    # 预设条目的名称与触发提示属于配置数据, 已随 DefaultPrizePoolData 以双语字面量冻结, 语言文件里不得再有它们.
     for name, table in langs.items():
         stale = sorted(key for key in table
                        if key.startswith("entry." + MOD_ID + ".")
