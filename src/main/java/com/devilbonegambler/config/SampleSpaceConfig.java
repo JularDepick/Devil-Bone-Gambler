@@ -21,7 +21,9 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
@@ -174,7 +176,20 @@ public class SampleSpaceConfig
         }
 
         result.spaces.put(ModConstants.SAMPLE_TYPE_ITEM, items);
-        result.spaces.put(ModConstants.SAMPLE_TYPE_BLOCK, keys(ForgeRegistries.BLOCKS.getKeys(), null));
+        List<String> blocks = new ArrayList<String>();
+
+        for (Block block : ForgeRegistries.BLOCKS.getValues())
+        {
+            ResourceLocation key = ForgeRegistries.BLOCKS.getKey(block);
+
+            /* A block without an item form cannot be handed out by give, so it is not a usable sample. */
+            if (key != null && block.asItem() != Items.AIR)
+            {
+                blocks.add(key.toString());
+            }
+        }
+
+        result.spaces.put(ModConstants.SAMPLE_TYPE_BLOCK, blocks);
         result.spaces.put(ModConstants.SAMPLE_TYPE_ENTITY, keys(ForgeRegistries.ENTITY_TYPES.getKeys(), null));
         List<String> mobs = new ArrayList<String>();
 

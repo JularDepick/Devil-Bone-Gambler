@@ -14,15 +14,15 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The whole prize pool: a set of regions, each holding a set of weighted entries.
+ * One named prize pool: a set of regions, each holding a set of weighted entries.
  * The dice point selects the region, so a region no longer carries a value threshold.
+ * The config file holds an array of these objects and a separate state file names the active one.
  */
 public class PrizePoolConfig
 {
-    public static final int CURRENT_SCHEMA = 1;
-
-    public Integer schemaVersion;
-    public Integer revision;
+    public String id;
+    public String name;
+    public String description;
     public List<PrizeRegion> regions;
 
     public PrizePoolConfig()
@@ -32,20 +32,26 @@ public class PrizePoolConfig
     public static PrizePoolConfig empty()
     {
         PrizePoolConfig result = new PrizePoolConfig();
-        result.schemaVersion = Integer.valueOf(CURRENT_SCHEMA);
-        result.revision = Integer.valueOf(0);
+        result.id = "";
+        result.name = "";
+        result.description = "";
         result.regions = new ArrayList<PrizeRegion>();
         return result;
     }
 
-    public int schemaVersionOrZero()
+    public String idOrEmpty()
     {
-        return this.schemaVersion == null ? 0 : this.schemaVersion.intValue();
+        return this.id == null ? "" : this.id;
     }
 
-    public int revisionOrZero()
+    public String nameOrEmpty()
     {
-        return this.revision == null ? 0 : this.revision.intValue();
+        return this.name == null ? "" : this.name;
+    }
+
+    public String descriptionOrEmpty()
+    {
+        return this.description == null ? "" : this.description;
     }
 
     public List<PrizeRegion> regionsOrEmpty()
@@ -115,8 +121,9 @@ public class PrizePoolConfig
     public PrizePoolConfig copy()
     {
         PrizePoolConfig result = new PrizePoolConfig();
-        result.schemaVersion = this.schemaVersion;
-        result.revision = this.revision;
+        result.id = this.id;
+        result.name = this.name;
+        result.description = this.description;
         result.regions = new ArrayList<PrizeRegion>();
 
         for (PrizeRegion region : regionsOrEmpty())
@@ -222,14 +229,19 @@ public class PrizePoolConfig
      */
     public void normalize()
     {
-        if (this.schemaVersion == null)
+        if (this.id == null)
         {
-            this.schemaVersion = Integer.valueOf(CURRENT_SCHEMA);
+            this.id = "";
         }
 
-        if (this.revision == null)
+        if (this.name == null)
         {
-            this.revision = Integer.valueOf(0);
+            this.name = "";
+        }
+
+        if (this.description == null)
+        {
+            this.description = "";
         }
 
         if (this.regions == null)

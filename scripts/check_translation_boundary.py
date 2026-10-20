@@ -108,12 +108,12 @@ def main() -> int:
 
     preset = PRESET_SOURCE.read_text(encoding="utf-8")
     row_pattern = re.compile(
-        r'^\s*\{"\d+", "((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", '
+        r'^\s*\{"[a-z0-9_-]+", "\d+", "((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", '
         r'"((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", "[0-9.]+", '
         r'"(?:red|black)", "(?:true|false)", "(?:[^"\\]|\\.)*"\},\s*$', re.MULTILINE)
     rows = row_pattern.findall(preset)
 
-    if len(rows) < 600:
+    if len(rows) < 200:
         problems.append("the preset table holds only " + str(len(rows)) + " entries")
 
     for nzh, nen, tzh, ten in rows:

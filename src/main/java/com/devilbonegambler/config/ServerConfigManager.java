@@ -16,6 +16,7 @@ import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ValueTableBook;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.mojang.brigadier.CommandDispatcher;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +52,7 @@ public final class ServerConfigManager
 {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
-    private static PrizePoolConfig prizePool;
+    private static PrizePoolBook prizePools;
     private static ItemValueConfig itemValues;
     private static RandomPoolConfig randomPools;
     private static SampleSpaceConfig sampleSpaces;
@@ -122,12 +123,25 @@ public final class ServerConfigManager
 
     public static boolean isReady()
     {
-        return prizePool != null && itemValues != null;
+        return prizePools != null && itemValues != null;
     }
 
+    /**
+     * The pool a dice draw uses right now.
+     */
     public static PrizePoolConfig prizePool()
     {
-        return prizePool;
+        return prizePools == null ? null : prizePools.active();
+    }
+
+    public static PrizePoolBook prizePoolBook()
+    {
+        return prizePools;
+    }
+
+    public static String activePoolId()
+    {
+        return prizePools == null ? "" : prizePools.activeId;
     }
 
     public static ItemValueConfig itemValues()
@@ -137,7 +151,7 @@ public final class ServerConfigManager
 
     public static String prizePoolJson()
     {
-        return prizePool == null ? "{}" : GSON.toJson(prizePool);
+        return prizePools == null ? "{}" : GSON.toJson(prizePools);
     }
 
     public static String itemValuesJson()
@@ -235,7 +249,7 @@ public final class ServerConfigManager
 
     public static void clear()
     {
-        prizePool = null;
+        prizePools = null;
         itemValues = null;
         randomPools = null;
         sampleSpaces = null;
@@ -263,7 +277,8 @@ public final class ServerConfigManager
         }
 
         configDir = root;
-        prizePool = readPrizePool(root.resolve(ModConstants.PRIZE_POOL_FILE));
+        prizePools = readPrizePools(root.resolve(ModConstants.PRIZE_POOL_FILE),
+                root.resolve(ModConstants.PRIZE_POOL_STATE_FILE));
         itemValues = readItemValues(root.resolve(ModConstants.ITEM_VALUES_FILE));
         randomPools = readRandomPools(root.resolve(ModConstants.RANDOM_POOL_FILE));
         sampleSpaces = readSampleSpaces(root.resolve(ModConstants.SAMPLE_SPACE_FILE));
@@ -305,10 +320,12 @@ public final class ServerConfigManager
                 access.creatorOrEmpty().isEmpty() ? "(unset)" : access.creatorOrEmpty(),
                 Integer.valueOf(access.adminsOrEmpty().size()));
 
-        DevilBoneGambler.LOGGER.info("Prize pool loaded: {} regions, {} entries, revision {}",
-                Integer.valueOf(prizePool.regionsOrEmpty().size()),
-                Integer.valueOf(prizePool.totalEntryCount()),
-                Integer.valueOf(prizePool.revisionOrZero()));
+        PrizePoolConfig activePool = prizePools.active();
+        DevilBoneGambler.LOGGER.info("Prize pools loaded: {} pools, active={}, {} regions, revision {}",
+                Integer.valueOf(prizePools.poolsOrEmpty().size()),
+                activePool == null ? "(none)" : activePool.idOrEmpty(),
+                Integer.valueOf(activePool == null ? 0 : activePool.regionsOrEmpty().size()),
+                Integer.valueOf(prizePools.revisionOrZero()));
         DevilBoneGambler.LOGGER.info("Value table loaded: {} items, {} entities, revision {}",
                 Integer.valueOf(itemValues.itemsOrEmpty().size()),
                 Integer.valueOf(itemValues.entitiesOrEmpty().size()),
@@ -325,16 +342,16 @@ public final class ServerConfigManager
      */
     public static String applyPrizePoolWrite(int clientRevision, String payload)
     {
-        if (prizePool == null)
+        if (prizePools == null)
         {
             return "not_ready";
         }
 
-        PrizePoolConfig candidate;
+        PrizePoolBook candidate;
 
         try
         {
-            candidate = GSON.fromJson(payload, PrizePoolConfig.class);
+            candidate = GSON.fromJson(payload, PrizePoolBook.class);
         }
         catch (RuntimeException exception)
         {
@@ -356,14 +373,14 @@ public final class ServerConfigManager
             return "invalid_config";
         }
 
-        if (clientRevision != prizePool.revisionOrZero())
+        if (clientRevision != prizePools.revisionOrZero())
         {
             return "revision_conflict";
         }
 
-        candidate.schemaVersion = Integer.valueOf(PrizePoolConfig.CURRENT_SCHEMA);
-        candidate.revision = Integer.valueOf(prizePool.revisionOrZero() + 1);
-        prizePool = candidate;
+        candidate.schemaVersion = Integer.valueOf(PrizePoolBook.CURRENT_SCHEMA);
+        candidate.revision = Integer.valueOf(prizePools.revisionOrZero() + 1);
+        prizePools = candidate;
         refreshCommandValidity();
         writePrizePool();
         return null;
@@ -423,28 +440,31 @@ public final class ServerConfigManager
      */
     private static void refreshCommandValidity()
     {
-        List<PrizeRegion> regions = prizePool == null
-                ? Collections.<PrizeRegion>emptyList()
-                : prizePool.regionsOrEmpty();
+        List<PrizePoolConfig> pools = prizePools == null
+                ? Collections.<PrizePoolConfig>emptyList()
+                : prizePools.poolsOrEmpty();
         CommandDispatcher<CommandSourceStack> dispatcher = serverRef == null
                 ? null
                 : serverRef.getCommands().getDispatcher();
         CommandSourceStack source = serverRef == null ? null : serverRef.createCommandSourceStack();
         int invalid = 0;
 
-        for (PrizeRegion region : regions)
+        for (PrizePoolConfig pool : pools)
         {
-            for (PrizeEntry entry : region.entriesOrEmpty())
+            for (PrizeRegion region : pool.regionsOrEmpty())
             {
+                for (PrizeEntry entry : region.entriesOrEmpty())
+                {
                 String problem = CommandRunner.problem(dispatcher, source, entry.commandOrEmpty());
                 entry.invalidCommand = problem != null;
 
-                if (problem != null)
-                {
-                    invalid++;
-                    DevilBoneGambler.LOGGER.warn(
-                            "Prize entry excluded, its command is not selectable, entry={}, problem={}",
-                            entry.id, problem);
+                    if (problem != null)
+                    {
+                        invalid++;
+                        DevilBoneGambler.LOGGER.warn(
+                                "Prize entry excluded, its command is not selectable, entry={}, problem={}",
+                                entry.id, problem);
+                    }
                 }
             }
         }
@@ -519,37 +539,98 @@ public final class ServerConfigManager
         return changed;
     }
 
-    private static PrizePoolConfig readPrizePool(Path path)
+    private static PrizePoolBook readPrizePools(Path poolPath, Path statePath)
     {
-        if (!Files.isRegularFile(path))
+        if (!Files.isRegularFile(poolPath))
         {
-            PrizePoolConfig created = DefaultPrizePool.create();
-            created.normalize();
-            writeJson(path, created);
-            return created;
+            return createPresetPools(poolPath, statePath);
         }
 
         try
         {
-            PrizePoolConfig loaded = GSON.fromJson(readText(path), PrizePoolConfig.class);
+            List<PrizePoolConfig> pools = GSON.fromJson(readText(poolPath),
+                    new TypeToken<List<PrizePoolConfig>>() { }.getType());
 
-            if (loaded == null)
+            if (pools == null || pools.isEmpty())
             {
                 throw new IllegalStateException("empty prize pool file");
             }
 
-            loaded.normalize();
-            return loaded;
+            PrizePoolBook book = PrizePoolBook.empty();
+            book.pools = new ArrayList<PrizePoolConfig>(pools);
+            PoolState state = readPoolState(statePath);
+
+            if (state != null)
+            {
+                book.revision = state.revision;
+                book.activeId = state.activeId;
+            }
+
+            book.normalize();
+            List<String> problems = book.validate();
+
+            if (!problems.isEmpty())
+            {
+                throw new IllegalStateException(problems.toString());
+            }
+
+            if (state == null)
+            {
+                writePoolState(statePath, book);
+            }
+
+            return book;
         }
         catch (RuntimeException exception)
         {
-            DevilBoneGambler.LOGGER.error("Failed to read {}, the preset pool is used instead", path, exception);
-            backup(path);
-            PrizePoolConfig created = DefaultPrizePool.create();
-            created.normalize();
-            writeJson(path, created);
-            return created;
+            DevilBoneGambler.LOGGER.error("Failed to read {}, the preset pools are used instead", poolPath, exception);
+            backup(poolPath);
+            return createPresetPools(poolPath, statePath);
         }
+    }
+
+    private static PoolState readPoolState(Path path)
+    {
+        if (!Files.isRegularFile(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            PoolState state = GSON.fromJson(readText(path), PoolState.class);
+            return state == null ? null : state;
+        }
+        catch (RuntimeException exception)
+        {
+            DevilBoneGambler.LOGGER.warn("Failed to read {}, the active pool is rebuilt", path, exception);
+            return null;
+        }
+    }
+
+    private static PrizePoolBook createPresetPools(Path poolPath, Path statePath)
+    {
+        PrizePoolBook book = DefaultPrizePool.createBook();
+        book.normalize();
+        writeJson(poolPath, book.poolsOrEmpty());
+        writePoolState(statePath, book);
+        return book;
+    }
+
+    private static void writePoolState(Path path, PrizePoolBook book)
+    {
+        PoolState state = new PoolState();
+        state.schemaVersion = Integer.valueOf(PrizePoolBook.CURRENT_SCHEMA);
+        state.revision = Integer.valueOf(book.revisionOrZero());
+        state.activeId = book.activeId;
+        writeJson(path, state);
+    }
+
+    private static class PoolState
+    {
+        Integer schemaVersion;
+        Integer revision;
+        String activeId;
     }
 
     /**
@@ -816,13 +897,14 @@ public final class ServerConfigManager
 
     private static void writePrizePool()
     {
-        if (configDir == null || prizePool == null)
+        if (configDir == null || prizePools == null)
         {
             return;
         }
 
-        prizePool.normalize();
-        writeJson(configDir.resolve(ModConstants.PRIZE_POOL_FILE), prizePool);
+        prizePools.normalize();
+        writeJson(configDir.resolve(ModConstants.PRIZE_POOL_FILE), prizePools.poolsOrEmpty());
+        writePoolState(configDir.resolve(ModConstants.PRIZE_POOL_STATE_FILE), prizePools);
     }
 
     private static void writeItemValues()

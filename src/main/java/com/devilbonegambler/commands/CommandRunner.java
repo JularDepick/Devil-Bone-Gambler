@@ -118,6 +118,8 @@ public final class CommandRunner
                 continue;
             }
 
+            command = NumberPlaceholders.expand(command, context);
+
             if (command.isEmpty())
             {
                 continue;
@@ -168,6 +170,13 @@ public final class CommandRunner
                 return sampleProblem;
             }
 
+            String numberProblem = NumberPlaceholders.findProblem(line);
+
+            if (numberProblem != null)
+            {
+                return numberProblem;
+            }
+
             if (dispatcher == null || source == null)
             {
                 continue;
@@ -176,7 +185,7 @@ public final class CommandRunner
             try
             {
                 ParseResults<S> results = dispatcher.parse(
-                        SamplePlaceholders.sampleForm(CommandPlaceholders.sampleForm(line)), source);
+                        SamplePlaceholders.sampleForm(CommandPlaceholders.sampleForm(NumberPlaceholders.sampleForm(line))), source);
 
                 if (!results.getExceptions().isEmpty())
                 {

@@ -26,6 +26,7 @@ public final class ModConstants
      */
     public static final String CONFIG_DIR_NAME = "devil_bone_gambler";
     public static final String PRIZE_POOL_FILE = "prize_pool.json";
+    public static final String PRIZE_POOL_STATE_FILE = "prize_pool_state.json";
     public static final String ITEM_VALUES_FILE = "item_values.json";
     public static final String ACCESS_FILE = "access.json";
     public static final String CONFIG_DOMAIN_PRIZE_POOL = "prize_pool";
@@ -93,6 +94,11 @@ public final class ModConstants
     public static final int DEFAULT_REGION_COUNT = 6;
     public static final int MAX_ENTRIES_PER_REGION = 128;
     public static final int MAX_TOTAL_ENTRIES = 768;
+    public static final int MAX_POOLS = 32;
+    public static final int MAX_POOL_ID_LENGTH = 64;
+    public static final int MAX_POOL_NAME_LENGTH = 64;
+    public static final int MAX_POOL_DESCRIPTION_LENGTH = 256;
+    public static final int MAX_NUMBER_PLACEHOLDER = 1000000;
 
     public static final int MAX_COMMAND_LENGTH = 512;
     public static final int MAX_NOTIFY_TEXT_LENGTH = 256;

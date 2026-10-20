@@ -7,6 +7,8 @@
 package com.devilbonegambler.client.gui;
 
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -47,6 +49,22 @@ public class ConfirmButton extends Button
         setMessage(this.normalLabel);
     }
 
+    /**
+     * The confirm label is drawn in red, which the plain button renderer cannot express because it always paints its
+     * message in white. While armed the button keeps an empty message, so the red line is the only text shown.
+     */
+    @Override
+    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
+    {
+        super.renderWidget(graphics, mouseX, mouseY, partialTick);
+
+        if (this.armed)
+        {
+            graphics.drawCenteredString(Minecraft.getInstance().font, this.confirmLabel, getX() + this.width / 2,
+                    getY() + (this.height - 8) / 2, 0xFF5555);
+        }
+    }
+
     @Override
     public void onPress()
     {
@@ -54,7 +72,7 @@ public class ConfirmButton extends Button
         {
             this.armed = true;
             this.armedAt = Util.getMillis();
-            setMessage(this.confirmLabel);
+            setMessage(Component.empty());
             return;
         }
 

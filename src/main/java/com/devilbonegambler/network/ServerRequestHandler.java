@@ -323,7 +323,8 @@ public final class ServerRequestHandler
         if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(message.domain()))
         {
             failure = ServerConfigManager.applyPrizePoolWrite(message.revision(), message.payload());
-            revision = ServerConfigManager.prizePool() == null ? 0 : ServerConfigManager.prizePool().revisionOrZero();
+            revision = ServerConfigManager.prizePoolBook() == null ? 0
+                    : ServerConfigManager.prizePoolBook().revisionOrZero();
         }
         else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(message.domain()))
         {
@@ -485,7 +486,7 @@ public final class ServerRequestHandler
         if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(domain))
         {
             ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
-                    ServerConfigManager.prizePool().revisionOrZero(), ServerConfigManager.prizePoolJson()));
+                    ServerConfigManager.prizePoolBook().revisionOrZero(), ServerConfigManager.prizePoolJson()));
         }
         else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(domain))
         {

@@ -11,6 +11,7 @@ import com.devilbonegambler.commands.CommandRunner;
 import com.devilbonegambler.config.ItemValueConfig;
 import com.devilbonegambler.config.NotifyConfig;
 import com.devilbonegambler.config.PrizeEntry;
+import com.devilbonegambler.config.PrizePoolBook;
 import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
 import com.devilbonegambler.network.ModNetwork;
@@ -152,6 +153,19 @@ public class AdminConfigScreen extends Screen
     private static final int ADMIN_FIELD_WIDTH = 142;
     private static final int ADMIN_CLOSE_Y = 132;
 
+    private static final int POOL_WINDOW_X = 28;
+    private static final int POOL_WINDOW_Y = 34;
+    private static final int POOL_WINDOW_WIDTH = 280;
+    private static final int POOL_WINDOW_HEIGHT = 190;
+    private static final int POOL_LIST_X = 6;
+    private static final int POOL_LIST_WIDTH = 268;
+    private static final int POOL_LIST_Y = 22;
+    private static final int POOL_VISIBLE_ROWS = 5;
+    private static final int POOL_NAME_Y = 94;
+    private static final int POOL_DESC_Y = 116;
+    private static final int POOL_BUTTON_Y = 140;
+    private static final int POOL_CLOSE_Y = 166;
+
     private final List<Row> prizeRows = new ArrayList<Row>();
     private final List<String> valueKeys = new ArrayList<String>();
     private final List<Integer> selectedPrizeIndices = new ArrayList<Integer>();
@@ -159,8 +173,17 @@ public class AdminConfigScreen extends Screen
     private final ScrollBar scrollBar = new ScrollBar();
     private final DelayedTooltip tooltip = new DelayedTooltip();
 
-    private PrizePoolConfig prizePool = PrizePoolConfig.empty();
+    private PrizePoolBook poolBook = PrizePoolBook.empty();
     private ItemValueConfig itemValues = ItemValueConfig.empty();
+
+    /**
+     * The pool the rest of the screen edits: the active one, or the first pool when the pointer is stale.
+     */
+    private PrizePoolConfig prizePool()
+    {
+        PrizePoolConfig active = this.poolBook.active();
+        return active == null ? PrizePoolConfig.empty() : active;
+    }
 
     private int leftPos;
     private int topPos;
@@ -232,6 +255,24 @@ public class AdminConfigScreen extends Screen
     private ConfirmButton adminRemoveButton;
     private Button adminCloseButton;
 
+    /*
+     * Prize pool manager: several named pools live in one file, and this sub page switches, renames, creates and
+     * deletes them. The pool it edits is the selected row, which is also the one a draw uses after Apply.
+     */
+    private boolean poolWindowOpen;
+    private int selectedPoolRow = -1;
+    private EditBox fieldPoolName;
+    private EditBox fieldPoolDescription;
+    private Button poolButton;
+    private Button poolApplyButton;
+    private Button poolAddButton;
+    private ConfirmButton poolRemoveButton;
+    private Button poolCloseButton;
+    private int poolCounter;
+    private int poolScroll;
+    /* Keeps the edited row selected across the config sync that follows a save, delete or create. */
+    private String pendingPoolSelection = "";
+
     public AdminConfigScreen(String prizePoolJson, String itemValuesJson, String creatorName, List<String> admins,
             boolean canManageAdmins)
     {
@@ -246,7 +287,7 @@ public class AdminConfigScreen extends Screen
     public void applyServerData(String prizePoolJson, String itemValuesJson, String creatorName,
             List<String> admins, boolean canManageAdmins)
     {
-        this.prizePool = parsePrizePool(prizePoolJson);
+        this.poolBook = parsePoolBook(prizePoolJson);
         this.itemValues = parseItemValues(itemValuesJson);
         this.creatorName = creatorName == null ? "" : creatorName;
         this.admins = admins == null ? new ArrayList<String>() : new ArrayList<String>(admins);
@@ -255,6 +296,14 @@ public class AdminConfigScreen extends Screen
         this.selectedValueIndices.clear();
         this.selectedAdminRow = -1;
         this.scrollBar.setValue(0);
+
+        if (this.poolWindowOpen)
+        {
+            int keep = poolIndexOf(this.pendingPoolSelection);
+            this.pendingPoolSelection = "";
+            this.selectedPoolRow = keep >= 0 ? keep : Math.max(0, poolIndexOf(this.poolBook.activeId));
+            revealSelectedPool();
+        }
         rebuildPrizeRows();
         rebuildValueKeys();
         rebuildAdminTable();
@@ -289,7 +338,7 @@ public class AdminConfigScreen extends Screen
     {
         if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(message.domain()))
         {
-            this.prizePool = parsePrizePool(message.payload());
+            this.poolBook = parsePoolBook(message.payload());
             rebuildPrizeRows();
         }
         else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(message.domain()))
@@ -435,6 +484,33 @@ public class AdminConfigScreen extends Screen
                 button -> closeAdminWindow()).pos(this.leftPos + ADMIN_WINDOW_X + 6,
                         this.topPos + ADMIN_WINDOW_Y + ADMIN_CLOSE_Y).size(64, 16).build());
 
+        this.poolButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.manage_pools")),
+                button -> togglePoolWindow()).pos(this.leftPos + PANEL_WIDTH - 8 - 72 - 2 - 64,
+                        this.topPos + ADMIN_BUTTON_Y).size(64, FIELD_HEIGHT + 2).build());
+        this.fieldPoolName = new EditBox(this.font, this.leftPos + POOL_WINDOW_X + 6,
+                this.topPos + POOL_WINDOW_Y + POOL_NAME_Y, POOL_WINDOW_WIDTH - 12, FIELD_HEIGHT,
+                Component.translatable(key("admin.pool_name")));
+        this.fieldPoolName.setMaxLength(ModConstants.MAX_POOL_NAME_LENGTH);
+        addRenderableWidget(this.fieldPoolName);
+        this.fieldPoolDescription = new EditBox(this.font, this.leftPos + POOL_WINDOW_X + 6,
+                this.topPos + POOL_WINDOW_Y + POOL_DESC_Y, POOL_WINDOW_WIDTH - 12, FIELD_HEIGHT,
+                Component.translatable(key("admin.pool_description")));
+        this.fieldPoolDescription.setMaxLength(ModConstants.MAX_POOL_DESCRIPTION_LENGTH);
+        addRenderableWidget(this.fieldPoolDescription);
+        this.poolApplyButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.pool_apply")),
+                button -> applyPoolSelection()).pos(this.leftPos + POOL_WINDOW_X + 6,
+                        this.topPos + POOL_WINDOW_Y + POOL_BUTTON_Y).size(86, 16).build());
+        this.poolAddButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.pool_add")),
+                button -> addPool()).pos(this.leftPos + POOL_WINDOW_X + 96,
+                        this.topPos + POOL_WINDOW_Y + POOL_BUTTON_Y).size(60, 16).build());
+        this.poolRemoveButton = addRenderableWidget(new ConfirmButton(this.leftPos + POOL_WINDOW_X + 160,
+                this.topPos + POOL_WINDOW_Y + POOL_BUTTON_Y, 84, 16,
+                Component.translatable(key("admin.pool_remove")),
+                Component.translatable(key("admin.pool_remove_confirm")), this::removePool));
+        this.poolCloseButton = addRenderableWidget(Button.builder(Component.translatable(key("admin.close")),
+                button -> closePoolWindow()).pos(this.leftPos + POOL_WINDOW_X + 6,
+                        this.topPos + POOL_WINDOW_Y + POOL_CLOSE_Y).size(60, 16).build());
+
         this.adminLayout = null;
         this.widgetsReady = true;
         rebuildPrizeTable();
@@ -469,6 +545,7 @@ public class AdminConfigScreen extends Screen
 
         this.removeButton.tickConfirm();
         this.adminRemoveButton.tickConfirm();
+        this.poolRemoveButton.tickConfirm();
 
         /*
          * The two layers are exclusive: while a sub page is open the page behind it is not drawn at all, so no text of
@@ -492,6 +569,11 @@ public class AdminConfigScreen extends Screen
         if (this.adminWindowOpen)
         {
             drawAdminWindow(graphics, mouseX, mouseY);
+        }
+
+        if (this.poolWindowOpen)
+        {
+            drawPoolWindow(graphics);
         }
 
         /*
@@ -621,6 +703,60 @@ public class AdminConfigScreen extends Screen
     }
 
     /**
+     * The pool manager lists every pool with its entry count and marks the one a draw uses right now.
+     */
+    private void drawPoolWindow(GuiGraphics graphics)
+    {
+        int windowX = this.leftPos + POOL_WINDOW_X;
+        int windowY = this.topPos + POOL_WINDOW_Y;
+        graphics.fill(windowX - 1, windowY - 1, windowX + POOL_WINDOW_WIDTH + 1,
+                windowY + POOL_WINDOW_HEIGHT + 1, WINDOW_BORDER_COLOR);
+        graphics.fill(windowX, windowY, windowX + POOL_WINDOW_WIDTH, windowY + POOL_WINDOW_HEIGHT, WINDOW_COLOR);
+        graphics.drawString(this.font, Component.translatable(key("admin.manage_pools")), windowX + 6, windowY + 6,
+                TITLE_COLOR, false);
+
+        int listX = windowX + POOL_LIST_X;
+        int headerY = windowY + POOL_LIST_Y;
+        int rowsY = headerY + ModConstants.TABLE_HEADER_HEIGHT;
+        int visible = Math.min(POOL_VISIBLE_ROWS, this.poolBook.poolsOrEmpty().size());
+
+        graphics.fill(listX, headerY, listX + POOL_LIST_WIDTH, headerY + ModConstants.TABLE_HEADER_HEIGHT,
+                HEADER_COLOR);
+        graphics.drawString(this.font, Component.translatable(key("admin.pool_column_name")).getString(),
+                listX + 4, headerY + 2, HEADER_TEXT_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("admin.pool_column_entries")).getString(),
+                listX + 186, headerY + 2, HEADER_TEXT_COLOR, false);
+        graphics.drawString(this.font, Component.translatable(key("admin.pool_column_active")).getString(),
+                listX + 230, headerY + 2, HEADER_TEXT_COLOR, false);
+
+        for (int row = 0; row < visible; row++)
+        {
+            int poolIndex = this.poolScroll + row;
+
+            if (poolIndex >= this.poolBook.poolsOrEmpty().size())
+            {
+                break;
+            }
+
+            PrizePoolConfig pool = this.poolBook.poolsOrEmpty().get(poolIndex);
+            int y = rowsY + row * ModConstants.TABLE_ROW_HEIGHT;
+            boolean selected = poolIndex == this.selectedPoolRow;
+            graphics.fill(listX, y, listX + POOL_LIST_WIDTH, y + ModConstants.TABLE_ROW_HEIGHT - 1,
+                    selected ? ROW_SELECTED_COLOR : ROW_COLOR);
+            String name = this.font.plainSubstrByWidth(pool.nameOrEmpty(), 176);
+            graphics.drawString(this.font, name, listX + 4, y + 2, TEXT_COLOR, false);
+            graphics.drawString(this.font, Integer.toString(pool.totalEntryCount()), listX + 190, y + 2,
+                    LABEL_COLOR, false);
+
+            if (pool.idOrEmpty().equals(this.poolBook.activeId))
+            {
+                graphics.drawString(this.font, Component.translatable(key("admin.pool_active")).getString(),
+                        listX + 234, y + 2, CREATOR_COLOR, false);
+            }
+        }
+    }
+
+    /**
      * Rows of the manager window: the creator first, then the granted admins without a duplicate of the creator.
      */
     private List<String> adminDisplayRows()
@@ -677,7 +813,7 @@ public class AdminConfigScreen extends Screen
     /** At most one sub page is open, because both draw above the page and take the pointer. */
     private boolean subpageOpen()
     {
-        return this.adminWindowOpen || this.commandEditorOpen;
+        return this.adminWindowOpen || this.commandEditorOpen || this.poolWindowOpen;
     }
 
     /** The admin button opens its sub page and closes it again on a repeated click. */
@@ -708,6 +844,225 @@ public class AdminConfigScreen extends Screen
         this.adminWindowOpen = false;
         this.setFocused(null);
         refreshFields();
+    }
+
+    private int poolIndexOf(String poolId)
+    {
+        List<PrizePoolConfig> pools = this.poolBook.poolsOrEmpty();
+
+        for (int index = 0; index < pools.size(); index++)
+        {
+            if (pools.get(index).idOrEmpty().equals(poolId == null ? "" : poolId))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private PrizePoolConfig selectedPool()
+    {
+        List<PrizePoolConfig> pools = this.poolBook.poolsOrEmpty();
+
+        if (this.selectedPoolRow < 0 || this.selectedPoolRow >= pools.size())
+        {
+            return null;
+        }
+
+        return pools.get(this.selectedPoolRow);
+    }
+
+    private void togglePoolWindow()
+    {
+        if (this.poolWindowOpen)
+        {
+            closePoolWindow();
+            return;
+        }
+
+        openPoolWindow();
+    }
+
+    private void openPoolWindow()
+    {
+        closeAdminWindow();
+        closeCommandEditor(false);
+        this.poolWindowOpen = true;
+        this.selectedPoolRow = Math.max(0, poolIndexOf(this.poolBook.activeId));
+        revealSelectedPool();
+        refreshFields();
+        this.setInitialFocus(this.fieldPoolName);
+    }
+
+    private void closePoolWindow()
+    {
+        this.poolWindowOpen = false;
+        this.setFocused(null);
+        refreshFields();
+    }
+
+    private int poolRowAt(double mouseX, double mouseY)
+    {
+        int listX = this.leftPos + POOL_WINDOW_X + POOL_LIST_X;
+        int listY = this.topPos + POOL_WINDOW_Y + POOL_LIST_Y + ModConstants.TABLE_HEADER_HEIGHT;
+        int rows = Math.min(POOL_VISIBLE_ROWS, this.poolBook.poolsOrEmpty().size());
+
+        if (mouseX < listX || mouseX > listX + POOL_LIST_WIDTH || mouseY < listY)
+        {
+            return -1;
+        }
+
+        int row = (int) ((mouseY - listY) / ModConstants.TABLE_ROW_HEIGHT);
+        int poolIndex = this.poolScroll + row;
+        return row >= 0 && row < rows && poolIndex < this.poolBook.poolsOrEmpty().size() ? poolIndex : -1;
+    }
+
+    private void selectPoolRow(int row)
+    {
+        this.selectedPoolRow = row;
+        revealSelectedPool();
+        refreshFields();
+    }
+
+    /* Keeps the selected pool inside the five visible rows of the manager window. */
+    private void revealSelectedPool()
+    {
+        if (this.selectedPoolRow < this.poolScroll)
+        {
+            this.poolScroll = this.selectedPoolRow;
+        }
+        else if (this.selectedPoolRow >= this.poolScroll + POOL_VISIBLE_ROWS)
+        {
+            this.poolScroll = this.selectedPoolRow - POOL_VISIBLE_ROWS + 1;
+        }
+
+        this.poolScroll = Math.max(0, Math.min(this.poolScroll,
+                Math.max(0, this.poolBook.poolsOrEmpty().size() - POOL_VISIBLE_ROWS)));
+    }
+
+    /*
+     * Applying takes the typed name and description, makes the selected pool the active one and writes the whole book.
+     * Creating and deleting use the same write path, so the server always sees one revision step at a time.
+     */
+    private void applyPoolSelection()
+    {
+        if (this.waiting)
+        {
+            return;
+        }
+
+        PrizePoolConfig pool = selectedPool();
+
+        if (pool == null)
+        {
+            return;
+        }
+
+        String name = this.fieldPoolName.getValue() == null ? "" : this.fieldPoolName.getValue().trim();
+
+        if (name.isEmpty())
+        {
+            this.status = Component.translatable(key("admin.pool_name_required")).getString();
+            return;
+        }
+
+        pool.name = name;
+        pool.description = this.fieldPoolDescription.getValue() == null ? ""
+                : this.fieldPoolDescription.getValue().trim();
+        this.poolBook.activeId = pool.idOrEmpty();
+        this.pendingPoolSelection = pool.idOrEmpty();
+        submitBook();
+    }
+
+    private void addPool()
+    {
+        if (this.waiting)
+        {
+            return;
+        }
+
+        PrizePoolConfig pool = PrizePoolConfig.empty();
+        pool.id = "pool-" + (++this.poolCounter) + "-" + Long.toHexString(System.currentTimeMillis());
+        pool.name = Component.translatable(key("admin.pool_default_name")).getString();
+        pool.description = "";
+        pool.regions.add(new PrizeRegion(1));
+        this.poolBook.poolsOrEmpty().add(pool);
+        this.poolBook.activeId = pool.id;
+        this.selectedPoolRow = this.poolBook.poolsOrEmpty().size() - 1;
+        this.pendingPoolSelection = pool.id;
+        revealSelectedPool();
+        refreshFields();
+        submitBook();
+    }
+
+    private void removePool()
+    {
+        if (this.waiting)
+        {
+            return;
+        }
+
+        List<PrizePoolConfig> pools = this.poolBook.poolsOrEmpty();
+        PrizePoolConfig removed = selectedPool();
+
+        if (removed == null)
+        {
+            return;
+        }
+
+        boolean wasActive = removed.idOrEmpty().equals(this.poolBook.activeId);
+        int row = this.selectedPoolRow;
+        pools.remove(row);
+
+        if (pools.isEmpty())
+        {
+            PrizePoolConfig blank = PrizePoolConfig.empty();
+            blank.id = "pool-" + (++this.poolCounter) + "-" + Long.toHexString(System.currentTimeMillis());
+            blank.name = Component.translatable(key("admin.pool_default_name")).getString();
+            blank.regions.add(new PrizeRegion(1));
+            pools.add(blank);
+            this.poolBook.activeId = blank.id;
+            this.selectedPoolRow = 0;
+        }
+        else
+        {
+            /* The next pool takes the active role, wrapping from the last row back to the first. */
+            this.selectedPoolRow = row % pools.size();
+
+            if (wasActive)
+            {
+                this.poolBook.activeId = pools.get(this.selectedPoolRow).idOrEmpty();
+            }
+        }
+
+        this.pendingPoolSelection = pools.get(this.selectedPoolRow).idOrEmpty();
+        refreshFields();
+        submitBook();
+    }
+
+    private void submitBook()
+    {
+        if (this.waiting)
+        {
+            return;
+        }
+
+        this.poolBook.normalize();
+        List<String> problems = this.poolBook.validate();
+
+        if (!problems.isEmpty())
+        {
+            this.status = Component.translatable(key("admin.status_local_invalid")).getString();
+            return;
+        }
+
+        this.waiting = true;
+        this.pendingSequence = ClientActions.nextSequence();
+        this.status = Component.translatable(key("admin.status_waiting")).getString();
+        ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
+                ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
+                GSON.toJson(this.poolBook)));
     }
 
     /**
@@ -778,6 +1133,11 @@ public class AdminConfigScreen extends Screen
             return this.fieldAdminName.charTyped(codePoint, modifiers);
         }
 
+        if (this.poolWindowOpen)
+        {
+            return super.charTyped(codePoint, modifiers);
+        }
+
         return super.charTyped(codePoint, modifiers);
     }
 
@@ -806,6 +1166,17 @@ public class AdminConfigScreen extends Screen
             return this.fieldAdminName.keyPressed(keyCode, scanCode, modifiers);
         }
 
+        if (this.poolWindowOpen)
+        {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE)
+            {
+                closePoolWindow();
+                return true;
+            }
+
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -830,6 +1201,20 @@ public class AdminConfigScreen extends Screen
             }
 
             /* The admin button stays reachable, because a repeated click closes the window again. */
+            super.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+
+        if (this.poolWindowOpen)
+        {
+            int poolRow = poolRowAt(mouseX, mouseY);
+
+            if (poolRow >= 0)
+            {
+                selectPoolRow(poolRow);
+                return true;
+            }
+
             super.mouseClicked(mouseX, mouseY, button);
             return true;
         }
@@ -885,6 +1270,14 @@ public class AdminConfigScreen extends Screen
 
         if (this.adminWindowOpen)
         {
+            return true;
+        }
+
+        if (this.poolWindowOpen)
+        {
+            int maximum = Math.max(0, this.poolBook.poolsOrEmpty().size() - POOL_VISIBLE_ROWS);
+            this.poolScroll = Math.max(0, Math.min(maximum,
+                    this.poolScroll + (delta > 0.0D ? -1 : 1)));
             return true;
         }
 
@@ -1326,6 +1719,7 @@ public class AdminConfigScreen extends Screen
          */
         this.removeButton.release();
         this.adminRemoveButton.release();
+        this.poolRemoveButton.release();
 
         RegionRow regionRow = selectedRegionRow();
         EntryRow entryRow = selectedEntryRow();
@@ -1364,9 +1758,32 @@ public class AdminConfigScreen extends Screen
         setVisible(this.adminAddButton, this.adminWindowOpen);
         setVisible(this.adminRemoveButton, this.adminWindowOpen);
         setVisible(this.adminCloseButton, this.adminWindowOpen);
-        /* The admin button stays live while its own sub page is open, because it is also the toggle that closes it. */
+        setVisible(this.fieldPoolName, this.poolWindowOpen);
+        setVisible(this.fieldPoolDescription, this.poolWindowOpen);
+        setVisible(this.poolApplyButton, this.poolWindowOpen);
+        setVisible(this.poolAddButton, this.poolWindowOpen);
+        setVisible(this.poolRemoveButton, this.poolWindowOpen);
+        setVisible(this.poolCloseButton, this.poolWindowOpen);
+        /* Both header buttons stay live while their own sub page is open, because they also close it. */
         setVisible(this.adminButton, this.canManageAdmins);
+        setVisible(this.poolButton, true);
         this.adminRemoveButton.active = canRemoveSelectedAdmin();
+        this.poolRemoveButton.active = this.poolWindowOpen
+                && this.selectedPoolRow >= 0 && this.selectedPoolRow < this.poolBook.poolsOrEmpty().size();
+
+        PrizePoolConfig selectedPool = selectedPool();
+
+        if (this.poolWindowOpen && selectedPool != null)
+        {
+            this.fieldPoolName.setValue(selectedPool.nameOrEmpty());
+            this.fieldPoolDescription.setValue(selectedPool.descriptionOrEmpty());
+        }
+
+        if (this.poolWindowOpen)
+        {
+            this.poolScroll = Math.max(0, Math.min(this.poolScroll,
+                    Math.max(0, this.poolBook.poolsOrEmpty().size() - POOL_VISIBLE_ROWS)));
+        }
 
         if (regionRow != null)
         {
@@ -1742,12 +2159,12 @@ public class AdminConfigScreen extends Screen
         applyFieldsToSelection();
         int tier = ModConstants.MIN_REGION_TIER;
 
-        while (this.prizePool.findRegion(tier) != null && tier < ModConstants.MAX_REGIONS)
+        while (prizePool().findRegion(tier) != null && tier < ModConstants.MAX_REGIONS)
         {
             tier++;
         }
 
-        this.prizePool.regionsOrEmpty().add(new PrizeRegion(tier));
+        prizePool().regionsOrEmpty().add(new PrizeRegion(tier));
         rebuildPrizeRows();
         this.selectedPrizeIndices.clear();
         this.selectedPrizeIndices.add(Integer.valueOf(this.prizeRows.size() - 1));
@@ -1817,9 +2234,9 @@ public class AdminConfigScreen extends Screen
 
         RegionRow regionRow = selectedRegionRow();
 
-        if (regionRow != null && this.prizePool.regionsOrEmpty().size() > 1)
+        if (regionRow != null && prizePool().regionsOrEmpty().size() > 1)
         {
-            this.prizePool.regionsOrEmpty().remove(regionRow.region);
+            prizePool().regionsOrEmpty().remove(regionRow.region);
             this.selectedPrizeIndices.clear();
             rebuildPrizeRows();
             refreshFields();
@@ -1834,10 +2251,10 @@ public class AdminConfigScreen extends Screen
         }
 
         applyFieldsToSelection();
-        this.prizePool.normalize();
+        this.poolBook.normalize();
         this.itemValues.normalize();
 
-        List<String> problems = this.valueTab ? this.itemValues.validate() : this.prizePool.validate();
+        List<String> problems = this.valueTab ? this.itemValues.validate() : this.poolBook.validate();
 
         if (!problems.isEmpty())
         {
@@ -1858,8 +2275,8 @@ public class AdminConfigScreen extends Screen
         else
         {
             ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
-                    ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.prizePool.revisionOrZero(),
-                    GSON.toJson(this.prizePool)));
+                    ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
+                    GSON.toJson(this.poolBook)));
         }
     }
 
@@ -1867,7 +2284,7 @@ public class AdminConfigScreen extends Screen
     {
         this.prizeRows.clear();
 
-        for (PrizeRegion region : this.prizePool.sortedRegions())
+        for (PrizeRegion region : prizePool().sortedRegions())
         {
             this.prizeRows.add(new RegionRow(region));
 
@@ -2032,7 +2449,7 @@ public class AdminConfigScreen extends Screen
 
     private PrizeRegion firstRegion()
     {
-        List<PrizeRegion> regions = this.prizePool.sortedRegions();
+        List<PrizeRegion> regions = prizePool().sortedRegions();
         return regions.isEmpty() ? null : regions.get(0);
     }
 
@@ -2076,7 +2493,7 @@ public class AdminConfigScreen extends Screen
 
     private int revision()
     {
-        return this.valueTab ? this.itemValues.revisionOrZero() : this.prizePool.revisionOrZero();
+        return this.valueTab ? this.itemValues.revisionOrZero() : this.poolBook.revisionOrZero();
     }
 
     private static void setVisible(net.minecraft.client.gui.components.AbstractWidget widget, boolean visible)
@@ -2114,16 +2531,16 @@ public class AdminConfigScreen extends Screen
         }
     }
 
-    private static PrizePoolConfig parsePrizePool(String json)
+    private static PrizePoolBook parsePoolBook(String json)
     {
         try
         {
-            PrizePoolConfig parsed = GSON.fromJson(json, PrizePoolConfig.class);
-            return parsed == null ? PrizePoolConfig.empty() : parsed;
+            PrizePoolBook parsed = GSON.fromJson(json, PrizePoolBook.class);
+            return parsed == null ? PrizePoolBook.empty() : parsed;
         }
         catch (RuntimeException exception)
         {
-            return PrizePoolConfig.empty();
+            return PrizePoolBook.empty();
         }
     }
 
