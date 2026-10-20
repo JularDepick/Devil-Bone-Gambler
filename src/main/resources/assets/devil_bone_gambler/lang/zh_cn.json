@@ -145,6 +145,7 @@
   "gui.devil_bone_gambler.admin.label_command": "指令内容",
   "gui.devil_bone_gambler.admin.label_notify_text": "触发提示",
   "gui.devil_bone_gambler.admin.label_value": "价值",
+  "gui.devil_bone_gambler.hud.luck": "幸运值 %s",
   "gui.devil_bone_gambler.draw.reward": "你获得了 %s",
   "gui.devil_bone_gambler.language": "zh_cn",
   "gui.devil_bone_gambler.notify.mode.tellraw": "聊天栏",

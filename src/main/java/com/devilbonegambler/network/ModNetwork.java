@@ -21,6 +21,7 @@ import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.DevilsDiceRequestPacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
+import com.devilbonegambler.network.packet.LuckSyncPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
@@ -100,6 +101,8 @@ public final class ModNetwork
                 DealerBetOpenRequestPacket::handle);
         CHANNEL.registerMessage(index++, DealerPanelPacket.class,
                 DealerPanelPacket::encode, DealerPanelPacket::decode, DealerPanelPacket::handle);
+        CHANNEL.registerMessage(index++, LuckSyncPacket.class,
+                LuckSyncPacket::encode, LuckSyncPacket::decode, LuckSyncPacket::handle);
 
         DevilBoneGambler.LOGGER.info("Registered {} network messages on channel {}", Integer.valueOf(index),
                 ModConstants.NETWORK_CHANNEL);

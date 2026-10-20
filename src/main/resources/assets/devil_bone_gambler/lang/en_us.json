@@ -145,6 +145,7 @@
   "gui.devil_bone_gambler.admin.label_command": "Command content",
   "gui.devil_bone_gambler.admin.label_notify_text": "Trigger message",
   "gui.devil_bone_gambler.admin.label_value": "Value",
+  "gui.devil_bone_gambler.hud.luck": "Luck %s",
   "gui.devil_bone_gambler.draw.reward": "You received %s",
   "gui.devil_bone_gambler.language": "en_us",
   "gui.devil_bone_gambler.notify.mode.tellraw": "Chat",

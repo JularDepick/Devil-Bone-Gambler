@@ -74,9 +74,11 @@ public final class ModConstants
     /*
      * Luck
      */
-    public static final int BASE_LUCK = 50;
+    public static final int BASE_LUCK = 80;
     public static final int MIN_LUCK = 0;
     public static final int MAX_LUCK = 200;
+    public static final int LUCK_UPDATE_INTERVAL_TICKS = 200;
+    public static final int LUCK_INCREMENT_RANDOM_SPAN = 50;
 
     /*
      * Value table
@@ -149,6 +151,7 @@ public final class ModConstants
      * Minecraft version cannot carry an emission, so the level is declared on the block itself.
      */
     public static final int ALTAR_LIGHT_LEVEL = 14;
+    public static final float ALTAR_EXPLOSION_RESISTANCE = 3600000.0F;
 
     /*
      * The glow a dealer carries: half of a torch. A torch sits at fourteen, so the dealer sits at seven, and like the
@@ -248,6 +251,7 @@ public final class ModConstants
      * when a notice is really sent, so a player who keeps trying still gets one reminder per second.
      */
     public static final long NOTICE_COOLDOWN_MS = 1000L;
+    public static final String REASON_TOO_FREQUENT = "too_frequent";
 
     public static final String[] NOTIFY_MODES = {
         NOTIFY_MODE_TELLRAW,
@@ -298,6 +302,7 @@ public final class ModConstants
     /* A meal is one second of chewing, then one second of rest before the next dice can go in. */
     public static final int DEALER_EAT_ANIMATION_TICKS = 20;
     public static final int DEALER_EAT_COOLDOWN_TICKS = 20;
+    public static final int DEALER_EAT_SOUND_INTERVAL_TICKS = 5;
     /* Two dice per pickup, and the next pair only after this many ticks, so a pile is emptied at a walking pace. */
     public static final int DEALER_PICKUP_INTERVAL_TICKS = 40;
     public static final int DEALER_PICKUP_PER_ACTION = 2;

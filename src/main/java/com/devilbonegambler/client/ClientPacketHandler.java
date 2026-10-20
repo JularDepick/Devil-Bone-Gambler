@@ -15,6 +15,7 @@ import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigSyncPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
+import com.devilbonegambler.network.packet.LuckSyncPacket;
 import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
@@ -40,6 +41,11 @@ public final class ClientPacketHandler
     public static ValueTableSnapshot valueTable()
     {
         return valueTable;
+    }
+
+    public static void handleLuckSync(LuckSyncPacket message)
+    {
+        ClientLuck.set(message.value());
     }
 
     public static void handleValueTableSync(ValueTableSyncPacket message)

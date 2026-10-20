@@ -8,6 +8,7 @@ package com.devilbonegambler.client;
 
 import com.devilbonegambler.client.gui.AltarScreen;
 import com.devilbonegambler.client.gui.DealerBetScreen;
+import com.devilbonegambler.client.gui.LuckOverlay;
 import com.devilbonegambler.client.model.GamblersDealerModel;
 import com.devilbonegambler.client.render.GamblersDealerRenderer;
 import com.devilbonegambler.registry.ModEntities;
@@ -17,6 +18,8 @@ import com.devilbonegambler.util.ModConstants;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -49,6 +52,15 @@ public final class ClientSetup
     /**
      * The container menus of the mod carry their own screens; the altar screen is opened only by the server.
      */
+    /**
+     * The luck line sits in the top right corner, drawn after the vanilla hotbar so no later vanilla layer covers it.
+     */
+    @SubscribeEvent
+    public static void onRegisterGuiOverlays(RegisterGuiOverlaysEvent event)
+    {
+        event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), "luck", new LuckOverlay());
+    }
+
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event)
     {

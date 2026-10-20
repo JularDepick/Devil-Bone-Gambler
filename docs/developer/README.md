@@ -43,7 +43,7 @@
 |:---:|:---:|:---:|
 | 奖池配置 | `<世界存档>/serverconfig/devil_bone_gambler/prize_pool.json` | 分层奖池, 首次启动按预设生成;条目的指令内容支持多行逐行执行, 每行斜杠可选, 并支持玩家名称, 玩家坐标与祭坛位置占位符与范围随机坐标 |
 | 祭品价值配置 | `<世界存档>/serverconfig/devil_bone_gambler/item_values.json` | 祭品价值表, 首次启动按内置预设与扫描结果生成 |
-| 玩家运气数据 | `<世界存档>/data/devil_bone_gambler_luck.dat` | 按玩家标识索引的运气值 |
+| 玩家幸运数据 | `<世界存档>/data/devil_bone_gambler_luck.dat` | 按玩家标识索引的幸运值与首次加入时间 |
 | 骰子使用计数数据 | `<世界存档>/data/devil_bone_gambler_dealer_usage.dat` | 按玩家标识索引的赌徒的骰子使用计数, 用于发放赌徒的荷官生物蛋 |
 | 随机池 | `<世界存档>/serverconfig/devil_bone_gambler/random_pools.json` | 随机条目令牌的样本空间, 每次世界加载成功时由注册表扫描重建并覆盖写盘, 含物品, 效果, 实体, 附魔与药水五个池 |
 | 管理访问 | `<世界存档>/serverconfig/devil_bone_gambler/access.json` | 创建者与管理员名单, 只存玩家名字; 文件为空时首位进入服务器的玩家被记为创建者, 创建者与管理员可打开管理面板, 只有创建者能增减管理员 |
