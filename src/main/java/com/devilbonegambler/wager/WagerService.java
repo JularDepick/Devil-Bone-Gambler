@@ -13,6 +13,7 @@ import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
 import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.data.LuckData;
+import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.draw.DiceRoll;
 import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.draw.RegionSelector;
@@ -172,6 +173,7 @@ public final class WagerService
          */
         created.join(player.getUUID());
         created.markNotified(player.getUUID());
+        SubjectiveBehaviorService.recordWagerJoin(player);
 
         Component notice = Component.translatable(KEY_CREATED, player.getGameProfile().getName(),
                 Integer.valueOf(ModConstants.WAGER_COUNTDOWN_SECONDS));
@@ -411,6 +413,7 @@ public final class WagerService
     private static void joinWager(MinecraftServer server, WagerSession active, ServerPlayer player)
     {
         active.join(player.getUUID());
+        SubjectiveBehaviorService.recordWagerJoin(player);
         broadcastToJoinedExcept(server, active, player.getUUID(),
                 Component.translatable(KEY_JOINED, player.getGameProfile().getName()));
     }
@@ -443,6 +446,38 @@ public final class WagerService
      * The dice are rolled with the average luck of the joined members, the entry is pre drawn from the region the
      * point lands on, the candidates are taken by the index rule and the best or worst luck among them is executed.
      */
+    /**
+     * Every joined member the settlement did not select lost the pot, so each of them takes the loss delta.
+     */
+    private static void recordWagerLosers(MinecraftServer server, WagerSession active, List<ServerPlayer> selected)
+    {
+        for (java.util.UUID member : active.joinedPlayers())
+        {
+            boolean picked = false;
+
+            for (ServerPlayer candidate : selected)
+            {
+                if (candidate.getUUID().equals(member))
+                {
+                    picked = true;
+                    break;
+                }
+            }
+
+            if (picked)
+            {
+                continue;
+            }
+
+            ServerPlayer loser = server.getPlayerList().getPlayer(member);
+
+            if (loser != null)
+            {
+                SubjectiveBehaviorService.recordWagerLoss(loser);
+            }
+        }
+    }
+
     private static void settle(MinecraftServer server, WagerSession active, ServerPlayer owner)
     {
         active.setPhase(WagerSession.Phase.RUNNING);
@@ -477,6 +512,7 @@ public final class WagerService
         }
 
         broadcastSelection(server, active, entry, selected);
+        recordWagerLosers(server, active, selected);
         DevilBoneGambler.LOGGER.info("Wager settled, owner={} point={} entry={} candidates={} selected={}",
                 owner.getGameProfile().getName(), Integer.valueOf(roll.point()), entry.id,
                 Integer.valueOf(candidates.size()), Integer.valueOf(selected.size()));

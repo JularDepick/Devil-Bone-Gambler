@@ -6,28 +6,27 @@
 
 package com.devilbonegambler.luck;
 
+import com.devilbonegambler.util.ModConstants;
+
 /**
- * The hidden fate model: a deterministic mapping from the birth instant and the current instant to a value in
- * [-50, 50].
+ * The hidden fate model: a deterministic mapping from the birth instant and the current instant, both counted in game
+ * ticks, to a value in [-50, 50].
  *
- * The model is a three channel 卦气 superposition. Each channel reads the elapsed time through one traditional period,
- * chooses one of the twelve 辟卦 by its 十二消息 phase, and reads the current 爻 inside that 辟卦. The three scales are
- * the solar year (365.25 days), the synodic month (29.530588 days) and the day, so the channels never lock together and
- * the value keeps moving for decades.
+ * The model is a three channel 卦气 superposition. Each channel reads the elapsed ticks through one calendar period,
+ * chooses one of the twelve 辟卦 by its 十二消息 phase, and reads the current 爻 inside that 辟卦. The three periods
+ * follow the in game calendar: a day of twelve 时辰, a month of thirty days and a year of twelve months, so the
+ * channels never lock together and the value keeps moving.
  *
- * Only the elapsed time y - x enters the channels: the birth instant shifts the phase but never drifts, and no calendar,
- * time zone, leap day or game tick is involved. Wall clock milliseconds in UTC are the only input.
+ * Only the elapsed ticks enter the channels. The phase seed shifts a channel by at most half a 爻 step, which is how
+ * the player state and the save creation instant desynchronise two players without moving a curve away from its own
+ * shape.
  */
 public final class FateModel
 {
-    private static final long YEAR_MS = 31557600000L;
-    private static final long SYNODIC_MONTH_MS = 2551442803L;
-    private static final long DAY_MS = 86400000L;
-
-    /* The three channels: the year carries the 卦气 skeleton, the month and the day add the shorter tides. */
-    private static final double YEAR_WEIGHT = 0.55D;
-    private static final double MONTH_WEIGHT = 0.30D;
-    private static final double DAY_WEIGHT = 0.15D;
+    /* The day channel moves fastest and carries the most weight; the year channel only holds the long tide. */
+    private static final double DAY_WEIGHT = 0.45D;
+    private static final double MONTH_WEIGHT = 0.35D;
+    private static final double YEAR_WEIGHT = 0.20D;
 
     private FateModel()
     {
@@ -36,23 +35,25 @@ public final class FateModel
     /**
      * The fate value of a player, always inside the closed interval [-50, 50].
      */
-    public static double value(long birthMillis, long nowMillis)
+    public static double value(long birthTick, long nowTick, long phaseSeed)
     {
-        long elapsed = Math.max(0L, nowMillis - birthMillis);
-        double channel = YEAR_WEIGHT * channel(elapsed, YEAR_MS)
-                + MONTH_WEIGHT * channel(elapsed, SYNODIC_MONTH_MS)
-                + DAY_WEIGHT * channel(elapsed, DAY_MS);
+        long elapsed = Math.max(0L, nowTick - birthTick);
+        double channel = DAY_WEIGHT * channel(elapsed, ModConstants.LUCK_DAY_TICKS, phaseSeed)
+                + MONTH_WEIGHT * channel(elapsed, ModConstants.LUCK_MONTH_TICKS, phaseSeed * 31L + 17L)
+                + YEAR_WEIGHT * channel(elapsed, ModConstants.LUCK_YEAR_TICKS, phaseSeed * 131L + 71L);
         return Math.max(-50.0D, Math.min(50.0D, 50.0D * channel));
     }
 
     /**
      * One channel: twelve 辟卦 over the period, each split into six 爻. The 辟卦 grows one yang line from 复 to 乾 and
      * then one yin line from 姤 to 坤, so the yang count is a triangular wave and the current line follows the same
-     * growth.
+     * growth. The phase offsets the whole channel inside its own period.
      */
-    private static double channel(long elapsed, long period)
+    private static double channel(long elapsed, long period, long phaseSeed)
     {
-        long remainder = elapsed % period;
+        long span = Math.max(1L, period / ModConstants.LUCK_PHASE_STEPS);
+        long phase = Math.floorMod(phaseSeed, span);
+        long remainder = Math.floorMod(elapsed + phase, period);
         int hexagram = (int) (12L * remainder / period);
         int line = (int) ((72L * remainder / period) % 6L);
         hexagram = Math.max(0, Math.min(11, hexagram));

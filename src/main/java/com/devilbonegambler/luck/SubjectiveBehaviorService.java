@@ -30,6 +30,12 @@ public final class SubjectiveBehaviorService
 {
     public static final int BEHAVIOR_ATTACK_DEALER = 1;
     public static final int BEHAVIOR_DEALER_PICKUP_DICE = 2;
+    public static final int BEHAVIOR_OFFERING = 3;
+    public static final int BEHAVIOR_WAGER_JOIN = 4;
+    public static final int BEHAVIOR_WAGER_LOSS = 5;
+    public static final int BEHAVIOR_KILL_HOSTILE = 6;
+    public static final int BEHAVIOR_KILL_INNOCENT = 7;
+    public static final int BEHAVIOR_DEATH = 8;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -49,6 +55,34 @@ public final class SubjectiveBehaviorService
     public static void recordDealerPickup(ServerPlayer player, int dice)
     {
         recordAmount(player, BEHAVIOR_DEALER_PICKUP_DICE, dice);
+    }
+
+    public static void recordOffering(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_OFFERING);
+    }
+
+    public static void recordWagerJoin(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_WAGER_JOIN);
+    }
+
+    public static void recordWagerLoss(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_WAGER_LOSS);
+    }
+
+    /**
+     * A kill of a hostile mob counts as a good deed, every other victim, another player included, counts as a bad one.
+     */
+    public static void recordKill(ServerPlayer player, boolean hostile)
+    {
+        record(player, hostile ? BEHAVIOR_KILL_HOSTILE : BEHAVIOR_KILL_INNOCENT);
+    }
+
+    public static void recordDeath(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_DEATH);
     }
 
     /**
@@ -130,6 +164,36 @@ public final class SubjectiveBehaviorService
         if (behavior == BEHAVIOR_DEALER_PICKUP_DICE)
         {
             return ModConstants.DEALER_PICKUP_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_OFFERING)
+        {
+            return ModConstants.OFFERING_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_WAGER_JOIN)
+        {
+            return ModConstants.WAGER_JOIN_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_WAGER_LOSS)
+        {
+            return ModConstants.WAGER_LOSS_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_KILL_HOSTILE)
+        {
+            return ModConstants.KILL_HOSTILE_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_KILL_INNOCENT)
+        {
+            return ModConstants.KILL_INNOCENT_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_DEATH)
+        {
+            return ModConstants.DEATH_BEHAVIOR_DELTA;
         }
 
         return 0;

@@ -63,6 +63,9 @@ def main() -> int:
     packet = read(PACKET)
     network = read(NETWORK)
     handler = read(HANDLER)
+    events = read(JAVA / "luck" / "LuckBehaviorEvents.java")
+    draw = read(JAVA / "draw" / "DrawEngine.java")
+    wager = read(JAVA / "wager" / "WagerService.java")
     zh = json.loads(read(LANG / "zh_cn.json"))
     en = json.loads(read(LANG / "en_us.json"))
 
@@ -93,16 +96,26 @@ def main() -> int:
 
     check("fate deterministic", "Random" not in model and "System.currentTimeMillis" not in model,
           "the fate model reads a clock or a random source instead of its arguments")
-    check("fate periods", all(token in model for token in (
-        "31557600000L", "2551442803L", "86400000L")),
-        "the three traditional periods are missing")
+    check("fate periods", all(token in constants for token in (
+        "LUCK_DAY_TICKS = 24000L", "LUCK_MONTH_TICKS = 720000L", "LUCK_YEAR_TICKS = 8640000L")),
+        "the three calendar periods counted in game ticks are missing")
+    check("fate weights", all(token in model for token in ("0.45D", "0.35D", "0.20D")),
+          "the channel weights are not the day heavy ones")
+    check("fate phase", "phaseSeed" in model and "LUCK_PHASE_STEPS" in model,
+          "the fate channels ignore the player phase")
     check("fate clamped", "Math.max(-50.0D" in model and "Math.min(50.0D" in model,
         "the fate value is not clamped to [-50, 50]")
-    check("fate elapsed only", "nowMillis - birthMillis" in model,
-          "the fate value does not read the elapsed time")
+    check("fate elapsed only", "nowTick - birthTick" in model,
+          "the fate value does not read the elapsed ticks")
 
-    check("fate used", "FateModel.value(birth, now)" in service,
+    check("fate used", "FateModel.value(birth, now, phaseSeed(" in service,
           "the periodic increment does not use the fate value")
+    check("game tick clock", "overworld().getGameTime()" in service,
+          "the increment does not read the game tick clock")
+    check("creation instant", "TAG_CREATED" in data and "ensureCreated" in data and "ensureCreated(" in service,
+          "the save creation instant is not stored or not written once")
+    check("legacy origin", "LEGACY_ORIGIN_THRESHOLD" in data,
+          "a stored wall clock origin would never be rewritten as ticks")
     check("random combined", "random" in service and "fate + random + behavior" in service,
           "the random term and the behaviour value are not added to the fate value")
     check("behaviour read", "SubjectiveBehaviorService.value(player)" in service,
@@ -122,6 +135,15 @@ def main() -> int:
           "the dealer pickup behaviour is missing")
     check("pickup amount", "recordAmount(player, behavior, 1)" in behavior and "delta * amount" in behavior,
           "a pickup cannot add the delta once per die")
+    check("offering behavior", "BEHAVIOR_OFFERING" in behavior and "recordOffering(player)" in draw,
+          "a settled offering does not move the behaviour variable")
+    check("wager behavior", "BEHAVIOR_WAGER_JOIN" in behavior and "recordWagerJoin(player)" in wager
+          and "recordWagerLosers" in wager and "recordWagerLoss(loser)" in wager,
+          "joining or losing a wager does not move the behaviour variable")
+    check("kill behavior", "BEHAVIOR_KILL_HOSTILE" in behavior and "MobCategory.MONSTER" in events,
+          "a kill is not classified into hostile and innocent")
+    check("death behavior", "BEHAVIOR_DEATH" in behavior and "recordDeath(victim)" in events,
+          "dying does not move the behaviour variable")
     check("provenance events", "ItemTossEvent" in provenance and "LivingDropsEvent" in provenance
           and "mark(event.getEntity().getItem()" in provenance,
           "player drops are not tagged with their owner")
@@ -156,6 +178,8 @@ def main() -> int:
           "the luck line is not anchored to the top left corner")
     check("margins", "LEFT_MARGIN = 4" in overlay and "TOP_MARGIN = 4" in overlay,
           "the luck line margins are not 4 pixels")
+    check("screen gate", "minecraft.screen != null" in overlay,
+          "the luck line is still drawn over open screens")
     check("colours", all(token in overlay for token in (
         "value <= 20", "value <= 40", "value <= 60", "value <= 80", "value < 90")),
         "the colour bands are incomplete")
@@ -166,6 +190,8 @@ def main() -> int:
           "the Chinese label does not use 幸运值")
     check("packet payload", "writeVarInt" in packet and "readVarInt" in packet,
           "the packet does not carry the value")
+    check("protocol version", 'PROTOCOL_VERSION = "2"' in constants,
+          "the protocol version is not raised for this build")
 
     if problems:
         for problem in problems:

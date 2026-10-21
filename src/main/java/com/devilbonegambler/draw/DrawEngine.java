@@ -16,6 +16,7 @@ import com.devilbonegambler.config.ServerConfigManager;
 import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.dealer.DealerRewardService;
 import com.devilbonegambler.item.DiceProvenance;
+import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.DrawResultPacket;
@@ -251,6 +252,7 @@ public final class DrawEngine
         if (offeringsTaken)
         {
             settleOfferingValue(player, pending.totalValue);
+            SubjectiveBehaviorService.recordOffering(player);
 
             if (pending.totalValue > 0L)
             {

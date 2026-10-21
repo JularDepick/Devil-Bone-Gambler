@@ -41,6 +41,12 @@ public final class LuckOverlay implements IGuiOverlay
             return;
         }
 
+        /* Containers, chat and the pause menu all replace the game view, so the line stays out of every screen. */
+        if (minecraft.screen != null)
+        {
+            return;
+        }
+
         int value = ClientLuck.value();
         Component text = Component.translatable(KEY, Integer.valueOf(value));
         graphics.drawString(minecraft.font, text, LEFT_MARGIN, TOP_MARGIN, colorOf(value), true);

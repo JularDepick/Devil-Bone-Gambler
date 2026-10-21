@@ -6,6 +6,7 @@
 
 package com.devilbonegambler.luck;
 
+import com.devilbonegambler.altar.AltarService;
 import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.LuckSyncPacket;
@@ -24,10 +25,11 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * Keeps the luck value of every online player moving.
  *
- * A player receives the birth instant and the base value on the first join. Every update interval the increment is the
- * hidden fate value plus a bounded random term, seeded from the instant, the player identity, the current value and the
- * subjective behaviour variable, plus that behaviour variable itself. The result is clamped into 0..100, the behaviour
- * round is reset, and the value is pushed to that player for the corner display.
+ * A player receives the phase origin and the base value on the first join. Every update interval the increment is the
+ * hidden fate value, read from the game ticks since that origin, plus a bounded random term, seeded from the ticks, the
+ * player identity, the origin, the current value and the subjective behaviour variable, plus that behaviour variable
+ * itself. The increment is capped at the configured limit, the result is clamped into 0..100, the behaviour round is
+ * reset, and the value is pushed to that player for the corner display.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LuckService
@@ -88,9 +90,10 @@ public final class LuckService
             return;
         }
 
-        long now = System.currentTimeMillis();
+        long ticks = nowTick(server);
         LuckData data = LuckData.get(server);
-        LuckData.Entry entry = data.ensure(player.getUUID(), now);
+        data.ensureCreated(System.currentTimeMillis());
+        LuckData.Entry entry = data.ensure(player.getUUID(), ticks);
         ModNetwork.sendToPlayer(player, new LuckSyncPacket(entry.value()));
     }
 
@@ -103,13 +106,14 @@ public final class LuckService
             return;
         }
 
-        long now = System.currentTimeMillis();
+        long now = nowTick(server);
         LuckData data = LuckData.get(server);
+        long origin = data.ensureCreated(System.currentTimeMillis());
         LuckData.Entry entry = data.ensure(player.getUUID(), now);
         long birth = entry.birth();
         int current = entry.value();
         int behavior = SubjectiveBehaviorService.value(player);
-        double fate = FateModel.value(birth, now);
+        double fate = FateModel.value(birth, now, phaseSeed(origin, player, current));
         int random = new Random(seed(now, player.getUUID(), birth, current, behavior))
                 .nextInt(ModConstants.LUCK_INCREMENT_RANDOM_SPAN * 2 + 1)
                 - ModConstants.LUCK_INCREMENT_RANDOM_SPAN;
@@ -127,7 +131,53 @@ public final class LuckService
     }
 
     /**
-     * The random term is fixed by the instant, the player identity, the birth instant, the current value and the
+     * The overworld game time is the only clock the model reads: it is saved with the level, keeps counting while the
+     * server runs and is never rewound by the day time command.
+     */
+    private static long nowTick(MinecraftServer server)
+    {
+        return server.overworld().getGameTime();
+    }
+
+    /**
+     * The phase seed mixes the save creation instant with the player identity and the coarse player state, so two
+     * players in one save run different curves and a single curve shifts as that state changes.
+     */
+    private static long phaseSeed(long origin, ServerPlayer player, int luck)
+    {
+        long seed = origin;
+        seed = seed * 1000003L + player.getUUID().getMostSignificantBits();
+        seed = seed * 1000003L + player.getUUID().getLeastSignificantBits();
+        seed = seed * 1000003L + stateOf(player, luck);
+        return seed;
+    }
+
+    /**
+     * The coarse player state: half hearts, food points, dimension, chunk coordinates, whether an altar governs the
+     * player and the luck value in tens. Finer gradations are left out so the phase cannot jitter every tick.
+     */
+    private static long stateOf(ServerPlayer player, int luck)
+    {
+        long health = Math.round(player.getHealth() * 2.0F);
+        long food = player.getFoodData().getFoodLevel();
+        long dimension = player.level().dimension().location().hashCode();
+        long chunkX = player.blockPosition().getX() >> 4;
+        long chunkZ = player.blockPosition().getZ() >> 4;
+        long altar = AltarService.governingValue(player) >= 0L ? 1L : 0L;
+        long luckTens = luck / 10;
+
+        long seed = health;
+        seed = seed * 31L + food;
+        seed = seed * 131L + dimension;
+        seed = seed * 977L + chunkX;
+        seed = seed * 1013L + chunkZ;
+        seed = seed * 4099L + altar;
+        seed = seed * 6151L + luckTens;
+        return seed;
+    }
+
+    /**
+     * The random term is fixed by the game tick, the player identity, the phase origin, the current value and the
      * behaviour variable, so a replay of the same state cannot quietly reroll a different meal.
      */
     private static long seed(long now, UUID playerId, long birth, int current, int behavior)

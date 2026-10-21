@@ -19,7 +19,7 @@ public final class ModConstants
      */
     public static final String MOD_ID = DevilBoneGambler.MODID;
     public static final String NETWORK_CHANNEL = "main";
-    public static final String PROTOCOL_VERSION = "1";
+    public static final String PROTOCOL_VERSION = "2";
 
     /*
      * Config files and domains
@@ -83,6 +83,19 @@ public final class ModConstants
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
     public static final int ATTACK_DEALER_BEHAVIOR_DELTA = -2;
     public static final int DEALER_PICKUP_BEHAVIOR_DELTA = 2;
+    public static final int OFFERING_BEHAVIOR_DELTA = 1;
+    public static final int WAGER_JOIN_BEHAVIOR_DELTA = 1;
+    public static final int WAGER_LOSS_BEHAVIOR_DELTA = -1;
+    public static final int KILL_HOSTILE_BEHAVIOR_DELTA = 1;
+    public static final int KILL_INNOCENT_BEHAVIOR_DELTA = -2;
+    public static final int DEATH_BEHAVIOR_DELTA = -3;
+
+    /* One game day is twelve 时辰, thirty days a month and twelve months a year, counted in game ticks. */
+    public static final long LUCK_DAY_TICKS = 24000L;
+    public static final long LUCK_MONTH_TICKS = 720000L;
+    public static final long LUCK_YEAR_TICKS = 8640000L;
+    /* A state change shifts the phase by at most half a 爻 step, never by a whole channel period. */
+    public static final int LUCK_PHASE_STEPS = 24;
     public static final String DICE_OWNER_TAG = "DevilBoneGamblerDiceOwner";
 
     /*

@@ -17,18 +17,24 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
 /**
- * Server wide luck value per player, keyed by UUID.
+ * Server wide luck value per player, keyed by UUID, plus the save creation instant.
  *
- * Every entry also remembers the wall clock instant of the first join, which the hidden fate model uses as its first
- * argument. A player without an entry reads as the base value and receives the birth instant on the first join.
+ * Every entry remembers the game tick at which that player first joined, which the hidden fate model uses as its phase
+ * origin. The creation instant is stored once, in wall clock milliseconds, so two saves never share one curve. A player
+ * without an entry reads as the base value and receives the phase origin on the first join. Entries written by an
+ * earlier build stored wall clock milliseconds as the origin; those values are recognised and rewritten as ticks.
  */
 public class LuckData extends SavedData
 {
     private static final String TAG_ENTRIES = "luck";
     private static final String TAG_VALUE = "value";
     private static final String TAG_BIRTH = "birth";
+    private static final String TAG_CREATED = "created";
+    /* Any origin above this many ticks would be centuries of game time, so it can only be wall clock milliseconds. */
+    private static final long LEGACY_ORIGIN_THRESHOLD = 1000000000L;
 
     private final Map<UUID, Entry> entries = new HashMap<UUID, Entry>();
+    private long createdMillis;
 
     public static LuckData get(MinecraftServer server)
     {
@@ -39,6 +45,7 @@ public class LuckData extends SavedData
     public static LuckData load(CompoundTag tag)
     {
         LuckData data = new LuckData();
+        data.createdMillis = tag.getLong(TAG_CREATED);
         CompoundTag stored = tag.getCompound(TAG_ENTRIES);
 
         for (String key : stored.getAllKeys())
@@ -81,6 +88,7 @@ public class LuckData extends SavedData
         }
 
         tag.put(TAG_ENTRIES, stored);
+        tag.putLong(TAG_CREATED, this.createdMillis);
         return tag;
     }
 
@@ -97,8 +105,30 @@ public class LuckData extends SavedData
     }
 
     /**
-     * Returns the entry of a player, creating it with the base value and this instant as the birth, or completing a
-     * birth that an older value did not carry yet.
+     * The wall clock instant of the save creation, written once and only read afterwards.
+     */
+    public long createdMillis()
+    {
+        return this.createdMillis;
+    }
+
+    /**
+     * Returns the creation instant, writing this one the first time the save is ticked.
+     */
+    public long ensureCreated(long nowMillis)
+    {
+        if (this.createdMillis <= 0L)
+        {
+            this.createdMillis = nowMillis;
+            setDirty();
+        }
+
+        return this.createdMillis;
+    }
+
+    /**
+     * Returns the entry of a player, creating it with the base value and this game tick as the phase origin, or
+     * completing an origin that an older value did not carry yet. A stored wall clock origin is rewritten as ticks.
      */
     public Entry ensure(UUID playerId, long now)
     {
@@ -110,7 +140,7 @@ public class LuckData extends SavedData
             this.entries.put(playerId, entry);
             setDirty();
         }
-        else if (entry.birth <= 0L)
+        else if (entry.birth <= 0L || entry.birth > LEGACY_ORIGIN_THRESHOLD)
         {
             entry.birth = now;
             setDirty();
@@ -142,7 +172,7 @@ public class LuckData extends SavedData
     }
 
     /**
-     * The stored pair of a player: the current luck and the instant of the first join.
+     * The stored pair of a player: the current luck and the game tick of the first join.
      */
     public static final class Entry
     {
