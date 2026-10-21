@@ -72,6 +72,7 @@
 - Submit writes the changes to disk; on a revision conflict the panel loads the latest configuration, so another submit works
 - A failed save reports its reason on the status line
 - Run /devilbonegambler reload (or /dbgr reload) to make the server read the configuration again
+- Run /devilbonegambler luck <player> <value> (or /dbgr luck) to set the luck of one player directly, the value runs from 0 to 100 and an offline player receives it on the next join
 - This manual follows the role: it is granted while the role lasts and taken back with it; a dropped copy disappears after a moment and is granted again; it goes back into the inventory when a container screen closes
 
 ## Good to know

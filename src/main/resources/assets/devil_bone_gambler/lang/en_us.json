@@ -62,6 +62,8 @@
   "gui.devil_bone_gambler.admin.add_entry": "Add Entry",
   "gui.devil_bone_gambler.command.reloaded": "Devil Bone Gambler config reloaded",
   "gui.devil_bone_gambler.command.ran": "%s command(s) ran",
+  "gui.devil_bone_gambler.command.luck_set": "Set the luck of %s to %s",
+  "gui.devil_bone_gambler.command.luck_unknown": "Unknown player %s",
   "gui.devil_bone_gambler.admin.remove": "Remove",
   "gui.devil_bone_gambler.admin.remove_confirm": "Confirm delete",
   "gui.devil_bone_gambler.admin.refresh": "Reload",

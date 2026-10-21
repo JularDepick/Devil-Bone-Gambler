@@ -7,18 +7,24 @@
 package com.devilbonegambler.commands;
 
 import com.devilbonegambler.config.ServerConfigManager;
+import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.draw.NotifySender;
+import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.ServerRequestHandler;
+import com.devilbonegambler.network.packet.LuckSyncPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.SampleContext;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -37,6 +43,11 @@ public final class ModCommands
     private static final String RELOAD_LITERAL = "reload";
     private static final String RUN_LITERAL = "run";
     private static final String RUN_ARGUMENT = "command";
+    private static final String LUCK_LITERAL = "luck";
+    private static final String LUCK_TARGET_ARGUMENT = "player";
+    private static final String LUCK_VALUE_ARGUMENT = "value";
+    private static final String KEY_LUCK_SET = "gui." + ModConstants.MOD_ID + ".command.luck_set";
+    private static final String KEY_LUCK_UNKNOWN = "gui." + ModConstants.MOD_ID + ".command.luck_unknown";
 
     private ModCommands()
     {
@@ -65,7 +76,13 @@ public final class ModCommands
                 .then(Commands.literal(RUN_LITERAL)
                         .requires(ModCommands::mayManage)
                         .then(Commands.argument(RUN_ARGUMENT, StringArgumentType.greedyString())
-                                .executes(ModCommands::runLine)));
+                                .executes(ModCommands::runLine)))
+                .then(Commands.literal(LUCK_LITERAL)
+                        .requires(ModCommands::mayManage)
+                        .then(Commands.argument(LUCK_TARGET_ARGUMENT, StringArgumentType.word())
+                                .then(Commands.argument(LUCK_VALUE_ARGUMENT,
+                                        IntegerArgumentType.integer(ModConstants.MIN_LUCK, ModConstants.MAX_LUCK))
+                                        .executes(ModCommands::setLuck))));
     }
 
     /**
@@ -119,6 +136,51 @@ public final class ModCommands
                 () -> Component.translatable("gui." + ModConstants.MOD_ID + ".command.ran", Integer.valueOf(executed)),
                 false);
         return 1;
+    }
+
+    /**
+     * Sets the luck of one player and pushes the value to the client, so an admin can correct a value without waiting
+     * for the next periodic update. The phase origin is kept, so the hidden curve stays where it was. An offline
+     * player keeps the value until the next join.
+     */
+    private static int setLuck(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
+    {
+        MinecraftServer server = context.getSource().getServer();
+
+        if (server == null)
+        {
+            return 0;
+        }
+
+        String name = StringArgumentType.getString(context, LUCK_TARGET_ARGUMENT);
+        int value = IntegerArgumentType.getInteger(context, LUCK_VALUE_ARGUMENT);
+        ServerPlayer online = server.getPlayerList().getPlayerByName(name);
+        UUID targetId = online != null ? online.getUUID() : profileId(server, name);
+
+        if (targetId == null)
+        {
+            context.getSource().sendFailure(Component.translatable(KEY_LUCK_UNKNOWN, name));
+            return 0;
+        }
+
+        LuckData.get(server).setLuck(targetId, value);
+
+        if (online != null)
+        {
+            ModNetwork.sendToPlayer(online, new LuckSyncPacket(value));
+        }
+
+        context.getSource().sendSuccess(
+                () -> Component.translatable(KEY_LUCK_SET, name, Integer.valueOf(value)), false);
+        return 1;
+    }
+
+    /**
+     * The identity of a player who is not online, taken from the profile cache of the server.
+     */
+    private static UUID profileId(MinecraftServer server, String name)
+    {
+        return server.getProfileCache().get(name).map(GameProfile::getId).orElse(null);
     }
 
     private static int reload(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

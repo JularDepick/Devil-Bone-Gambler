@@ -10,6 +10,7 @@ import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.altar.AltarService;
 import com.devilbonegambler.block.DevilsAltarBlockEntity;
 import com.devilbonegambler.util.CommandPlaceholders;
+import com.devilbonegambler.util.CommandSequence;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.SampleContext;
 import com.mojang.brigadier.CommandDispatcher;
@@ -109,6 +110,12 @@ public final class CommandRunner
              */
             for (int repetition = 0; repetition < repeats; repetition++)
             {
+                /*
+                 * Every executed line derives its own context from the server wide command count, so two lines of one
+                 * entry and two repetitions of one line cannot sample the same value.
+                 */
+                SampleContext lineContext = context == null ? null : context.derive(CommandSequence.next());
+
                 String sampled = RandomPoolSampler.sample(body, server, trigger.getRandom());
 
                 if (sampled == null)
@@ -127,7 +134,7 @@ public final class CommandRunner
                     continue;
                 }
 
-                command = SamplePlaceholders.expand(command, context, sampledNames);
+                command = SamplePlaceholders.expand(command, lineContext, sampledNames);
 
                 if (command == null)
                 {
@@ -136,7 +143,7 @@ public final class CommandRunner
                     continue;
                 }
 
-                command = NumberPlaceholders.expand(command, context);
+                command = NumberPlaceholders.expand(command, lineContext);
 
                 if (command.isEmpty())
                 {

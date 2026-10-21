@@ -28,6 +28,7 @@ import com.devilbonegambler.network.packet.MobListPacket;
 import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.OpenValueTablePacket;
 import com.devilbonegambler.network.packet.PlaceDicePacket;
+import com.devilbonegambler.network.packet.PlacedDiceBreakPacket;
 import com.devilbonegambler.network.packet.PlacedDiceUsePacket;
 import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
@@ -111,6 +112,8 @@ public final class ModNetwork
                 PlaceDicePacket::encode, PlaceDicePacket::decode, PlaceDicePacket::handle);
         CHANNEL.registerMessage(index++, DiceModifierPacket.class,
                 DiceModifierPacket::encode, DiceModifierPacket::decode, DiceModifierPacket::handle);
+        CHANNEL.registerMessage(index++, PlacedDiceBreakPacket.class,
+                PlacedDiceBreakPacket::encode, PlacedDiceBreakPacket::decode, PlacedDiceBreakPacket::handle);
         CHANNEL.registerMessage(index++, PlacedDiceUsePacket.class,
                 PlacedDiceUsePacket::encode, PlacedDiceUsePacket::decode, PlacedDiceUsePacket::handle);
         CHANNEL.registerMessage(index++, BehaviorStatePacket.class,

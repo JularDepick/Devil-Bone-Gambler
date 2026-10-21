@@ -40,6 +40,9 @@ import net.minecraftforge.fml.common.Mod;
  * behaves as if the die had been used, no matter what the player is holding: the server moves the die into the
  * inventory and tells the client to start the normal action, so the stack in hand is never replaced. That branch never
  * creates a drop; with the key held the block breaks normally and drops the die instead.
+ *
+ * The key state travels with the break request itself, so a click is decided by the key as it was at that moment. The
+ * mirrored key state and the break event hook stay only as a fallback for breaks that do not come from this client.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class PlacedDiceService
@@ -72,6 +75,53 @@ public final class PlacedDiceService
     public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event)
     {
         MODIFIER.remove(event.getEntity().getUUID());
+    }
+
+    /**
+     * A placed die is broken by a player. The key state comes with the request, so the outcome never depends on a
+     * mirror that may have gone stale: with the key held the die breaks into a drop, without it the same click uses the
+     * die and nothing is dropped.
+     */
+    public static void breakAt(ServerPlayer player, BlockPos pos, boolean modifierHeld)
+    {
+        if (player == null || pos == null || !(player.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        BlockState state = level.getBlockState(pos);
+
+        if (!(state.getBlock() instanceof PlacedDiceBlock dice))
+        {
+            return;
+        }
+
+        if (!level.mayInteract(player, pos) || player.distanceToSqr(Vec3.atCenterOf(pos)) > PLACE_RANGE_SQR)
+        {
+            return;
+        }
+
+        if (!level.removeBlock(pos, false))
+        {
+            return;
+        }
+
+        if (modifierHeld)
+        {
+            /*
+             * Holding the key is the only player driven way to get the die back. Creative keeps the vanilla rule of
+             * breaking without a drop.
+             */
+            if (!player.getAbilities().instabuild)
+            {
+                Block.popResource(level, pos, new ItemStack(dice.devils()
+                        ? ModItems.DEVILS_DICE.get() : ModItems.GAMBLERS_DICE.get()));
+            }
+
+            return;
+        }
+
+        useFromBreak(player, level, pos, state, dice.devils());
     }
 
     public static void place(ServerPlayer player, BlockPos clickedPos, Direction face, boolean offhand)
@@ -130,6 +180,10 @@ public final class PlacedDiceService
         level.playSound(null, target, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
     }
 
+    /**
+     * Fallback for breaks that do not come through the break request of this mod, for example another mod removing the
+     * block for a player. The mirrored key state decides here, and the branch never creates a drop on its own.
+     */
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event)
     {

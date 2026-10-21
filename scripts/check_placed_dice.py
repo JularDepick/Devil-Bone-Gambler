@@ -21,6 +21,8 @@ SETUP = JAVA / "client" / "ClientSetup.java"
 NETWORK = JAVA / "network" / "ModNetwork.java"
 HANDLER = JAVA / "client" / "ClientPacketHandler.java"
 PACKET = JAVA / "network" / "packet" / "PlacedDiceUsePacket.java"
+BREAK_PACKET = JAVA / "network" / "packet" / "PlacedDiceBreakPacket.java"
+REQUESTS = JAVA / "network" / "ServerRequestHandler.java"
 ASSETS = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler"
 
 problems = []
@@ -43,6 +45,8 @@ def main() -> int:
     handler = read(HANDLER)
     packet = read(PACKET)
     block = read(BLOCK)
+    break_packet = read(BREAK_PACKET)
+    requests = read(REQUESTS)
 
     check("modifier key", "GLFW.GLFW_KEY_TAB" in key and "KeyMapping" in key,
           "the default Tab key mapping is missing")
@@ -62,9 +66,19 @@ def main() -> int:
     check("no empty hand gate", "player.getMainHandItem().isEmpty()" not in service
           and "player.getOffhandItem().isEmpty()" not in service,
           "the break branch still requires empty hands")
-    check("use without drop", "getInventory().add(dice)" in service and "popResource" not in service
-          and "setBlockAndUpdate(pos, broken)" in service,
-          "the use branch must charge the inventory, must put the block back when it is full and must not create a drop")
+    check("use without drop", "getInventory().add(dice)" in service and "setBlockAndUpdate(pos, broken)" in service,
+          "the use branch must charge the inventory and must put the block back when it is full")
+    check("key held drops", "if (modifierHeld)" in service and "popResource" in service,
+          "the key held break does not drop the die")
+    check("player break drops nothing", "LootContextParams.THIS_ENTITY" in block and "instanceof Player" in block
+          and "Collections.emptyList()" in block,
+          "a player break still drops through the loot path, so a use can turn into a silent drop")
+    check("break carries the key", "PlacedDiceBreakPacket(hit.getBlockPos(), KEY.isDown())" in key
+          and "breakAt(player, message.pos(), message.modifierHeld())" in requests,
+          "the break request does not carry the key state, so a stale mirror decides the outcome")
+    check("break packet", "writeBlockPos" in break_packet and "writeBoolean" in break_packet
+          and "PlacedDiceBreakPacket.class" in network,
+          "the break packet is not built or not registered")
     check("modifier branch", "isModifierHeld(player)" in service and "event.setCanceled(true)" in service,
           "the break branch ignores the modifier or does not stop the vanilla break")
     check("use branch", "PlacedDiceUsePacket.GAMBLERS_DRAW" in service

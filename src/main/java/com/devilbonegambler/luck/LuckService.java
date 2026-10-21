@@ -117,7 +117,7 @@ public final class LuckService
         int random = new Random(seed(now, player.getUUID(), birth, current, behavior))
                 .nextInt(ModConstants.LUCK_INCREMENT_RANDOM_SPAN * 2 + 1)
                 - ModConstants.LUCK_INCREMENT_RANDOM_SPAN;
-        int increment = Mth.clamp((int) Math.round(fate + random + behavior),
+        int increment = Mth.clamp((int) Math.round(fate + random + behavior + preferenceOf(current)),
                 -ModConstants.LUCK_INCREMENT_LIMIT, ModConstants.LUCK_INCREMENT_LIMIT);
         int next = Mth.clamp(current + increment, ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
 
@@ -128,6 +128,72 @@ public final class LuckService
 
         SubjectiveBehaviorService.finishRound(player);
         ModNetwork.sendToPlayer(player, new LuckSyncPacket(next));
+    }
+
+    /**
+     * Death does not cost the behaviour variable. The value moves a fixed step towards the comfortable band instead, so
+     * a low value rises, a high value falls, and a value already inside the band stays where it is. The new value is
+     * written and pushed right away, so the respawn carries it.
+     */
+    public static void nudgeAfterDeath(ServerPlayer player)
+    {
+        MinecraftServer server = player == null ? null : player.getServer();
+
+        if (server == null)
+        {
+            return;
+        }
+
+        LuckData data = LuckData.get(server);
+        int current = data.ensure(player.getUUID(), nowTick(server)).value();
+        int step = deathStepOf(current);
+
+        if (step == 0)
+        {
+            return;
+        }
+
+        int next = Mth.clamp(current + step, ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
+        data.setLuck(player.getUUID(), next);
+        ModNetwork.sendToPlayer(player, new LuckSyncPacket(next));
+    }
+
+    /**
+     * The death step points at the comfortable band and never crosses its nearer edge.
+     */
+    private static int deathStepOf(int luck)
+    {
+        if (luck < ModConstants.LUCK_LOW_BAND)
+        {
+            return Math.min(ModConstants.LUCK_DEATH_STEP, ModConstants.LUCK_LOW_BAND - luck);
+        }
+
+        if (luck > ModConstants.LUCK_HIGH_BAND)
+        {
+            return -Math.min(ModConstants.LUCK_DEATH_STEP, luck - ModConstants.LUCK_HIGH_BAND);
+        }
+
+        return 0;
+    }
+
+    /**
+     * The banded preference of one update: a low value is pulled up, a high value is pulled down and the middle band
+     * stays neutral. The pull is added like the behaviour variable, so it shifts the average without overriding the
+     * fate value or the random term, and a value inside the middle band keeps the plain model.
+     */
+    private static int preferenceOf(int luck)
+    {
+        if (luck < ModConstants.LUCK_LOW_BAND)
+        {
+            return ModConstants.LUCK_LOW_DRIFT;
+        }
+
+        if (luck > ModConstants.LUCK_HIGH_BAND)
+        {
+            return ModConstants.LUCK_HIGH_DRIFT;
+        }
+
+        return 0;
     }
 
     /**

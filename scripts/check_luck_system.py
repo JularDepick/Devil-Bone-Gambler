@@ -66,6 +66,8 @@ def main() -> int:
     events = read(JAVA / "luck" / "LuckBehaviorEvents.java")
     draw = read(JAVA / "draw" / "DrawEngine.java")
     wager = read(JAVA / "wager" / "WagerService.java")
+    dealer_wager = read(JAVA / "dealer" / "DealerWagerService.java")
+    commands = read(JAVA / "commands" / "ModCommands.java")
     zh = json.loads(read(LANG / "zh_cn.json"))
     en = json.loads(read(LANG / "en_us.json"))
 
@@ -116,12 +118,18 @@ def main() -> int:
           "the save creation instant is not stored or not written once")
     check("legacy origin", "LEGACY_ORIGIN_THRESHOLD" in data,
           "a stored wall clock origin would never be rewritten as ticks")
-    check("random combined", "random" in service and "fate + random + behavior" in service,
-          "the random term and the behaviour value are not added to the fate value")
+    check("random combined", "random" in service and "fate + random + behavior + preferenceOf(current)" in service,
+          "the random term, the behaviour value and the banded preference are not added to the fate value")
+    check("banded preference", all(token in constants for token in (
+        "LUCK_LOW_BAND = 50", "LUCK_HIGH_BAND = 80", "LUCK_LOW_DRIFT = 6", "LUCK_HIGH_DRIFT = -6")),
+        "the banded luck preference is missing")
+    check("preference bands", "luck < ModConstants.LUCK_LOW_BAND" in service
+          and "luck > ModConstants.LUCK_HIGH_BAND" in service,
+          "the preference is not applied below the low band and above the high band")
     check("behaviour read", "SubjectiveBehaviorService.value(player)" in service,
           "the increment does not read the subjective behaviour value")
     check("behaviour reset after", service.index("SubjectiveBehaviorService.finishRound(player)")
-          > service.index("Math.round(fate + random + behavior)"),
+          > service.index("Math.round(fate + random + behavior + preferenceOf(current))"),
           "the behaviour round is not reset after the increment")
     check("behaviour applied", "state.value + delta" in behavior and "Mth.clamp" in behavior,
           "a behaviour does not change and clamp the variable")
@@ -140,10 +148,16 @@ def main() -> int:
     check("wager behavior", "BEHAVIOR_WAGER_JOIN" in behavior and "recordWagerJoin(player)" in wager
           and "recordWagerLosers" in wager and "recordWagerLoss(loser)" in wager,
           "joining or losing a wager does not move the behaviour variable")
+    check("dealer wager behavior", "recordWagerJoin(player)" in dealer_wager
+          and "recordWagerLoss(member)" in dealer_wager and "winner.getUUID()" in dealer_wager,
+          "the dealer wager does not count its joins and its losers")
     check("kill behavior", "BEHAVIOR_KILL_HOSTILE" in behavior and "MobCategory.MONSTER" in events,
           "a kill is not classified into hostile and innocent")
-    check("death behavior", "BEHAVIOR_DEATH" in behavior and "recordDeath(victim)" in events,
-          "dying does not move the behaviour variable")
+    check("death moves value", "LUCK_DEATH_STEP" in constants and "nudgeAfterDeath" in service
+          and "nudgeAfterDeath(victim)" in events,
+          "dying does not move the luck value towards the comfortable band")
+    check("death not a behavior", "BEHAVIOR_DEATH" not in behavior and "DEATH_BEHAVIOR_DELTA" not in constants,
+          "dying still costs the behaviour variable")
     check("provenance events", "ItemTossEvent" in provenance and "LivingDropsEvent" in provenance
           and "mark(event.getEntity().getItem()" in provenance,
           "player drops are not tagged with their owner")
@@ -190,6 +204,10 @@ def main() -> int:
           "the Chinese label does not use 幸运值")
     check("packet payload", "writeVarInt" in packet and "readVarInt" in packet,
           "the packet does not carry the value")
+    check("set command", "IntegerArgumentType.integer(ModConstants.MIN_LUCK, ModConstants.MAX_LUCK)" in commands
+          and "setLuck" in commands, "the admin luck command is missing or not bounded to 0..100")
+    check("set command effect", "setLuck(targetId, value)" in commands and "new LuckSyncPacket(value)" in commands,
+          "the admin luck command does not store and push the value")
     check("protocol version", 'PROTOCOL_VERSION = "2"' in constants,
           "the protocol version is not raised for this build")
 

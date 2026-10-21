@@ -80,6 +80,11 @@ public final class ModConstants
     public static final int LUCK_UPDATE_INTERVAL_TICKS = 200;
     public static final int LUCK_INCREMENT_RANDOM_SPAN = 10;
     public static final int LUCK_INCREMENT_LIMIT = 50;
+    /* The banded preference of the increment: below the low band it pulls up, above the high band it pulls down. */
+    public static final int LUCK_LOW_BAND = 50;
+    public static final int LUCK_HIGH_BAND = 80;
+    public static final int LUCK_LOW_DRIFT = 6;
+    public static final int LUCK_HIGH_DRIFT = -6;
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
     public static final int ATTACK_DEALER_BEHAVIOR_DELTA = -2;
     public static final int DEALER_PICKUP_BEHAVIOR_DELTA = 2;
@@ -88,7 +93,8 @@ public final class ModConstants
     public static final int WAGER_LOSS_BEHAVIOR_DELTA = -1;
     public static final int KILL_HOSTILE_BEHAVIOR_DELTA = 1;
     public static final int KILL_INNOCENT_BEHAVIOR_DELTA = -2;
-    public static final int DEATH_BEHAVIOR_DELTA = -3;
+    /* Death does not touch the behaviour variable: it moves the value this many points towards the band. */
+    public static final int LUCK_DEATH_STEP = 2;
 
     /* One game day is twelve 时辰, thirty days a month and twelve months a year, counted in game ticks. */
     public static final long LUCK_DAY_TICKS = 24000L;

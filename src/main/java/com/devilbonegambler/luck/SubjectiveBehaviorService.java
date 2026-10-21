@@ -35,7 +35,6 @@ public final class SubjectiveBehaviorService
     public static final int BEHAVIOR_WAGER_LOSS = 5;
     public static final int BEHAVIOR_KILL_HOSTILE = 6;
     public static final int BEHAVIOR_KILL_INNOCENT = 7;
-    public static final int BEHAVIOR_DEATH = 8;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -78,11 +77,6 @@ public final class SubjectiveBehaviorService
     public static void recordKill(ServerPlayer player, boolean hostile)
     {
         record(player, hostile ? BEHAVIOR_KILL_HOSTILE : BEHAVIOR_KILL_INNOCENT);
-    }
-
-    public static void recordDeath(ServerPlayer player)
-    {
-        record(player, BEHAVIOR_DEATH);
     }
 
     /**
@@ -189,11 +183,6 @@ public final class SubjectiveBehaviorService
         if (behavior == BEHAVIOR_KILL_INNOCENT)
         {
             return ModConstants.KILL_INNOCENT_BEHAVIOR_DELTA;
-        }
-
-        if (behavior == BEHAVIOR_DEATH)
-        {
-            return ModConstants.DEATH_BEHAVIOR_DELTA;
         }
 
         return 0;

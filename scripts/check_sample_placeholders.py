@@ -94,8 +94,10 @@ def main() -> int:
     check("context fields", all(marker in context for marker in ("point", "overflow", "luck", "red", "seed")),
           "the sample context misses a roll attribute")
 
-    check("runner expansion", "SamplePlaceholders.expand(command, context, sampledNames)" in runner,
+    check("runner expansion", "SamplePlaceholders.expand(command, lineContext, sampledNames)" in runner,
           "the prize commands do not expand the sample placeholders")
+    check("per line seed", "CommandSequence.next()" in runner and "context.derive(" in runner,
+          "every executed line does not derive its own seed from the server wide command count")
     check("runner validation", "SamplePlaceholders.findProblem(body)" in runner
           and "SamplePlaceholders.sampleForm(" in runner, "validation does not know the sample placeholders")
     check("draw context", "new SampleContext(pending.roll.point(), pending.overflow, pending.luck,"

@@ -47,8 +47,10 @@ def main() -> int:
     check("chat uniform", "nextInt(high - low + 1)" in source,
           "a chat trial without a roll is not uniform")
     check("bounds", "MAX_NUMBER_PLACEHOLDER" in source, "the value bounds are missing")
-    check("runner expansion", "NumberPlaceholders.expand(command, context)" in runner,
+    check("runner expansion", "NumberPlaceholders.expand(command, lineContext)" in runner,
           "the command runner does not expand the numeric placeholder")
+    check("per line seed", "CommandSequence.next()" in runner and "context.derive(" in runner,
+          "every executed line does not derive its own seed from the server wide command count")
     check("runner validation", "NumberPlaceholders.findProblem(body)" in runner,
           "the command runner does not validate the numeric placeholder")
     check("sample form", "NumberPlaceholders.sampleForm(" in runner,

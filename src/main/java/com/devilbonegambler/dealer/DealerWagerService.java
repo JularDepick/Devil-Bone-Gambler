@@ -13,6 +13,7 @@ import com.devilbonegambler.data.LuckData;
 import com.devilbonegambler.draw.DiceRoll;
 import com.devilbonegambler.draw.DrawEngine;
 import com.devilbonegambler.draw.NotifySender;
+import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.menu.DealerBetMenu;
 import com.devilbonegambler.item.DiceProvenance;
 import com.devilbonegambler.mob.GamblersDealer;
@@ -142,6 +143,7 @@ public final class DealerWagerService
                     return;
                 }
 
+                SubjectiveBehaviorService.recordWagerJoin(player);
                 dealer.showRecruitText(session.memberCount(),
                         Math.max(0, remainingSeconds(session, server.getTickCount())));
                 broadcastMembers(server, session, Component.translatable(KEY_JOINED, player.getGameProfile().getName()));
@@ -753,6 +755,11 @@ public final class DealerWagerService
 
         for (ServerPlayer member : members)
         {
+            if (!member.getUUID().equals(winner.getUUID()))
+            {
+                SubjectiveBehaviorService.recordWagerLoss(member);
+            }
+
             settled.add(member.getUUID());
         }
 

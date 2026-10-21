@@ -34,6 +34,7 @@ import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.GamblersDiceRequestPacket;
 import com.devilbonegambler.network.packet.MobListRequestPacket;
 import com.devilbonegambler.network.packet.PlaceDicePacket;
+import com.devilbonegambler.network.packet.PlacedDiceBreakPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.util.ModConstants;
 import com.devilbonegambler.util.ValueTableBook;
@@ -67,6 +68,11 @@ public final class ServerRequestHandler
     public static void handleDiceModifier(ServerPlayer player, DiceModifierPacket message)
     {
         PlacedDiceService.setModifier(player, message.held());
+    }
+
+    public static void handlePlacedDiceBreak(ServerPlayer player, PlacedDiceBreakPacket message)
+    {
+        PlacedDiceService.breakAt(player, message.pos(), message.modifierHeld());
     }
 
     public static void handleGamblersDice(ServerPlayer player, GamblersDiceRequestPacket message)

@@ -17,8 +17,9 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * The violence side of the subjective behaviour variable: kills and deaths.
  *
- * Killing a hostile mob is a good deed, killing anything else, another player included, is a bad one, and dying always
- * costs. Every event goes through the shared round trigger, so a round still accepts at most one behaviour.
+ * Killing a hostile mob is a good deed and killing anything else, another player included, is a bad one; both go
+ * through the shared round trigger, so a round still accepts at most one behaviour. Dying does not touch the behaviour
+ * variable at all: it moves the luck value a step towards the comfortable band instead.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LuckBehaviorEvents
@@ -32,7 +33,7 @@ public final class LuckBehaviorEvents
     {
         if (event.getEntity() instanceof ServerPlayer victim)
         {
-            SubjectiveBehaviorService.recordDeath(victim);
+            LuckService.nudgeAfterDeath(victim);
             return;
         }
 

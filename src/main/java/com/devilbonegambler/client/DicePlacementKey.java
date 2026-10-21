@@ -6,9 +6,11 @@
 
 package com.devilbonegambler.client;
 
+import com.devilbonegambler.block.PlacedDiceBlock;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.packet.DiceModifierPacket;
 import com.devilbonegambler.network.packet.PlaceDicePacket;
+import com.devilbonegambler.network.packet.PlacedDiceBreakPacket;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -29,8 +31,8 @@ import org.lwjgl.glfw.GLFW;
  * The placement modifier key and its mouse hook.
  *
  * While the key is held, a right click with a die never reaches the vanilla use path: the click is cancelled and a
- * placement request goes to the server. The key state is also mirrored to the server, which needs it when a placed die
- * is broken with an empty hand.
+ * placement request goes to the server. A left click on a placed die is cancelled as well and sent with the key state
+ * read at that moment, so the server decides from the click itself instead of from a mirrored key state.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class DicePlacementKey
@@ -100,6 +102,39 @@ public final class DicePlacementKey
         }
 
         /* Holding the modifier must never fall through to the ordinary dice use. */
+        event.setCanceled(true);
+    }
+
+    /**
+     * A left click on a placed die never reaches the vanilla break path: the request carries the key state read right
+     * now, so holding the key drops the die and releasing it uses the die instead.
+     */
+    @SubscribeEvent
+    public static void onLeftClick(InputEvent.MouseButton.Pre event)
+    {
+        if (event.getButton() != GLFW.GLFW_MOUSE_BUTTON_LEFT || event.getAction() != GLFW.GLFW_PRESS)
+        {
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (minecraft.player == null || minecraft.screen != null || minecraft.level == null)
+        {
+            return;
+        }
+
+        if (!(minecraft.hitResult instanceof BlockHitResult hit))
+        {
+            return;
+        }
+
+        if (!(minecraft.level.getBlockState(hit.getBlockPos()).getBlock() instanceof PlacedDiceBlock))
+        {
+            return;
+        }
+
+        ModNetwork.sendToServer(new PlacedDiceBreakPacket(hit.getBlockPos(), KEY.isDown()));
         event.setCanceled(true);
     }
 
