@@ -85,6 +85,10 @@ public final class ModConstants
     public static final int LUCK_HIGH_BAND = 80;
     public static final int LUCK_LOW_DRIFT = 6;
     public static final int LUCK_HIGH_DRIFT = -6;
+    /* The lucky apple: ten seconds of a value held at the ceiling, then the pre meal value comes back. */
+    public static final int LUCK_CHILD_TICKS = 200;
+    public static final int LUCK_LOCKED_VALUE = 100;
+    public static final int MAX_FOOD_LEVEL = 20;
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
     public static final int ATTACK_DEALER_BEHAVIOR_DELTA = -2;
     public static final int DEALER_PICKUP_BEHAVIOR_DELTA = 2;
@@ -93,6 +97,8 @@ public final class ModConstants
     public static final int WAGER_LOSS_BEHAVIOR_DELTA = -1;
     public static final int KILL_HOSTILE_BEHAVIOR_DELTA = 1;
     public static final int KILL_INNOCENT_BEHAVIOR_DELTA = -2;
+    public static final int EATING_BEHAVIOR_DELTA = 1;
+    public static final int DICE_USE_BEHAVIOR_DELTA = 2;
     /* Death does not touch the behaviour variable: it moves the value this many points towards the band. */
     public static final int LUCK_DEATH_STEP = 2;
 

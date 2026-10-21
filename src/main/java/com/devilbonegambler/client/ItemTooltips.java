@@ -42,6 +42,10 @@ public final class ItemTooltips
         LINES.put("devils_altar", new String[] {
                 "tooltip.devil_bone_gambler.devils_altar",
                 "tooltip.devil_bone_gambler.devils_altar_worn" });
+        LINES.put("lucky_apple", new String[] {
+                "tooltip.devil_bone_gambler.lucky_apple",
+                "tooltip.devil_bone_gambler.lucky_apple_child",
+                "tooltip.devil_bone_gambler.lucky_apple_lock" });
         LINES.put("offering_value_table", new String[] {
                 "tooltip.devil_bone_gambler.offering_value_table",
                 "tooltip.devil_bone_gambler.offering_value_table_search" });

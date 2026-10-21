@@ -37,6 +37,7 @@ CRAFTABLE = (
     "devils_altar",
     "devils_dice",
     "gamblers_dice",
+    "lucky_apple",
     "offering_value_table",
 )
 

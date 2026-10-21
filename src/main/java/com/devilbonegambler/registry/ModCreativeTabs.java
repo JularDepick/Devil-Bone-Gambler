@@ -30,6 +30,7 @@ public final class ModCreativeTabs
                 output.accept(ModItems.GAMBLERS_DICE.get());
                 output.accept(ModItems.DEVILS_DICE.get());
                 output.accept(ModBlocks.DEVILS_ALTAR_ITEM.get());
+                output.accept(ModItems.LUCKY_APPLE.get());
                 output.accept(ModItems.OFFERING_VALUE_TABLE.get());
                 output.accept(ModItems.GAMBLERS_DEALER_SPAWN_EGG.get());
                 output.accept(ModItems.GAMEPLAY_MANUAL.get());

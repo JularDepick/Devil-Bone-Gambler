@@ -53,6 +53,13 @@
 - Resting the pointer on a row shows the registry name, and an entry that is not registered is drawn in a muted colour
 - The value is the basis of the offering conversion: the same item with another damage value or another set of enchantments converts into another value
 
+## Lucky Apple
+
+- Crafted from eight gamblers dice around one apple
+- Eating it fills the hunger bar and the health bar, and grants Child of Fortune for ten seconds
+- The luck value is held at 100 for that time and returns to the pre meal value afterwards; the periodic update still runs, it just does not move the locked value
+- The apple fills the hunger bar itself, it does not depend on how much the food would restore
+
 ## Wager
 
 - Sneak and right click the Gambler's Dice to start a wager, and only one wager can run at a time

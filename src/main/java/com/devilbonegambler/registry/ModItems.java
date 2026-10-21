@@ -9,10 +9,12 @@ package com.devilbonegambler.registry;
 import com.devilbonegambler.DevilBoneGambler;
 import com.devilbonegambler.item.DevilsDiceItem;
 import com.devilbonegambler.item.GamblersDiceItem;
+import com.devilbonegambler.item.LuckyAppleItem;
 import com.devilbonegambler.item.ManualItem;
 import com.devilbonegambler.manual.ManualKind;
 import com.devilbonegambler.item.OfferingValueTableItem;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.registries.DeferredRegister;
@@ -35,6 +37,14 @@ public final class ModItems
 
     public static final RegistryObject<Item> OFFERING_VALUE_TABLE = ITEMS.register("offering_value_table",
             () -> new OfferingValueTableItem(new Item.Properties().stacksTo(1)));
+
+    /*
+     * The lucky apple is edible, but it fills the hunger bar from its own class instead of through the food value, so a
+     * meal always restores it to full even when the player is nearly full.
+     */
+    public static final RegistryObject<Item> LUCKY_APPLE = ITEMS.register("lucky_apple",
+            () -> new LuckyAppleItem(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(0).saturationMod(0.0F).alwaysEat().build())));
 
     public static final RegistryObject<Item> GAMBLERS_DEALER_SPAWN_EGG = ITEMS.register("gamblers_dealer_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.GAMBLERS_DEALER, 0x4A3B2A, 0xC8A165, new Item.Properties()));

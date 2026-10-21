@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "devil_bone_gambler",
+  "pattern": [
+    "DDD",
+    "DAD",
+    "DDD"
+  ],
+  "key": {
+    "D": {
+      "item": "devil_bone_gambler:gamblers_dice"
+    },
+    "A": {
+      "item": "minecraft:apple"
+    }
+  },
+  "result": {
+    "item": "devil_bone_gambler:lucky_apple",
+    "count": 1
+  }
+}

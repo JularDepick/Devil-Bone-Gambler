@@ -117,6 +117,17 @@ public final class LuckService
         int random = new Random(seed(now, player.getUUID(), birth, current, behavior))
                 .nextInt(ModConstants.LUCK_INCREMENT_RANDOM_SPAN * 2 + 1)
                 - ModConstants.LUCK_INCREMENT_RANDOM_SPAN;
+        if (LuckLockService.isLocked(player))
+        {
+            /*
+             * The lock holds the value at the ceiling. The periodic pass still runs on its own cadence and still closes
+             * the behaviour round, so the update rhythm is untouched; only the write is skipped.
+             */
+            SubjectiveBehaviorService.finishRound(player);
+            ModNetwork.sendToPlayer(player, new LuckSyncPacket(LuckLockService.lockedValue()));
+            return;
+        }
+
         int increment = Mth.clamp((int) Math.round(fate + random + behavior + preferenceOf(current)),
                 -ModConstants.LUCK_INCREMENT_LIMIT, ModConstants.LUCK_INCREMENT_LIMIT);
         int next = Mth.clamp(current + increment, ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
@@ -200,7 +211,7 @@ public final class LuckService
      * The overworld game time is the only clock the model reads: it is saved with the level, keeps counting while the
      * server runs and is never rewound by the day time command.
      */
-    private static long nowTick(MinecraftServer server)
+    public static long nowTick(MinecraftServer server)
     {
         return server.overworld().getGameTime();
     }

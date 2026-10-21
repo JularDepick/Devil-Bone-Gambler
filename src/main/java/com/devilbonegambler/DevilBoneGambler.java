@@ -11,6 +11,7 @@ import com.devilbonegambler.registry.ModBlockEntities;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.registry.ModCreativeTabs;
 import com.devilbonegambler.registry.ModEntities;
+import com.devilbonegambler.registry.ModEffects;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.registry.ModMenus;
 import com.devilbonegambler.client.ModConfigScreen;
@@ -38,6 +39,7 @@ public class DevilBoneGambler
         IEventBus modEventBus = context.getModEventBus();
 
         ModItems.ITEMS.register(modEventBus);
+        ModEffects.EFFECTS.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlocks.BLOCK_ITEMS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);

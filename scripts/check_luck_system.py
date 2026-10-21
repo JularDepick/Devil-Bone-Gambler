@@ -128,7 +128,7 @@ def main() -> int:
           "the preference is not applied below the low band and above the high band")
     check("behaviour read", "SubjectiveBehaviorService.value(player)" in service,
           "the increment does not read the subjective behaviour value")
-    check("behaviour reset after", service.index("SubjectiveBehaviorService.finishRound(player)")
+    check("behaviour reset after", service.rindex("SubjectiveBehaviorService.finishRound(player)")
           > service.index("Math.round(fate + random + behavior + preferenceOf(current))"),
           "the behaviour round is not reset after the increment")
     check("behaviour applied", "state.value + delta" in behavior and "Mth.clamp" in behavior,
@@ -158,6 +158,12 @@ def main() -> int:
           "dying does not move the luck value towards the comfortable band")
     check("death not a behavior", "BEHAVIOR_DEATH" not in behavior and "DEATH_BEHAVIOR_DELTA" not in constants,
           "dying still costs the behaviour variable")
+    check("lock discards the round", service.index("LuckLockService.isLocked(player)")
+          < service.index("data.setLuck(player.getUUID(), next)"),
+          "the locked branch does not return before the value is written, so an increment could survive the lock")
+    check("dice use behavior", "DICE_USE_BEHAVIOR_DELTA = 2" in constants and "BEHAVIOR_DICE_USE" in behavior
+          and "recordDiceUse(player)" in draw,
+          "rerolling a die does not count as a behaviour")
     check("provenance events", "ItemTossEvent" in provenance and "LivingDropsEvent" in provenance
           and "mark(event.getEntity().getItem()" in provenance,
           "player drops are not tagged with their owner")

@@ -35,6 +35,8 @@ public final class SubjectiveBehaviorService
     public static final int BEHAVIOR_WAGER_LOSS = 5;
     public static final int BEHAVIOR_KILL_HOSTILE = 6;
     public static final int BEHAVIOR_KILL_INNOCENT = 7;
+    public static final int BEHAVIOR_EATING = 8;
+    public static final int BEHAVIOR_DICE_USE = 9;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -74,6 +76,23 @@ public final class SubjectiveBehaviorService
     /**
      * A kill of a hostile mob counts as a good deed, every other victim, another player included, counts as a bad one.
      */
+    /**
+     * A meal that restores hunger counts once, no matter how many hunger points it restores.
+     */
+    public static void recordEating(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_EATING);
+    }
+
+    /**
+     * Rerolling a die is a behaviour of its own. The charge is paid when the request is accepted, so a refused request
+     * never counts.
+     */
+    public static void recordDiceUse(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_DICE_USE);
+    }
+
     public static void recordKill(ServerPlayer player, boolean hostile)
     {
         record(player, hostile ? BEHAVIOR_KILL_HOSTILE : BEHAVIOR_KILL_INNOCENT);
@@ -183,6 +202,16 @@ public final class SubjectiveBehaviorService
         if (behavior == BEHAVIOR_KILL_INNOCENT)
         {
             return ModConstants.KILL_INNOCENT_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_EATING)
+        {
+            return ModConstants.EATING_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_DICE_USE)
+        {
+            return ModConstants.DICE_USE_BEHAVIOR_DELTA;
         }
 
         return 0;

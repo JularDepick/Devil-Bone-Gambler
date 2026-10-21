@@ -146,6 +146,7 @@ public final class DrawEngine
             return DrawResult.failure("item_mismatch");
         }
 
+        SubjectiveBehaviorService.recordDiceUse(player);
         ModNetwork.sendToPlayer(player, new PointDisplayPacket(sequence, roll.point(), roll.isRed(),
                 dice == ModItems.DEVILS_DICE.get(), overflow));
         RequestGuard.markBusy(player, ModConstants.POINT_DISPLAY_TICKS);
