@@ -78,7 +78,8 @@ public final class ModConstants
     public static final int MIN_LUCK = 0;
     public static final int MAX_LUCK = 100;
     public static final int LUCK_UPDATE_INTERVAL_TICKS = 200;
-    public static final int LUCK_INCREMENT_RANDOM_SPAN = 50;
+    public static final int LUCK_INCREMENT_RANDOM_SPAN = 10;
+    public static final int LUCK_INCREMENT_LIMIT = 50;
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
     public static final int ATTACK_DEALER_BEHAVIOR_DELTA = -2;
     public static final int DEALER_PICKUP_BEHAVIOR_DELTA = 2;

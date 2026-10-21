@@ -113,8 +113,9 @@ public final class LuckService
         int random = new Random(seed(now, player.getUUID(), birth, current, behavior))
                 .nextInt(ModConstants.LUCK_INCREMENT_RANDOM_SPAN * 2 + 1)
                 - ModConstants.LUCK_INCREMENT_RANDOM_SPAN;
-        int next = Mth.clamp(current + (int) Math.round(fate + random + behavior),
-                ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
+        int increment = Mth.clamp((int) Math.round(fate + random + behavior),
+                -ModConstants.LUCK_INCREMENT_LIMIT, ModConstants.LUCK_INCREMENT_LIMIT);
+        int next = Mth.clamp(current + increment, ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
 
         if (next != current)
         {

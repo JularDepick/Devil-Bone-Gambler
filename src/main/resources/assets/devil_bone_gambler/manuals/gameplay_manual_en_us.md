@@ -17,7 +17,7 @@
 - While holding either die, hold the placement key (Tab by default, rebindable in the controls) and right click to put the die down as a block instead of using it
 - Breaking that placed die uses the die no matter what your hands hold; sneaking uses the gambler's die as a sneak use, and breaking a devil's die inside an altar range uses it in range, with the die staying in the inventory when the screen is cancelled
 - Holding the placement key while breaking the placed die only returns it as a drop and never triggers a use; a break without the key creates no drop, and when the inventory has no room the block goes back to where it was
-- The luck value changes over time and is shown in the top right corner, coloured by its band; a higher value leans to red points and rare rewards, a lower one leans to black points and common entries
+- The luck value changes over time and is shown in the top left corner, coloured by its band; a higher value leans to red points and rare rewards, a lower one leans to black points and common entries
 
 ## Devil's Altar
 

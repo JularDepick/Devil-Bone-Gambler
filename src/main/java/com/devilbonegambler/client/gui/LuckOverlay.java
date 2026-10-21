@@ -11,12 +11,12 @@ import com.devilbonegambler.util.ModConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 /**
- * The luck line in the top right corner. The colour bands follow the value: low values are warm warnings and a high
- * value turns green. The line moves below the potion icons so it never covers them.
+ * The luck line in the top left corner. The colour bands follow the value: low values are warm warnings and a high
+ * value turns green. Vanilla keeps the top left corner free, so the line never covers the potion icons, which sit
+ * opposite it.
  */
 public final class LuckOverlay implements IGuiOverlay
 {
@@ -27,8 +27,8 @@ public final class LuckOverlay implements IGuiOverlay
     private static final int LIGHT_BLUE = 0x55CCFF;
     private static final int LIGHT_GREEN = 0x55FF99;
     private static final int GREEN = 0x55FF55;
-    /* Vanilla draws beneficial effects in one row and harmful effects in the next, both 26 pixels apart. */
-    private static final int EFFECT_ROW_HEIGHT = 26;
+    private static final int LEFT_MARGIN = 4;
+    private static final int TOP_MARGIN = 4;
 
     @Override
     public void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics graphics, float partialTick,
@@ -43,29 +43,7 @@ public final class LuckOverlay implements IGuiOverlay
 
         int value = ClientLuck.value();
         Component text = Component.translatable(KEY, Integer.valueOf(value));
-        int x = screenWidth - 4 - minecraft.font.width(text);
-        int y = 4 + effectOffset(minecraft.player);
-        graphics.drawString(minecraft.font, text, x, y, colorOf(value), true);
-    }
-
-    private static int effectOffset(Player player)
-    {
-        boolean beneficial = false;
-        boolean harmful = false;
-
-        for (net.minecraft.world.effect.MobEffectInstance effect : player.getActiveEffects())
-        {
-            if (effect.getEffect().isBeneficial())
-            {
-                beneficial = true;
-            }
-            else
-            {
-                harmful = true;
-            }
-        }
-
-        return ((beneficial ? 1 : 0) + (harmful ? 1 : 0)) * EFFECT_ROW_HEIGHT;
+        graphics.drawString(minecraft.font, text, LEFT_MARGIN, TOP_MARGIN, colorOf(value), true);
     }
 
     private static int colorOf(int value)

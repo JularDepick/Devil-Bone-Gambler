@@ -8,7 +8,7 @@ Checks that
   3. the fate model is deterministic, argument driven and clamped to [-50, 50],
   4. the periodic increment combines the fate value, a player seeded random term and the subjective behaviour value,
   5. the value is clamped to 0..100 and the behaviour round resets after the increment,
-  6. the client receives the value and paints it in the top right corner,
+  6. the client receives the value and paints it in the top left corner,
   7. the colour bands and the language key are present.
 Exit code 0 means the check passed.
 """
@@ -70,8 +70,11 @@ def main() -> int:
           "the base luck is not 80")
     check("update interval", re.search(r"LUCK_UPDATE_INTERVAL_TICKS\s*=\s*200", constants) is not None,
           "the update interval is not 200 ticks")
-    check("random span", re.search(r"LUCK_INCREMENT_RANDOM_SPAN\s*=\s*50", constants) is not None,
-          "the random span is not 50")
+    check("random span", re.search(r"LUCK_INCREMENT_RANDOM_SPAN\s*=\s*10", constants) is not None,
+          "the random span is not 10")
+    check("increment limit", re.search(r"LUCK_INCREMENT_LIMIT\s*=\s*50", constants) is not None
+          and "LUCK_INCREMENT_LIMIT" in service,
+          "a single increment is not capped at 50")
     check("upper bound", re.search(r"MAX_LUCK\s*=\s*100", constants) is not None,
           "the upper luck bound is not 100")
     check("behaviour limit", re.search(r"SUBJECTIVE_BEHAVIOR_LIMIT\s*=\s*10", constants) is not None,
@@ -148,10 +151,11 @@ def main() -> int:
           "the luck packet is not registered")
     check("packet handled", "handleLuckSync" in handler and "ClientLuck.set" in handler,
           "the client does not store the synced value")
-    check("top right", "screenWidth - 4 - minecraft.font.width(text)" in overlay,
-          "the luck line is not anchored to the top right corner")
-    check("effect rows", "EFFECT_ROW_HEIGHT = 26" in overlay and "isBeneficial()" in overlay,
-          "the luck line does not clear the vanilla effect rows")
+    check("top left", "drawString(minecraft.font, text, LEFT_MARGIN, TOP_MARGIN" in overlay
+          and "effectOffset" not in overlay,
+          "the luck line is not anchored to the top left corner")
+    check("margins", "LEFT_MARGIN = 4" in overlay and "TOP_MARGIN = 4" in overlay,
+          "the luck line margins are not 4 pixels")
     check("colours", all(token in overlay for token in (
         "value <= 20", "value <= 40", "value <= 60", "value <= 80", "value < 90")),
         "the colour bands are incomplete")
