@@ -1,7 +1,22 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/block",
   "render_type": "minecraft:cutout",
   "textures": {
-    "all": "devil_bone_gambler:item/gamblers_dice"
-  }
+    "particle": "devil_bone_gambler:item/gamblers_dice",
+    "dice": "devil_bone_gambler:item/gamblers_dice"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "faces": {
+        "north": { "uv": [13.3333, 0.0, 16.0, 16.0], "texture": "#dice", "cullface": "north" },
+        "east": { "uv": [10.6667, 0.0, 13.3333, 16.0], "texture": "#dice", "cullface": "east" },
+        "south": { "uv": [0.0, 0.0, 2.6667, 16.0], "texture": "#dice", "cullface": "south" },
+        "west": { "uv": [2.6667, 0.0, 5.3333, 16.0], "texture": "#dice", "cullface": "west" },
+        "up": { "uv": [8.0, 0.0, 10.6667, 16.0], "texture": "#dice", "cullface": "up" },
+        "down": { "uv": [5.3333, 0.0, 8.0, 16.0], "texture": "#dice", "cullface": "down" }
+      }
+    }
+  ]
 }

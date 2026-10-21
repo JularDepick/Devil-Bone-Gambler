@@ -1,5 +1,7 @@
 """
-Checks both dice item models: the cube geometry, the per face texture mapping and the pip count of every face.
+Checks the dice models: the cube geometry, the per face texture mapping and the pip count of every face, for the held
+die and for the placed die block. One six cell sheet is sliced by per face uv so each face keeps its own number, and a
+model that samples the whole sheet on every face is exactly what this check refuses.
 Exit code 0 means every face maps onto the cell that carries its own number, the six faces cover 1 to 6 exactly
 once, opposite faces sum to seven, the three faces the inventory looks at are 4, 5 and 6, each cell really shows
 that many pips, and every face covers the whole height of its cell in texture space, so no face is cropped or
@@ -104,7 +106,7 @@ def check_sheet(path):
     return problems
 
 
-def check_model(path, texture_path):
+def check_model(path, texture_path, low, high, why):
     if not path.exists():
         return ["missing model " + str(path)]
 
@@ -113,13 +115,14 @@ def check_model(path, texture_path):
     elements = model.get("elements") or []
 
     if len(elements) != 1:
-        return ["%s has %d elements, expected one cube" % (path.name, len(elements))]
+        return ["%s has %d elements, expected one cube element whose faces carry per face uv; a cube_all model repeats "
+                "the whole six cell sheet on every face" % (path.name, len(elements))]
 
     element = elements[0]
 
-    if element.get("from") != [2, 2, 2] or element.get("to") != [14, 14, 14]:
-        problems.append("%s cube is %s..%s, expected 2..14 so the six 12 pixel faces stay square"
-                % (path.name, element.get("from"), element.get("to")))
+    if element.get("from") != [low, low, low] or element.get("to") != [high, high, high]:
+        problems.append("%s cube is %s..%s, expected %d..%d so %s"
+                % (path.name, element.get("from"), element.get("to"), low, high, why))
 
     textures = model.get("textures") or {}
     reference = textures.get("dice", "")
@@ -183,9 +186,11 @@ def main():
     for die in ("devils_dice", "gamblers_dice"):
         print(die)
         texture = root / "textures/item" / (die + ".png")
-        model = root / "models/item" / (die + ".json")
         problems += check_sheet(texture)
-        problems += check_model(model, texture)
+        problems += check_model(root / "models/item" / (die + ".json"), texture, 2, 14,
+                "the held die stays a 12 pixel cube inside the block space")
+        problems += check_model(root / "models/block" / ("placed_" + die + ".json"), texture, 0, 16,
+                "a placed die fills the whole block space")
         print()
 
     if problems:
