@@ -208,6 +208,13 @@ def main() -> int:
         if chinese != english:
             problems.append("heading count differs for %s: %d against %d" % (manual, chinese, english))
 
+        zh_lines = tables[(manual, "zh_cn")]
+        en_lines = tables[(manual, "en_us")]
+
+        if len(zh_lines) != len(en_lines):
+            problems.append("line count differs for %s: %d against %d"
+                            % (manual, len(zh_lines), len(en_lines)))
+
     for language in LANGUAGES:
         reused = tables[(REUSED_MANUAL, language)]
         source = tables[(REUSED_SOURCE, language)]

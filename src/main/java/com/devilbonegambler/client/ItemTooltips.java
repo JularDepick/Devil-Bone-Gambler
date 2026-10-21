@@ -34,11 +34,14 @@ public final class ItemTooltips
         LINES.put("devils_dice", new String[] {
                 "tooltip.devil_bone_gambler.devils_dice",
                 "tooltip.devil_bone_gambler.devils_dice_range",
-                "tooltip.devil_bone_gambler.devils_dice_sight" });
+                "tooltip.devil_bone_gambler.devils_dice_sight",
+                "tooltip.devil_bone_gambler.dice_place" });
         LINES.put("gamblers_dice", new String[] {
                 "tooltip.devil_bone_gambler.gamblers_dice",
                 "tooltip.devil_bone_gambler.gamblers_dice_wager",
-                "tooltip.devil_bone_gambler.gamblers_dice_sight" });
+                "tooltip.devil_bone_gambler.gamblers_dice_locked",
+                "tooltip.devil_bone_gambler.gamblers_dice_sight",
+                "tooltip.devil_bone_gambler.dice_place" });
         LINES.put("devils_altar", new String[] {
                 "tooltip.devil_bone_gambler.devils_altar",
                 "tooltip.devil_bone_gambler.devils_altar_worn" });

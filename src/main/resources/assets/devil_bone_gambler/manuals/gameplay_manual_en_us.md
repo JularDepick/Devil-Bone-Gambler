@@ -57,7 +57,7 @@
 
 - Crafted from eight gamblers dice around one apple
 - Eating it fills the hunger bar and the health bar, and grants Child of Fortune for ten seconds
-- The luck value is held at 100 for that time and returns to the pre meal value afterwards; the periodic update still runs, it just does not move the locked value
+- The luck value is held at 100 for that time and every update during it is thrown away, so the pre meal value comes back unchanged
 - The apple fills the hunger bar itself, it does not depend on how much the food would restore
 
 ## Wager
@@ -105,15 +105,16 @@
 
 ## Crafting
 
-- The only craftable items are the two dice, the Devil's Altar and the Offering Value Table; the three manuals have no recipe and come with a role
+- The only craftable items are the two dice, the Devil's Altar, the Offering Value Table and the Lucky Apple; the three manuals have no recipe and come with a role
 - Devil's Dice: four per craft, with netherrack in the four corners, obsidian on the four edge middles and redstone in the centre
 - Gambler's Dice: eight per craft, with leather in the four corners, any planks on the four edge middles and redstone in the centre
 - Devil's Altar: one per craft, with glowstone dust, redstone and glowstone dust on the first row, netherrack, obsidian and netherrack on the second, and three obsidian on the third
 - Offering Value Table: one per craft, a vertical pair with a book on top and netherrack below
+- Lucky Apple: one per craft, eight gambler dice in a ring with one plain apple in the middle
 
 ## Prompts and the manual
 
-- Every prompt appears in the chat box
+- Almost every prompt appears in the chat box; the only exception is the dice point and colour line above the hotbar
 - The gameplay manual can be stored in a chest or thrown away, and a missing one is handed out again on the next join
 
 ## Good to know
