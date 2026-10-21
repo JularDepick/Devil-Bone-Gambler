@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Placed dice guard of Devil Bone Gambler.
 
-The modifier key places a held die as a block. Breaking it with an empty hand either uses the die or, with the modifier
-held, only drops it. This check asserts the placement packet, the modifier mirror, the break branch and the client key
-registration are all present.
+The modifier key places a held die as a block. Breaking it without that key uses the die whatever the player is holding
+and never spawns a drop, while breaking it with the key held only drops the die. This check asserts the placement
+packet, the modifier mirror, the break branch and the client key registration are all present.
 Exit code 0 means the check passed.
 """
 
@@ -59,9 +59,12 @@ def main() -> int:
           "the server does not place the die block")
     check("consume survival", "stack.shrink(1)" in service and "instabuild" in service,
           "placing a die neither consumes it nor respects creative mode")
-    check("empty hand gate", "player.getMainHandItem().isEmpty()" in service
-          and "player.getOffhandItem().isEmpty()" in service,
-          "the break branch does not require empty hands")
+    check("no empty hand gate", "player.getMainHandItem().isEmpty()" not in service
+          and "player.getOffhandItem().isEmpty()" not in service,
+          "the break branch still requires empty hands")
+    check("use without drop", "getInventory().add(dice)" in service and "popResource" not in service
+          and "setBlockAndUpdate(pos, broken)" in service,
+          "the use branch must charge the inventory, must put the block back when it is full and must not create a drop")
     check("modifier branch", "isModifierHeld(player)" in service and "event.setCanceled(true)" in service,
           "the break branch ignores the modifier or does not stop the vanilla break")
     check("use branch", "PlacedDiceUsePacket.GAMBLERS_DRAW" in service

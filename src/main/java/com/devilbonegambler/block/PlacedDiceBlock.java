@@ -15,8 +15,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 
 /**
- * A die placed on the ground. The block carries no state beyond its kind and drops the matching die when broken.
- * Breaking it by hand is intercepted by {@link PlacedDiceService} when the modifier key is not held.
+ * A die placed on the ground. The block carries no state beyond its kind, and its model slices one six cell sheet by
+ * face, so every side of the placed die shows its own number. Dropping the matching die is reserved for a plain break:
+ * {@link PlacedDiceService} turns every break without the modifier key into a use of that die, which creates no drop.
  */
 public class PlacedDiceBlock extends Block
 {

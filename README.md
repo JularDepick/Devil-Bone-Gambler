@@ -2,7 +2,7 @@
 
 # Devil-Bone-Gambler
 
-[![Version](https://img.shields.io/badge/Version-0.6.0-red)](https://github.com/JularDepick/Devil-Bone-Gambler/tree/v0.6.0)
+[![Version](https://img.shields.io/badge/Version-0.7.0-red)](https://github.com/JularDepick/Devil-Bone-Gambler/tree/v0.7.0)
 [![Copyright](https://img.shields.io/badge/Copyright-JularDepick-0066AA)](./COPYRIGHT)
 [![License](https://img.shields.io/badge/License-Apache--2.0-yellow)](./LICENSE)
 

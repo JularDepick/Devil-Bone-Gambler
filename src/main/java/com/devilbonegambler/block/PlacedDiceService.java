@@ -36,10 +36,10 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * Placing a die on the ground and breaking it again.
  *
- * Holding the placement key while right clicking puts the held die down as a block. Breaking that block with an empty
- * hand and without the key behaves as if the die had been used: the server puts one die into the hand (or the inventory
- * when the devil's die opens the altar screen), then tells the client to start the normal action. With the key held the
- * block simply breaks and drops the die.
+ * Holding the placement key while right clicking puts the held die down as a block. Breaking that block without the key
+ * behaves as if the die had been used, no matter what the player is holding: the server moves the die into the
+ * inventory and tells the client to start the normal action, so the stack in hand is never replaced. That branch never
+ * creates a drop; with the key held the block breaks normally and drops the die instead.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class PlacedDiceService
@@ -143,11 +143,6 @@ public final class PlacedDiceService
             return;
         }
 
-        if (!player.getMainHandItem().isEmpty() || !player.getOffhandItem().isEmpty())
-        {
-            return;
-        }
-
         if (isModifierHeld(player))
         {
             return;
@@ -165,7 +160,7 @@ public final class PlacedDiceService
             return;
         }
 
-        useFromBreak(player, level, event.getPos(), dice.devils());
+        useFromBreak(player, level, event.getPos(), event.getState(), dice.devils());
     }
 
     private static boolean isModifierHeld(ServerPlayer player)
@@ -173,23 +168,28 @@ public final class PlacedDiceService
         return MODIFIER.containsKey(player.getUUID());
     }
 
-    private static void useFromBreak(ServerPlayer player, ServerLevel level, BlockPos pos, boolean devils)
+    /*
+     * The use is charged from the inventory like any other dice use, so the die goes there first. A break that triggers
+     * a use never spawns a drop item: when the inventory has no room the block simply goes back where it was.
+     */
+    private static void useFromBreak(ServerPlayer player, ServerLevel level, BlockPos pos, BlockState broken,
+            boolean devils)
     {
         ItemStack dice = new ItemStack(devils ? ModItems.DEVILS_DICE.get() : ModItems.GAMBLERS_DICE.get());
 
-        /* In range the devil's die opens the altar screen; the die waits in the inventory, so cancelling keeps it. */
+        if (!player.getInventory().add(dice))
+        {
+            level.setBlockAndUpdate(pos, broken);
+            return;
+        }
+
+        /* In range the devil's die opens the altar screen, so the die waits in the inventory for the offering grid. */
         if (devils && AltarService.governingValue(player) >= 0L)
         {
-            if (!player.getInventory().add(dice))
-            {
-                Block.popResource(level, pos, dice);
-            }
-
             ModNetwork.sendToPlayer(player, new PlacedDiceUsePacket(PlacedDiceUsePacket.DEVILS_ALTAR));
             return;
         }
 
-        player.setItemInHand(InteractionHand.MAIN_HAND, dice);
         ModNetwork.sendToPlayer(player, new PlacedDiceUsePacket(devils
                 ? PlacedDiceUsePacket.DEVILS_DRAW : PlacedDiceUsePacket.GAMBLERS_DRAW));
     }
