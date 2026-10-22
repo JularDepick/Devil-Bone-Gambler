@@ -945,17 +945,35 @@ FIREWORK_IDEAS = [
     ("近距烟花", "A close firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~1 ~ {LifeTime:#(8),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
 ]
 
+
+
+# Enchanted books hand the player a single enchantment at a level the region decides, which is the one enchantment
+# verb the survival pool never uses for the creative pool's purposes.
+ENCHANT_IDEAS = [
+    ("锋利附魔书", "A sharpness book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:sharpness\",lvl:%(1,3)}]}"),
+    ("保护附魔书", "A protection book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:protection\",lvl:%(1,3)}]}"),
+    ("耐久附魔书", "An unbreaking book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:unbreaking\",lvl:%(1,3)}]}"),
+    ("时运附魔书", "A fortune book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:fortune\",lvl:%(1,2)}]}"),
+    ("经验修补附魔书", "A mending book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:mending\",lvl:1}]}"),
+    ("力量附魔书", "A power book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:power\",lvl:%(1,3)}]}"),
+    ("冰霜行者附魔书", "A frost walker book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:frost_walker\",lvl:%(1,2)}]}"),
+    ("灵魂疾行附魔书", "A soul speed book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:soul_speed\",lvl:%(1,3)}]}"),
+    ("水下呼吸附魔书", "A respiration book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:respiration\",lvl:%(1,3)}]}"),
+    ("穿刺附魔书", "An impaling book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:impaling\",lvl:%(1,3)}]}"),
+]
+
 CREATIVE_CATEGORIES = [
     ("天候", "Weather", WEATHER_IDEAS, 50, "red"),
     ("时刻", "Hour", TIME_IDEAS, 40, "red"),
-    ("粒子", "Particles", PARTICLE_IDEAS, 70, "red"),
-    ("声响", "Sound", SOUND_IDEAS, 60, "red"),
-    ("位移", "Shift", TELEPORT_IDEAS, 60, "red"),
+    ("粒子", "Particles", PARTICLE_IDEAS, 56, "red"),
+    ("声响", "Sound", SOUND_IDEAS, 48, "red"),
+    ("位移", "Shift", TELEPORT_IDEAS, 48, "red"),
     ("结构", "Structure", STRUCTURE_IDEAS, 40, "red"),
-    ("陷阱", "Trap", TRAP_IDEAS, 60, "black"),
+    ("陷阱", "Trap", TRAP_IDEAS, 48, "black"),
     ("天降", "Rainfall", ITEMRAIN_IDEAS, 50, "red"),
     ("坐骑", "Mount", MOUNT_IDEAS, 40, "red"),
     ("烟花", "Firework", FIREWORK_IDEAS, 30, "red"),
+    ("附魔", "Enchantment", ENCHANT_IDEAS, 50, "red"),
 ]
 
 
@@ -1002,6 +1020,10 @@ def category_rows(pool, tier, label_zh, label_en, ideas, count, colour):
     """Multiplies every idea by the intensity words until the category holds exactly its quota."""
     rows = []
     per_idea = max(1, count // max(len(ideas), 1))
+
+    if count % max(len(ideas), 1) != 0:
+        raise ValueError("quota " + str(count) + " does not split over " + str(len(ideas)) + " ideas")
+
     weights = (120, 60, 25, 10, 3)
 
     for idea_index, (name_zh, name_en, command) in enumerate(ideas):
