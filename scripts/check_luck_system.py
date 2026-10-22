@@ -118,17 +118,17 @@ def main() -> int:
     check("manual conversion credit", "recordManualConversion(credited)" in conversion
           and "closest" in conversion,
           "the manual conversion pays nobody, or it pays every nearby player instead of the closest one")
-    check("dice result delta", re.search(r"DICE_RESULT_MAX_COUNT\s*=\s*6", constants) is not None
+    check("dice result delta", re.search(r"DICE_RESULT_MAX_COUNT\s*=\s*1", constants) is not None
           and re.search(r"DICE_RESULT_POINT_DIVISOR\s*=\s*2", constants) is not None
           and re.search(r"DICE_RESULT_RED_SIGN\s*=\s*-1", constants) is not None,
           "the dice result no longer pays one point per two points rolled")
     check("dice result wired", "recordDiceResult(player, roll.isRed(), roll.point())" in draw,
           "a draw does not feed its result into the behaviour variable")
     result_body = behavior.split("public static void recordDiceResult(", 1)[-1][:1600]
-    check("dice result counts six", "DICE_RESULT_MAX_COUNT" in result_body
+    check("dice result once per round", "DICE_RESULT_MAX_COUNT" in result_body
           and "resultCount" in result_body
           and "state.triggered" not in result_body,
-          "the dice result is limited to one per round instead of the configured count")
+          "the dice result is not limited to the first roll of a round")
     events_source = read(JAVA / "luck" / "LuckBehaviorEvents.java")
     check("level up hook", "PlayerXpEvent.LevelChange" in events_source
           and "getLevels() <= 0" in events_source

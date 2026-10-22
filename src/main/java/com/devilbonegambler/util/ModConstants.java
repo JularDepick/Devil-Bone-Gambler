@@ -113,12 +113,12 @@ public final class ModConstants
     public static final int LEVEL_UP_BEHAVIOR_DELTA = 5;
     /*
      * The result of a roll moves the next increment as well: one point per this many points rolled, red paying and
-     * black paying back, with at most this many rolls counted in one round.
+     * black paying back. Only the first roll of a round counts, later rolls wait for the next round.
      */
     public static final int DICE_RESULT_POINT_DIVISOR = 2;
     public static final int DICE_RESULT_RED_SIGN = -1;
     public static final int DICE_RESULT_BLACK_SIGN = 1;
-    public static final int DICE_RESULT_MAX_COUNT = 6;
+    public static final int DICE_RESULT_MAX_COUNT = 1;
     /* A manual pile that the altar turned into dice pays the player who stood closest to it. */
     public static final int MANUAL_CONVERSION_BEHAVIOR_DELTA = 4;
     /* Death does not touch the behaviour variable: it moves the value this many points towards the band. */

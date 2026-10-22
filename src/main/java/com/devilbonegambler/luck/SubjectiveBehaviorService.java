@@ -123,9 +123,9 @@ public final class SubjectiveBehaviorService
 
     /**
      * The result of one roll moves the next increment: a red roll costs one point for every two points rolled and a
-     * black roll pays the same, so a bad result drags the next update down and a good one lifts it. Unlike the
-     * behaviours, results do not share the one-per-round trigger: up to the configured number of rolls per round is
-     * summed, so several rolls inside one round add up instead of only the first one counting.
+     * black roll pays the same, so a bad result drags the next update down and a good one lifts it. The result does
+     * not use the behaviour trigger, but only the first roll of a round is counted: further rolls in the same round
+     * leave the variable alone, so a run of rolls cannot stack on one update.
      */
     public static void recordDiceResult(ServerPlayer player, boolean red, int point)
     {
