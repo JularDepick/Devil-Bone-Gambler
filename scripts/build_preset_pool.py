@@ -16,6 +16,10 @@ import pathlib
 import re
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import preset_content
+
 sys.stdout.reconfigure(encoding="utf-8")
 
 ITEMS = {
@@ -768,6 +772,18 @@ def emit():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+
+if "--v080" in sys.argv:
+    ROWS[:] = preset_content.survival_pool()
+
+if "--sample" in sys.argv:
+    wanted = int(sys.argv[sys.argv.index("--sample") + 1])
+    sample = [row for row in ROWS if row[0] == "survival" and row[1] == 1][:wanted]
+
+    for row in sample:
+        print("%-10s %-28s w=%-4s %-5s %s" % (row[2], row[3][:28], row[6], row[7], row[9].replace("\n", " | ")))
+
+    raise SystemExit(0)
 
 counts = validate()
 
