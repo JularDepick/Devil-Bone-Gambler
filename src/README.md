@@ -205,6 +205,8 @@ src/main/resources/
 │       ├── lang/
 │       │   ├── en_us.json                         # 英文文本
 │       │   ├── zh_cn.json                         # 简体中文文本
+│       ├── prize_pools/
+│       │   ├── presets.json                       # 预设奖池, 由 scripts/build_preset_pool.py 生成
 │       ├── manuals/
 │       │   ├── admin_manual_en_us.md              # 管理员手册英文内容
 │       │   ├── admin_manual_zh_cn.md              # 管理员手册简体中文内容

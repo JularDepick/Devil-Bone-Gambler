@@ -14,6 +14,7 @@ Exit code 0 means the check passed.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import sys
@@ -22,7 +23,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 JAVA = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler"
 SOURCE = JAVA / "commands" / "NumberPlaceholders.java"
 RUNNER = JAVA / "commands" / "CommandRunner.java"
-DATA = JAVA / "config" / "DefaultPrizePoolData.java"
+DATA = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "prize_pools" / "presets.json"
+
+
+def preset_commands(text):
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return []
+
+    commands = []
+
+    for pool in data.get("pools") or []:
+        for region in pool.get("regions") or []:
+            for entry in region.get("entries") or []:
+                commands.append(entry.get("command") or "")
+
+    return commands
 
 problems = []
 
@@ -56,7 +73,7 @@ def main() -> int:
     check("sample form", "NumberPlaceholders.sampleForm(" in runner,
           "the parser never sees a representative number")
 
-    rows = re.findall(r'"((?:[^"\\]|\\.)*)"\},', data)
+    rows = preset_commands(data)
     used = 0
     empty = 0
 

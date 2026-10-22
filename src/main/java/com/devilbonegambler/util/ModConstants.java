@@ -144,8 +144,8 @@ public final class ModConstants
     public static final int MIN_REGION_TIER = 1;
     public static final int MAX_REGIONS = 6;
     public static final int DEFAULT_REGION_COUNT = 6;
-    public static final int MAX_ENTRIES_PER_REGION = 128;
-    public static final int MAX_TOTAL_ENTRIES = 768;
+    public static final int MAX_ENTRIES_PER_REGION = 512;
+    public static final int MAX_TOTAL_ENTRIES = 3072;
     public static final int MAX_POOLS = 32;
     public static final int MAX_POOL_ID_LENGTH = 64;
     public static final int MAX_POOL_NAME_LENGTH = 64;

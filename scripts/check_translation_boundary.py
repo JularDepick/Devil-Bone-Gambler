@@ -22,7 +22,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 LANG = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang"
 MANUALS = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "manuals"
 PREFIX = "gui.devil_bone_gambler."
-PRESET_SOURCE = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler" / "config" / "DefaultPrizePoolData.java"
+PRESET_SOURCE = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "prize_pools"
+                 / "presets.json")
 CJK = re.compile(r"[\u4e00-\u9fff]")
 PLACEHOLDER = re.compile(r"%[sd]")
 
@@ -106,12 +107,14 @@ def main() -> int:
                 problems.append("Chinese literal outside the preset table: " + str(path.relative_to(ROOT))
                                 + " | " + match.group(1))
 
-    preset = PRESET_SOURCE.read_text(encoding="utf-8")
-    row_pattern = re.compile(
-        r'^\s*\{"[a-z0-9_-]+", "\d+", "((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", '
-        r'"((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)", "[0-9.]+", '
-        r'"(?:red|black)", "(?:true|false)", "(?:[^"\\]|\\.)*"\},\s*$', re.MULTILINE)
-    rows = row_pattern.findall(preset)
+    preset = json.loads(PRESET_SOURCE.read_text(encoding="utf-8")) if PRESET_SOURCE.is_file() else {}
+    rows = []
+
+    for pool in preset.get("pools") or []:
+        for region in pool.get("regions") or []:
+            for entry in region.get("entries") or []:
+                rows.append((entry.get("nameZh") or "", entry.get("nameEn") or "",
+                             entry.get("notifyZh") or "", entry.get("notifyEn") or ""))
 
     if len(rows) < 200:
         problems.append("the preset table holds only " + str(len(rows)) + " entries")
