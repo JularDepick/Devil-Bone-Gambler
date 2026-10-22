@@ -10,6 +10,8 @@ Names stay readable and unique per pool because the axis word is part of the nam
 becomes 一袋面包 / A bag of bread, while two whole stacks of the same thing get their own wording.
 """
 
+import re
+
 PLAYER = "$" + "{player}"
 
 # id, Chinese, English
@@ -119,6 +121,155 @@ ITEMS = [
     ("saddle", "鞍", "Saddle"),
     ("lead", "拴绳", "Lead"),
     ("experience_bottle", "附魔之瓶", "Bottle o' Enchanting"),
+]
+
+
+# A second block of vanilla things, so every survival region can own its own forty items instead of borrowing from the
+# neighbours. Same shape as above: id, Chinese, English.
+ITEMS = ITEMS + [
+    ("wool_white", "白色羊毛", "White Wool"),
+    ("wool_red", "红色羊毛", "Red Wool"),
+    ("wool_blue", "蓝色羊毛", "Blue Wool"),
+    ("wool_green", "绿色羊毛", "Green Wool"),
+    ("wool_black", "黑色羊毛", "Black Wool"),
+    ("wool_yellow", "黄色羊毛", "Yellow Wool"),
+    ("wool_orange", "橙色羊毛", "Orange Wool"),
+    ("wool_purple", "紫色羊毛", "Purple Wool"),
+    ("concrete_white", "白色混凝土", "White Concrete"),
+    ("concrete_gray", "灰色混凝土", "Gray Concrete"),
+    ("concrete_black", "黑色混凝土", "Black Concrete"),
+    ("concrete_red", "红色混凝土", "Red Concrete"),
+    ("concrete_blue", "蓝色混凝土", "Blue Concrete"),
+    ("terracotta", "陶瓦", "Terracotta"),
+    ("white_terracotta", "白色陶瓦", "White Terracotta"),
+    ("bricks", "红砖块", "Bricks"),
+    ("stone_bricks", "石砖", "Stone Bricks"),
+    ("mossy_stone_bricks", "苔石砖", "Mossy Stone Bricks"),
+    ("sandstone", "砂岩", "Sandstone"),
+    ("red_sandstone", "红砂岩", "Red Sandstone"),
+    ("granite", "花岗岩", "Granite"),
+    ("diorite", "闪长岩", "Diorite"),
+    ("andesite", "安山岩", "Andesite"),
+    ("deepslate", "深板岩", "Deepslate"),
+    ("tuff", "凝灰岩", "Tuff"),
+    ("calcite", "方解石", "Calcite"),
+    ("basalt", "玄武岩", "Basalt"),
+    ("blackstone", "黑石", "Blackstone"),
+    ("netherrack", "下界岩", "Netherrack"),
+    ("soul_sand", "灵魂沙", "Soul Sand"),
+    ("soul_soil", "灵魂土", "Soul Soil"),
+    ("obsidian", "黑曜石", "Obsidian"),
+    ("crying_obsidian", "哭泣的黑曜石", "Crying Obsidian"),
+    ("magma_block", "岩浆块", "Magma Block"),
+    ("glowstone", "荧石", "Glowstone"),
+    ("shroomlight", "菌光体", "Shroomlight"),
+    ("sea_pickle", "海泡菜", "Sea Pickle"),
+    ("scaffolding", "脚手架", "Scaffolding"),
+    ("ladder", "梯子", "Ladder"),
+    ("chest", "箱子", "Chest"),
+    ("barrel", "木桶", "Barrel"),
+    ("crafting_table", "工作台", "Crafting Table"),
+    ("furnace", "熔炉", "Furnace"),
+    ("blast_furnace", "高炉", "Blast Furnace"),
+    ("smoker", "烟熏炉", "Smoker"),
+    ("anvil", "铁砧", "Anvil"),
+    ("grindstone", "砂轮", "Grindstone"),
+    ("smithing_table", "锻造台", "Smithing Table"),
+    ("enchanting_table", "附魔台", "Enchanting Table"),
+    ("bookshelf", "书架", "Bookshelf"),
+    ("lectern", "讲台", "Lectern"),
+    ("glass_pane", "玻璃板", "Glass Pane"),
+    ("tinted_glass", "遮光玻璃", "Tinted Glass"),
+    ("oak_door", "橡木门", "Oak Door"),
+    ("iron_door", "铁门", "Iron Door"),
+    ("oak_fence", "橡木栅栏", "Oak Fence"),
+    ("cobweb_block", "蜘蛛网", "Cobweb"),
+    ("potato", "马铃薯", "Potato"),
+    ("beetroot", "甜菜根", "Beetroot"),
+    ("pumpkin_pie", "南瓜派", "Pumpkin Pie"),
+    ("cooked_rabbit", "熟兔肉", "Cooked Rabbit"),
+    ("rabbit_stew", "兔肉煲", "Rabbit Stew"),
+    ("mushroom_stew", "蘑菇煲", "Mushroom Stew"),
+    ("beef", "生牛肉", "Raw Beef"),
+    ("porkchop", "生猪排", "Raw Porkchop"),
+    ("mutton", "生羊肉", "Raw Mutton"),
+    ("chicken", "生鸡肉", "Raw Chicken"),
+    ("cod", "生鳕鱼", "Raw Cod"),
+    ("salmon", "生鲑鱼", "Raw Salmon"),
+    ("glow_berries", "发光浆果", "Glow Berries"),
+    ("dried_kelp", "干海带", "Dried Kelp"),
+    ("kelp", "海带", "Kelp"),
+    ("sugar", "糖", "Sugar"),
+    ("bone_meal", "骨粉", "Bone Meal"),
+    ("paper", "纸", "Paper"),
+    ("book", "书", "Book"),
+    ("slime_block", "黏液块", "Slime Block"),
+    ("honey_block", "蜂蜜块", "Honey Block"),
+    ("honeycomb", "蜜脾", "Honeycomb"),
+    ("snowball", "雪球", "Snowball"),
+    ("fire_charge", "火焰弹", "Fire Charge"),
+    ("flint_and_steel", "打火石", "Flint and Steel"),
+    ("ink_sac", "墨囊", "Ink Sac"),
+    ("glow_ink_sac", "荧光墨囊", "Glow Ink Sac"),
+    ("prismarine_crystals", "海晶砂粒", "Prismarine Crystals"),
+    ("redstone_torch", "红石火把", "Redstone Torch"),
+    ("repeater", "红石中继器", "Redstone Repeater"),
+    ("comparator", "红石比较器", "Redstone Comparator"),
+    ("piston", "活塞", "Piston"),
+    ("observer", "侦测器", "Observer"),
+    ("hopper", "漏斗", "Hopper"),
+    ("dropper", "投掷器", "Dropper"),
+    ("dispenser", "发射器", "Dispenser"),
+    ("minecart", "矿车", "Minecart"),
+    ("rail", "铁轨", "Rail"),
+    ("powered_rail", "充能铁轨", "Powered Rail"),
+    ("redstone_lamp", "红石灯", "Redstone Lamp"),
+    ("note_block", "音符盒", "Note Block"),
+    ("gold_sword", "金剑", "Golden Sword"),
+    ("gold_pickaxe", "金镐", "Golden Pickaxe"),
+    ("gold_axe", "金斧", "Golden Axe"),
+    ("gold_helmet", "金头盔", "Golden Helmet"),
+    ("gold_chestplate", "金胸甲", "Golden Chestplate"),
+    ("gold_leggings", "金护腿", "Golden Leggings"),
+    ("gold_boots", "金靴子", "Golden Boots"),
+    ("diamond_helmet", "钻石头盔", "Diamond Helmet"),
+    ("diamond_leggings", "钻石护腿", "Diamond Leggings"),
+    ("diamond_boots", "钻石靴子", "Diamond Boots"),
+    ("netherite_sword", "下界合金剑", "Netherite Sword"),
+    ("netherite_chestplate", "下界合金胸甲", "Netherite Chestplate"),
+    ("white_dye", "白色染料", "White Dye"),
+    ("black_dye", "黑色染料", "Black Dye"),
+    ("red_dye", "红色染料", "Red Dye"),
+    ("blue_dye", "蓝色染料", "Blue Dye"),
+    ("green_dye", "绿色染料", "Green Dye"),
+    ("yellow_dye", "黄色染料", "Yellow Dye"),
+    ("glow_lichen", "发光地衣", "Glow Lichen"),
+    ("moss_block", "苔藓块", "Moss Block"),
+    ("moss_carpet", "苔藓地毯", "Moss Carpet"),
+    ("azalea", "杜鹃花丛", "Azalea"),
+    ("flowering_azalea", "盛开的杜鹃花丛", "Flowering Azalea"),
+    ("spore_blossom", "孢子花", "Spore Blossom"),
+    ("amethyst_block", "紫水晶块", "Block of Amethyst"),
+    ("copper_block", "铜块", "Block of Copper"),
+    ("exposed_copper", "斑驳的铜块", "Exposed Copper"),
+    ("weathered_copper", "风化的铜块", "Weathered Copper"),
+    ("oxidized_copper", "氧化的铜块", "Oxidized Copper"),
+    ("raw_iron", "粗铁", "Raw Iron"),
+    ("raw_gold", "粗金", "Raw Gold"),
+    ("raw_copper", "粗铜", "Raw Copper"),
+    ("turtle_egg", "海龟蛋", "Turtle Egg"),
+    ("frogspawn", "青蛙卵", "Frogspawn"),
+    ("powder_snow_bucket", "细雪桶", "Powder Snow Bucket"),
+    ("lava_bucket", "岩浆桶", "Lava Bucket"),
+    ("axolotl_bucket", "美西螈桶", "Bucket of Axolotl"),
+    ("carrot_on_a_stick", "胡萝卜钓竿", "Carrot on a Stick"),
+    ("warped_fungus_on_a_stick", "诡异菌钓竿", "Warped Fungus on a Stick"),
+    ("soul_lantern", "灵魂灯笼", "Soul Lantern"),
+    ("campfire", "营火", "Campfire"),
+    ("soul_campfire", "灵魂营火", "Soul Campfire"),
+    ("bed", "床", "Bed"),
+    ("cyan_bed", "青色床", "Cyan Bed"),
+    ("respawn_anchor_charge", "重生锚", "Respawn Anchor"),
 ]
 
 # id, Chinese, English
@@ -441,7 +592,7 @@ def gear_rows(pool, tier, plan, weight):
         name_zh, name_en = _named(pool, tier, enchant_zh + " " + entry[1] + " " + str(levels[0]) + " 到 "
                                   + str(levels[1]) + " 级",
                                   enchant_en + " " + entry[2] + " " + str(levels[0]) + " to " + str(levels[1]))
-        command = ("give " + PLAYER + " minecraft:" + item_id + "{Enchantments:[{id:\"" + enchantment
+        command = ("give " + PLAYER + " minecraft:" + item_id + "{Enchantments:[{id:\"minecraft:" + enchantment
                    + "\",lvl:%(" + str(levels[0]) + "," + str(levels[1]) + ")}]}")
         rows.append((pool, tier, name_zh, name_en, name_zh, name_en, weight, "red", False, command))
 
@@ -491,7 +642,7 @@ SURVIVAL_PLAN = {
         "mobs": ("cow", "sheep", "pig", "chicken", "rabbit", "horse", "donkey", "llama", "bee", "goat",
                  "wolf", "cat", "zombie", "skeleton", "spider", "creeper", "husk", "stray", "drowned", "witch"),
         "xp": (20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 240, 280, 320)},
-    2: {"item_start": 8, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
+    2: {"item_start": 40, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
                                                   "fire_resistance", "water_breathing", "absorption",
                                                   "health_boost", "luck", "saturation", "jump_boost",
                                                   "weakness", "slowness"),
@@ -499,7 +650,7 @@ SURVIVAL_PLAN = {
                  "zombie", "skeleton", "spider", "creeper", "husk", "stray", "drowned", "witch", "pillager",
                  "vindicator"),
         "xp": (60, 80, 100, 120, 150, 180, 210, 240, 280, 320, 360, 400, 450, 500, 560, 620, 700)},
-    3: {"item_start": 16, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
+    3: {"item_start": 80, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
                                                    "fire_resistance", "water_breathing", "night_vision",
                                                    "absorption", "health_boost", "luck", "conduit_power",
                                                    "poison", "mining_fatigue"),
@@ -507,7 +658,7 @@ SURVIVAL_PLAN = {
                  "witch", "pillager", "vindicator", "phantom", "blaze", "magma_cube", "piglin", "hoglin",
                  "enderman", "shulker"),
         "xp": (120, 160, 200, 240, 300, 360, 420, 480, 540, 600, 700, 800, 900, 1000, 1100, 1200, 1300)},
-    4: {"item_start": 24, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
+    4: {"item_start": 120, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
                                                    "fire_resistance", "water_breathing", "night_vision",
                                                    "absorption", "health_boost", "luck", "slow_falling",
                                                    "wither", "darkness"),
@@ -515,7 +666,7 @@ SURVIVAL_PLAN = {
                  "phantom", "blaze", "magma_cube", "piglin", "hoglin", "enderman", "shulker", "elder_guardian",
                  "wither", "ender_dragon", "husk", "stray"),
         "xp": (300, 360, 420, 500, 600, 700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600)},
-    5: {"item_start": 32, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
+    5: {"item_start": 160, "items": 40, "effects": ("strength", "speed", "haste", "regeneration", "resistance",
                                                    "fire_resistance", "water_breathing", "absorption",
                                                    "health_boost", "luck", "slow_falling", "conduit_power",
                                                    "wither", "levitation"),
@@ -523,7 +674,7 @@ SURVIVAL_PLAN = {
                  "ender_dragon", "ravager", "vindicator", "pillager", "phantom", "witch", "creeper", "skeleton",
                  "zombie", "drowned", "stray", "husk"),
         "xp": (600, 700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800)},
-    6: {"item_start": 40, "items": 40, "effects": ("strength", "regeneration", "resistance", "health_boost",
+    6: {"item_start": 200, "items": 40, "effects": ("strength", "regeneration", "resistance", "health_boost",
                                                    "absorption", "luck", "slow_falling", "conduit_power",
                                                    "fire_resistance", "haste", "speed",
                                                    "wither", "levitation", "darkness"),
@@ -635,11 +786,15 @@ def survival_tier(tier):
     return rows
 
 
+SURVIVAL_SCALE = {1: 1.0, 2: 1.2, 3: 1.4, 4: 1.7, 5: 2.0, 6: 2.4}
+
+
 def survival_pool():
     rows = []
 
     for tier in range(1, 7):
-        rows += survival_tier(tier)
+        for row in survival_tier(tier):
+            rows.append(row[:9] + (scale_command(row[9], SURVIVAL_SCALE[tier]),))
 
     return rows
 
@@ -674,14 +829,14 @@ WEATHER_IDEAS = [
 ]
 
 TIME_IDEAS = [
-    ("黎明", "Dawn", "time set day"),
-    ("正午", "Noon", "time set noon"),
-    ("黄昏", "Dusk", "time set sunset"),
-    ("入夜", "Nightfall", "time set night"),
-    ("午夜", "Midnight", "time set midnight"),
-    ("日出", "Sunrise", "time set sunrise"),
-    ("白昼", "Daytime", "time set day"),
-    ("深夜", "Deep night", "time set night"),
+    ("推进一刻", "A quarter hour on", "time add #(200)"),
+    ("推进半日", "Half a day on", "time add #(1000)"),
+    ("快进一段", "A quick skip", "time add #(3000)"),
+    ("跳过白昼", "Over the daylight", "time add #(12000)"),
+    ("直接入夜", "Straight into night", "time add #(13000)"),
+    ("直接天亮", "Straight into morning", "time add #(23000)"),
+    ("拨回清晨", "Back to dawn", "time set #(1000)"),
+    ("拨到正午", "Back to noon", "time set #(6000)"),
 ]
 
 PARTICLE_IDEAS = [
@@ -702,18 +857,18 @@ PARTICLE_IDEAS = [
 ]
 
 SOUND_IDEAS = [
-    ("经验音", "A level up chime", "playsound minecraft:entity.player.levelup master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("钟声", "A bell", "playsound minecraft:block.bell.use master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("雷声", "Thunder", "playsound minecraft:entity.lightning_bolt.thunder master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("号角", "A raid horn", "playsound minecraft:event.raid.horn master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("下界传送门", "A portal hum", "playsound minecraft:block.portal.travel master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("宝箱开启", "A chest opening", "playsound minecraft:block.chest.open master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("凋灵生成", "A wither spawning", "playsound minecraft:entity.wither.spawn master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("村民欢呼", "Villagers cheering", "playsound minecraft:entity.villager.celebrate master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("烟花升空", "A firework launch", "playsound minecraft:entity.firework_rocket.launch master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("附魔台", "An enchanting table", "playsound minecraft:block.enchantment_table.use master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("洞穴回响", "A cave echo", "playsound minecraft:ambient.cave master " + PLAYER + " ~ ~ ~ 1 1"),
-    ("末影人", "An enderman", "playsound minecraft:entity.enderman.scream master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("经验音", "A level up chime", "playsound minecraft:entity.player.levelup master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("钟声", "A bell", "playsound minecraft:block.bell.use master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("雷声", "Thunder", "playsound minecraft:entity.lightning_bolt.thunder master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("号角", "A raid horn", "playsound minecraft:event.raid.horn master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("下界传送门", "A portal hum", "playsound minecraft:block.portal.travel master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("宝箱开启", "A chest opening", "playsound minecraft:block.chest.open master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("凋灵生成", "A wither spawning", "playsound minecraft:entity.wither.spawn master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("村民欢呼", "Villagers cheering", "playsound minecraft:entity.villager.celebrate master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("烟花升空", "A firework launch", "playsound minecraft:entity.firework_rocket.launch master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("附魔台", "An enchanting table", "playsound minecraft:block.enchantment_table.use master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("洞穴回响", "A cave echo", "playsound minecraft:ambient.cave master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("末影人", "An enderman", "playsound minecraft:entity.enderman.scream master " + PLAYER + " ~ ~ ~ #(1) 1"),
 ]
 
 TELEPORT_IDEAS = [
@@ -732,29 +887,29 @@ TELEPORT_IDEAS = [
 ]
 
 STRUCTURE_IDEAS = [
-    ("村庄", "A village", "execute at " + PLAYER + " run place structure minecraft:village_plains"),
-    ("掠夺者前哨", "A pillager outpost", "execute at " + PLAYER + " run place structure minecraft:pillager_outpost"),
-    ("废弃传送门", "A ruined portal", "execute at " + PLAYER + " run place structure minecraft:ruined_portal"),
-    ("沉船", "A shipwreck", "execute at " + PLAYER + " run place structure minecraft:shipwreck"),
-    ("沙漠神殿", "A desert temple", "execute at " + PLAYER + " run place structure minecraft:desert_pyramid"),
-    ("雪屋", "An igloo", "execute at " + PLAYER + " run place structure minecraft:igloo"),
-    ("女巫小屋", "A swamp hut", "execute at " + PLAYER + " run place structure minecraft:swamp_hut"),
-    ("远古城市", "An ancient city", "execute at " + PLAYER + " run place structure minecraft:ancient_city"),
+    ("村庄", "A village", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:village_plains"),
+    ("掠夺者前哨", "A pillager outpost", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:pillager_outpost"),
+    ("废弃传送门", "A ruined portal", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ruined_portal"),
+    ("沉船", "A shipwreck", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:shipwreck"),
+    ("沙漠神殿", "A desert temple", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:desert_pyramid"),
+    ("雪屋", "An igloo", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:igloo"),
+    ("女巫小屋", "A swamp hut", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:swamp_hut"),
+    ("远古城市", "An ancient city", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ancient_city"),
 ]
 
 TRAP_IDEAS = [
-    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run setblock ~ ~ ~ fire"),
-    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~ ~ ~ lava"),
-    ("落沙压顶", "Sand above", "execute at " + PLAYER + " run setblock ~ ~3 ~ sand"),
-    ("苦力怕空投", "A creeper drop", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~6 ~"),
+    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) fire"),
+    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~#(1) ~ ~ lava"),
+    ("落沙压顶", "Sand above", "execute at " + PLAYER + " run setblock ~ ~#(3) ~ sand"),
+    ("苦力怕空投", "A creeper drop", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~#(6) ~"),
     ("TNT 引线", "A lit fuse", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~4 ~ {Fuse:%(20,60)}"),
-    ("细雪陷阱", "Powder snow", "execute at " + PLAYER + " run setblock ~ ~ ~ powder_snow"),
-    ("蛛网", "A cobweb", "execute at " + PLAYER + " run setblock ~ ~ ~ cobweb"),
-    ("甜浆果丛", "Sweet berry bushes", "execute at " + PLAYER + " run setblock ~ ~ ~ sweet_berry_bush"),
-    ("落雷", "A lightning strike", "execute at " + PLAYER + " run summon minecraft:lightning_bolt ~ ~ ~"),
-    ("岩浆雨", "A short lava rain", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~8 ~ {Fuse:40}"),
-    ("深坑", "A pit", "execute at " + PLAYER + " run fill ~-2 ~-1 ~-2 ~2 ~-4 ~2 minecraft:air"),
-    ("火焰环绕", "A ring of fire", "execute at " + PLAYER + " run fill ~-2 ~ ~-2 ~2 ~ ~2 minecraft:fire replace minecraft:air"),
+    ("细雪陷阱", "Powder snow", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) powder_snow"),
+    ("蛛网", "A cobweb", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) cobweb"),
+    ("甜浆果丛", "Sweet berry bushes", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) sweet_berry_bush"),
+    ("落雷", "A lightning strike", "execute at " + PLAYER + " positioned ~#(1) ~ ~ run summon minecraft:lightning_bolt ~ ~ ~"),
+    ("岩浆雨", "A short lava rain", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~#(8) ~ {Fuse:#(40)}"),
+    ("深坑", "A pit", "execute at " + PLAYER + " run fill ~-2 ~-1 ~-2 ~2 ~#(-4) ~2 minecraft:air"),
+    ("火焰环绕", "A ring of fire", "execute at " + PLAYER + " run fill ~#(-2) ~ ~#(-2) ~#(2) ~ ~#(2) minecraft:fire replace minecraft:air"),
 ]
 
 ITEMRAIN_IDEAS = [
@@ -771,23 +926,23 @@ ITEMRAIN_IDEAS = [
 ]
 
 MOUNT_IDEAS = [
-    ("备鞍的马", "A saddled horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b}}"),
-    ("疾行马", "A swift horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.movement_speed\",Base:0.3}]}"),
-    ("驴", "A donkey", "execute at " + PLAYER + " run summon minecraft:donkey ~ ~ ~ {Tame:1b,ChestedHorse:1b}"),
-    ("羊驼", "A llama", "execute at " + PLAYER + " run summon minecraft:llama ~ ~ ~ {Tame:1b,ChestedHorse:1b}"),
+    ("备鞍的马", "A saddled horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("疾行马", "A swift horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.movement_speed\",Base:0.3},{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("驴", "A donkey", "execute at " + PLAYER + " run summon minecraft:donkey ~ ~ ~ {Tame:1b,ChestedHorse:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("羊驼", "A llama", "execute at " + PLAYER + " run summon minecraft:llama ~ ~ ~ {Tame:1b,ChestedHorse:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
     ("船", "A boat", "execute at " + PLAYER + " run summon minecraft:boat ~ ~ ~"),
     ("矿车", "A minecart", "execute at " + PLAYER + " run summon minecraft:minecart ~ ~ ~"),
-    ("炽足兽", "A strider", "execute at " + PLAYER + " run summon minecraft:strider ~ ~ ~ {Saddle:1b}"),
-    ("骆驼", "A camel", "execute at " + PLAYER + " run summon minecraft:camel ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b}}"),
+    ("炽足兽", "A strider", "execute at " + PLAYER + " run summon minecraft:strider ~ ~ ~ {Saddle:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("骆驼", "A camel", "execute at " + PLAYER + " run summon minecraft:camel ~ ~ ~ {SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
 ]
 
 FIREWORK_IDEAS = [
-    ("小型烟花", "A small firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:10,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
-    ("中型烟花", "A middle firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:20,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
-    ("大型烟花", "A large firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:30,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
-    ("礼炮齐放", "A salvo", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:25,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
-    ("高空烟花", "A high firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~8 ~ {LifeTime:40,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
-    ("近距烟花", "A close firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~1 ~ {LifeTime:8,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
+    ("小型烟花", "A small firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(10),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
+    ("中型烟花", "A middle firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(20),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
+    ("大型烟花", "A large firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(30),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
+    ("礼炮齐放", "A salvo", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(25),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
+    ("高空烟花", "A high firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~8 ~ {LifeTime:#(40),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
+    ("近距烟花", "A close firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~1 ~ {LifeTime:#(8),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
 ]
 
 CREATIVE_CATEGORIES = [
@@ -804,6 +959,45 @@ CREATIVE_CATEGORIES = [
 ]
 
 
+
+
+# ---------------------------------------------------------------------------
+# Region scaling
+#
+# A creative region must feel wilder than the one before it, so every command carries two optional markers:
+#   #(value)   a fixed number, scaled by the region factor
+#   %(low,high) an integer range, both ends scaled by the region factor
+# The markers are replaced while the pool is built, so the tables above stay readable.
+# ---------------------------------------------------------------------------
+
+CREATIVE_SCALE = {1: 1.0, 2: 1.4, 3: 1.9, 4: 2.5, 5: 3.2, 6: 4.0}
+
+
+def scale_command(command, factor):
+    def number(match):
+        value = int(round(int(match.group(1)) * factor))
+
+        if value == 0:
+            return "0"
+
+        return str(value if abs(value) >= 1 else (1 if value > 0 else -1))
+
+    def pair(match):
+        low = int(round(int(match.group(1)) * factor))
+        high = int(round(int(match.group(2)) * factor))
+
+        if low > high:
+            low, high = high, low
+
+        if low == high:
+            high = low + 1
+
+        return "%(" + str(low) + "," + str(high) + ")"
+
+    command = re.sub(r"#\((-?\d+)\)", number, command)
+    command = re.sub(r"%\((-?\d+),(-?\d+)\)", pair, command)
+    return command
+
 def category_rows(pool, tier, label_zh, label_en, ideas, count, colour):
     """Multiplies every idea by the intensity words until the category holds exactly its quota."""
     rows = []
@@ -813,10 +1007,13 @@ def category_rows(pool, tier, label_zh, label_en, ideas, count, colour):
     for idea_index, (name_zh, name_en, command) in enumerate(ideas):
         for step in range(per_idea):
             scale = SCALE_WORDS[min(step, len(SCALE_WORDS) - 1)]
+            # A greater intensity word is not only rarer but also stronger, so the five variants of one idea differ.
+            factor = CREATIVE_SCALE[tier] * (0.6 + 0.2 * min(step, 4))
             full_zh = THEMES[pool][tier][0] + "-" + scale[0] + label_zh + name_zh
             full_en = THEMES[pool][tier][1] + " " + scale[1] + " " + label_en + " " + name_en
             rows.append((pool, tier, full_zh, full_en, full_zh, full_en,
-                         weights[min(step, len(weights) - 1)], colour, False, command))
+                         weights[min(step, len(weights) - 1)], colour, False,
+                         scale_command(command, factor)))
 
     while len(rows) < count:
         rows.append(rows[len(rows) % max(len(rows), 1)])
@@ -846,14 +1043,14 @@ def creative_pool():
 # ---------------------------------------------------------------------------
 
 SURVIVAL_MISHAPS = [
-    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run setblock ~ ~ ~ fire"),
-    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~ ~ ~ lava"),
-    ("落沙", "Sand from above", "execute at " + PLAYER + " run setblock ~ ~3 ~ sand"),
-    ("苦力怕", "A creeper", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~6 ~"),
+    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) fire"),
+    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~#(1) ~ ~ lava"),
+    ("落沙", "Sand from above", "execute at " + PLAYER + " run setblock ~ ~#(3) ~ sand"),
+    ("苦力怕", "A creeper", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~#(6) ~"),
     ("TNT", "Lit TNT", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~4 ~ {Fuse:%(20,60)}"),
-    ("蛛网", "A cobweb", "execute at " + PLAYER + " run setblock ~ ~ ~ cobweb"),
-    ("甜浆果丛", "Berry bushes", "execute at " + PLAYER + " run setblock ~ ~ ~ sweet_berry_bush"),
-    ("落雷", "A lightning strike", "execute at " + PLAYER + " run summon minecraft:lightning_bolt ~ ~ ~"),
+    ("蛛网", "A cobweb", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) cobweb"),
+    ("甜浆果丛", "Berry bushes", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) sweet_berry_bush"),
+    ("落雷", "A lightning strike", "execute at " + PLAYER + " positioned ~#(1) ~ ~ run summon minecraft:lightning_bolt ~ ~ ~"),
     ("坑洞", "A sudden pit", "execute at " + PLAYER + " run fill ~-1 ~-1 ~-1 ~1 ~-3 ~1 minecraft:air"),
     ("饥饿", "Hunger", "effect give " + PLAYER + " minecraft:hunger %(20,60) 0"),
     ("虚弱", "Weakness", "effect give " + PLAYER + " minecraft:weakness %(20,60) 0"),
@@ -867,7 +1064,7 @@ SURVIVAL_MISHAPS = [
     ("骷髅", "A skeleton", "execute at " + PLAYER + " run summon minecraft:skeleton ~ ~ ~"),
     ("蜘蛛", "A spider", "execute at " + PLAYER + " run summon minecraft:spider ~ ~ ~"),
     ("岩浆怪", "A magma cube", "execute at " + PLAYER + " run summon minecraft:magma_cube ~ ~ ~"),
-    ("细雪", "Powder snow", "execute at " + PLAYER + " run setblock ~ ~ ~ powder_snow"),
+    ("细雪", "Powder snow", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) powder_snow"),
 ]
 
 MISHAP_SCALES = [

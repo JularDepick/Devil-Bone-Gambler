@@ -76,6 +76,7 @@
 - Dealers show up in the world and keep walking inside their own territory; a dealer is neutral, never attacks another kind of creature and is never targeted by monsters, and every other dealer inside its territory is fought until one of them dies
 - Right click a dealer with an empty hand to open the dealer page: a nine grid laid around the dealer, one member in every cell, the dealer itself in the middle cell and its health and food under the portrait; hovering the middle cell also shows its experience
 - A dealer keeps a pocket that holds nothing but Gambler's Dice; while it is not fighting, it picks up nearby dice as long as the pocket has room
+- Every pickup has a one in five chance to also drop as many lucky apples as it picked up; the apples appear at the dealer's feet, paid by neither its pocket nor any player's inventory
 - Dice beat light for a dealer: it walks to nearby dice on the ground, or to the item frame that holds one, and a full pocket only stops the pickup, not the walk
 - When its health or food drops to six tenths, the dealer eats dice from the pocket one by one, each restoring half of a bar, and it stops once both are full; it neither picks up nor eats while fighting another dealer
 - A dealer that recruits or hosts a wager sits out of the dealer against dealer fights and is neither attacker nor target

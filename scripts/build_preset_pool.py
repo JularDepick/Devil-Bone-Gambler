@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Builds presets.json, the bundled preset prize pools.
+"""Builds presets/presets.example.json, the readable source of the bundled preset prize pools.
+
+The build minifies this file into the jar as assets/devil_bone_gambler/prize_pools/presets.json, so the repository keeps
+a one entry per line copy that is easy to review while the shipped copy stays small.
 
 Run from the repository root:
     python scripts/build_preset_pool.py
@@ -250,7 +253,7 @@ LOOT = {
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "prize_pools" / "presets.json"
+OUT = ROOT / "presets" / "presets.example.json"
 PLAYER = "$" + "{player}"
 RANDOM_ITEM = "$" + "{random:item}"
 

@@ -22,8 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 LANG = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "lang"
 MANUALS = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "manuals"
 PREFIX = "gui.devil_bone_gambler."
-PRESET_SOURCE = (ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "prize_pools"
-                 / "presets.json")
+PRESET_SOURCE = ROOT / "presets" / "presets.example.json"
 CJK = re.compile(r"[\u4e00-\u9fff]")
 PLACEHOLDER = re.compile(r"%[sd]")
 

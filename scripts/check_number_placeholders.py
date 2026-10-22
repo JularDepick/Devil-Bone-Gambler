@@ -23,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 JAVA = ROOT / "src" / "main" / "java" / "com" / "devilbonegambler"
 SOURCE = JAVA / "commands" / "NumberPlaceholders.java"
 RUNNER = JAVA / "commands" / "CommandRunner.java"
-DATA = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler" / "prize_pools" / "presets.json"
+DATA = ROOT / "presets" / "presets.example.json"
 
 
 def preset_commands(text):

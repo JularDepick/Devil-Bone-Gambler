@@ -21,14 +21,29 @@ def forgeVersion = '47.4.23'
 
 // 版本号单源化：build.gradle 的 version 为唯一来源，
 // processResources 将 mods.toml 中的 ${version} 等占位替换为实际版本
+def presetSource = file('presets/presets.example.json')
+def presetTarget = layout.buildDirectory.file('resources/main/assets/devil_bone_gambler/prize_pools/presets.json')
+
 processResources {
     inputs.property 'version', project.version
+    inputs.file(presetSource)
+    outputs.file(presetTarget)
     filesMatching('META-INF/mods.toml') {
         expand 'version': project.version,
                'mcVersion': mcVersion,
                'mcCompatMin': mcCompatMin,
                'mcNextVersion': mcNextVersion,
                'forgeMajor': forgeMajor
+    }
+    doLast {
+        // 预设奖池在仓库里保持一条条目一行的可读写法, 打包时压成一行再进 jar, 运行时只由 JSON 解析器读取
+        if (!presetSource.isFile()) {
+            throw new GradleException("missing preset source: " + presetSource)
+        }
+
+        File target = presetTarget.get().asFile
+        target.parentFile.mkdirs()
+        target.setText(presetSource.readLines('UTF-8').collect { it.trim() }.join(''), 'UTF-8')
     }
 }
 
