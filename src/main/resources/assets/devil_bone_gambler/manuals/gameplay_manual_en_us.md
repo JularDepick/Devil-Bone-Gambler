@@ -58,7 +58,7 @@
 - Crafted from eight gamblers dice around one apple
 - Eating it fills the hunger bar and the health bar, and clears every harmful effect at once
 - Eaten while standing it grants Child of Fortune for fifteen seconds, and a bite taken while it runs extends the remaining time instead of resetting it
-- Eaten while sneaking it adds five luck at once; from eighty on, a sneaking bite pays no luck and grants fifteen seconds of Child of Fortune instead
+- Eaten while sneaking it adds ten luck at once; from eighty on, a sneaking bite pays no luck and grants fifteen seconds of Child of Fortune instead
 - The luck value is held at 100 for that time and every update during it is thrown away, so the pre meal value comes back unchanged
 - The apple fills the hunger bar itself, it does not depend on how much the food would restore
 

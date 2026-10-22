@@ -69,7 +69,7 @@
   "effect.devil_bone_gambler.luck_child": "Child of Fortune",
   "tooltip.devil_bone_gambler.lucky_apple": "Lucky Apple: eating it fills the hunger bar and the health bar and clears every harmful effect",
   "tooltip.devil_bone_gambler.lucky_apple_child": "Eaten while standing it grants Child of Fortune for fifteen seconds, and a bite taken while it runs extends the remaining time",
-  "tooltip.devil_bone_gambler.lucky_apple_sneak": "Eaten while sneaking it adds five luck at once, and from eighty on it grants fifteen seconds of Child of Fortune instead",
+  "tooltip.devil_bone_gambler.lucky_apple_sneak": "Eaten while sneaking it adds ten luck at once, and from eighty on it grants fifteen seconds of Child of Fortune instead",
   "tooltip.devil_bone_gambler.lucky_apple_lock": "The luck value is held at 100 while it lasts and returns to the pre meal value afterwards",
   "gui.devil_bone_gambler.admin.remove": "Remove",
   "gui.devil_bone_gambler.admin.remove_confirm": "Confirm delete",

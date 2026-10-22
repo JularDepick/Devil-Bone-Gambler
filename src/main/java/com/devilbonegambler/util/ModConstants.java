@@ -95,7 +95,7 @@ public final class ModConstants
     public static final int LUCK_CHILD_TICKS = 300;
     public static final int LUCK_LOCKED_VALUE = 100;
     /* A sneaking bite pays this much luck at once, until the value reaches the limit and the bite pays the effect. */
-    public static final int LUCK_APPLE_SNEAK_GAIN = 5;
+    public static final int LUCK_APPLE_SNEAK_GAIN = 10;
     public static final int LUCK_APPLE_SNEAK_LIMIT = 80;
     public static final int MAX_FOOD_LEVEL = 20;
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
@@ -107,6 +107,8 @@ public final class ModConstants
     public static final int KILL_HOSTILE_BEHAVIOR_DELTA = 1;
     public static final int KILL_INNOCENT_BEHAVIOR_DELTA = -2;
     public static final int EATING_BEHAVIOR_DELTA = 1;
+    /* Eating a lucky apple counts as its own behaviour, standing or sneaking, once per round. */
+    public static final int LUCKY_APPLE_BEHAVIOR_DELTA = 5;
     public static final int DICE_USE_BEHAVIOR_DELTA = 2;
     public static final int LEVEL_UP_BEHAVIOR_DELTA = 5;
     /*

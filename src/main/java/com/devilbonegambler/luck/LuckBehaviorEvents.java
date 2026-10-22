@@ -6,6 +6,7 @@
 
 package com.devilbonegambler.luck;
 
+import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.MobCategory;
@@ -32,13 +33,18 @@ public final class LuckBehaviorEvents
     }
 
     /**
-     * Finishing a food that restores hunger counts as a meal. The lucky apple restores hunger from its own item class,
-     * so it records the meal there; this hook covers every other food.
+     * Finishing a food that restores hunger counts as a meal. The lucky apple is its own behaviour and records it in the
+     * item class, so this hook skips it and covers every other food.
      */
     @SubscribeEvent
     public static void onItemFinished(LivingEntityUseItemEvent.Finish event)
     {
         if (!(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        if (event.getItem().is(ModItems.LUCKY_APPLE.get()))
         {
             return;
         }

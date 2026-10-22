@@ -39,6 +39,7 @@ public final class SubjectiveBehaviorService
     public static final int BEHAVIOR_DICE_USE = 9;
     public static final int BEHAVIOR_LEVEL_UP = 10;
     public static final int BEHAVIOR_MANUAL_CONVERSION = 11;
+    public static final int BEHAVIOR_LUCKY_APPLE = 12;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -109,6 +110,15 @@ public final class SubjectiveBehaviorService
     public static void recordManualConversion(ServerPlayer player)
     {
         record(player, BEHAVIOR_MANUAL_CONVERSION);
+    }
+
+    /**
+     * Eating a lucky apple counts as a behaviour of its own, whether the bite was taken standing or sneaking, and it
+     * shares the one trigger of the round with every other behaviour.
+     */
+    public static void recordLuckyApple(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_LUCKY_APPLE);
     }
 
     /**
@@ -274,6 +284,11 @@ public final class SubjectiveBehaviorService
         if (behavior == BEHAVIOR_MANUAL_CONVERSION)
         {
             return ModConstants.MANUAL_CONVERSION_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_LUCKY_APPLE)
+        {
+            return ModConstants.LUCKY_APPLE_BEHAVIOR_DELTA;
         }
 
         return 0;

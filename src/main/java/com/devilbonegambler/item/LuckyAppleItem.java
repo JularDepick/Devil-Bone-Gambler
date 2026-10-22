@@ -32,9 +32,10 @@ import net.minecraft.world.level.Level;
  * Eating it fills both the hunger bar and the health bar, and then one of two things happens. Eaten while standing, it
  * grants 幸运之子 for fifteen seconds; taken while the effect already runs, the bite extends the remaining time
  * instead of replacing it, and the lock keeps the value the first bite remembered. Eaten while sneaking, it raises the
- * luck value by five points at once; from the point the value reaches eighty on, a sneaking bite stops paying luck and
- * grants the effect instead, so the apple stays worth eating at the top of the scale. The meal itself also counts as a
- * behaviour, because it restores hunger.
+ * luck value by ten points at once; from the point the value reaches eighty on, a sneaking bite stops paying luck and
+ * grants the effect instead, so the apple stays worth eating at the top of the scale. The meal itself counts as a
+ * behaviour worth five points, standing or sneaking, and it shares the one trigger of the round like every other
+ * behaviour.
  */
 public class LuckyAppleItem extends Item
 {
@@ -64,7 +65,7 @@ public class LuckyAppleItem extends Item
             grantLuckChild(player);
         }
 
-        SubjectiveBehaviorService.recordEating(player);
+        SubjectiveBehaviorService.recordLuckyApple(player);
         return result;
     }
 

@@ -69,7 +69,7 @@
   "effect.devil_bone_gambler.luck_child": "幸运之子",
   "tooltip.devil_bone_gambler.lucky_apple": "幸运苹果: 食用后回满饱食度与生命值, 并清除全部负面状态",
   "tooltip.devil_bone_gambler.lucky_apple_child": "站立食用获得 幸运之子 15 秒, 状态期间再吃会延长剩余时长",
-  "tooltip.devil_bone_gambler.lucky_apple_sneak": "蹲下食用立刻加 5 点幸运值, 幸运值达到 80 后改发 15 秒 幸运之子",
+  "tooltip.devil_bone_gambler.lucky_apple_sneak": "蹲下食用立刻加 10 点幸运值, 幸运值达到 80 后改发 15 秒 幸运之子",
   "tooltip.devil_bone_gambler.lucky_apple_lock": "状态期间幸运值锁定为 100, 结束后回到食用前的数值",
   "gui.devil_bone_gambler.admin.remove": "删除选中",
   "gui.devil_bone_gambler.admin.remove_confirm": "确认删除",

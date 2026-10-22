@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import preset_content
+import preset_regions
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -776,8 +777,9 @@ def emit():
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-if "--v080" in sys.argv:
-    ROWS[:] = preset_content.survival_pool() + preset_content.creative_pool()
+# The region builders are the only source of the pools. The tables above are the older single-region draft and are
+# kept only for the sample printer below.
+ROWS[:] = preset_regions.survival_pool() + preset_regions.creative_pool()
 
 if "--sample" in sys.argv:
     wanted = int(sys.argv[sys.argv.index("--sample") + 1])

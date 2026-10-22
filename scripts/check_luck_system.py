@@ -103,6 +103,13 @@ def main() -> int:
     check("level up delta", re.search(r"LEVEL_UP_BEHAVIOR_DELTA\s*=\s*5", constants) is not None
           and "BEHAVIOR_LEVEL_UP" in behavior,
           "levelling up no longer pays the behaviour variable five points")
+    apple_item = read(JAVA / "item" / "LuckyAppleItem.java")
+    check("lucky apple behavior", re.search(r"LUCKY_APPLE_BEHAVIOR_DELTA\s*=\s*5", constants) is not None
+          and "BEHAVIOR_LUCKY_APPLE" in behavior and "recordLuckyApple" in behavior
+          and "recordLuckyApple(player)" in apple_item,
+          "eating the lucky apple no longer pays the behaviour variable five points")
+    check("lucky apple not a plain meal", "ModItems.LUCKY_APPLE" in events,
+          "the food hook still counts the lucky apple as a plain meal")
     check("manual conversion delta",
           re.search(r"MANUAL_CONVERSION_BEHAVIOR_DELTA\s*=\s*4", constants) is not None
           and "BEHAVIOR_MANUAL_CONVERSION" in behavior,

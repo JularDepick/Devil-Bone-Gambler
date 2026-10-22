@@ -1,13 +1,13 @@
-"""Content tables and entry builders for the v0.8.0 preset pools.
+"""Content tables for the v0.8.0 preset pools.
 
-The tables hold the bilingual names of the vanilla things an entry can hand out, summon or apply, and the builders turn
-one table row into several entries by walking a few parameter axes (amount, duration, strength). Every entry keeps the
-row shape the builder in build_preset_pool.py expects:
+The tables hold the bilingual names of the vanilla things an entry can hand out, summon or apply. The region builders
+in preset_regions.py decide which rows one region takes, so the tables stay pure data and no table row is multiplied by
+an amount or intensity axis. Every entry keeps the row shape that build_preset_pool.py expects:
 
     (pool, tier, name_zh, name_en, notify_zh, notify_en, weight, colour, major, command)
 
-Names stay readable and unique per pool because the axis word is part of the name, for example a small bag of bread
-becomes 一袋面包 / A bag of bread, while two whole stacks of the same thing get their own wording.
+Names stay readable and unique per pool because the region theme opens every name, for example 篝火-面包 / Campfire
+Bread. A name is never reused inside one region, so the same item does not appear twice with only a quantity changed.
 """
 
 import re
@@ -307,10 +307,42 @@ MOBS = [
     ("elder_guardian", "远古守卫者", "Elder Guardian"),
     ("wither", "凋灵", "Wither"),
     ("ender_dragon", "末影龙", "Ender Dragon"),
+    ("silverfish", "蠹虫", "Silverfish"),
+    ("endermite", "末影螨", "Endermite"),
+    ("guardian", "守卫者", "Guardian"),
+    ("evoker", "唤魔者", "Evoker"),
+    ("vex", "恼鬼", "Vex"),
+    ("zoglin", "僵尸疣猪兽", "Zoglin"),
+    ("zombified_piglin", "僵尸猪灵", "Zombified Piglin"),
+    ("wither_skeleton", "凋灵骷髅", "Wither Skeleton"),
+    ("strider", "炽足兽", "Strider"),
+    ("fox", "狐狸", "Fox"),
+    ("panda", "熊猫", "Panda"),
+    ("polar_bear", "北极熊", "Polar Bear"),
+    ("turtle", "海龟", "Turtle"),
+    ("dolphin", "海豚", "Dolphin"),
+    ("bat", "蝙蝠", "Bat"),
+    ("slime", "史莱姆", "Slime"),
+    ("cave_spider", "洞穴蜘蛛", "Cave Spider"),
+    ("zombie_villager", "僵尸村民", "Zombie Villager"),
+    ("wandering_trader", "流浪商人", "Wandering Trader"),
+    ("trader_llama", "行商羊驼", "Trader Llama"),
+    ("squid", "鱿鱼", "Squid"),
+    ("glow_squid", "发光鱿鱼", "Glow Squid"),
+    ("cod", "鳕鱼", "Cod"),
+    ("salmon", "鲑鱼", "Salmon"),
+    ("tropical_fish", "热带鱼", "Tropical Fish"),
+    ("axolotl", "美西螈", "Axolotl"),
+    ("allay", "悦灵", "Allay"),
 ]
 
 # id, Chinese, English, harmful
 EFFECTS = [
+    ("instant_health", "瞬间治疗", "Instant Health", False),
+    ("instant_damage", "瞬间伤害", "Instant Damage", True),
+    ("unluck", "霉运", "Bad Luck", True),
+    ("bad_omen", "不祥之兆", "Bad Omen", True),
+    ("hero_of_the_village", "村庄英雄", "Hero of the Village", False),
     ("strength", "力量", "Strength", False),
     ("speed", "迅捷", "Speed", False),
     ("haste", "急迫", "Haste", False),
@@ -341,6 +373,45 @@ EFFECTS = [
 ]
 
 # table, Chinese, English
+# id, Chinese, English. A potion is a single item with an effect tag, so a region can hand out the effect itself.
+POTIONS = [
+    ("healing", "治疗药水", "Potion of Healing"),
+    ("regeneration", "再生药水", "Potion of Regeneration"),
+    ("strength", "力量药水", "Potion of Strength"),
+    ("swiftness", "迅捷药水", "Potion of Swiftness"),
+    ("fire_resistance", "抗火药水", "Potion of Fire Resistance"),
+    ("water_breathing", "水肺药水", "Potion of Water Breathing"),
+    ("night_vision", "夜视药水", "Potion of Night Vision"),
+    ("invisibility", "隐身药水", "Potion of Invisibility"),
+    ("leaping", "跳跃药水", "Potion of Leaping"),
+    ("slow_falling", "缓降药水", "Potion of Slow Falling"),
+    ("poison", "剧毒药水", "Potion of Poison"),
+    ("harming", "伤害药水", "Potion of Harming"),
+    ("slowness", "迟缓药水", "Potion of Slowness"),
+    ("weakness", "虚弱药水", "Potion of Weakness"),
+    ("turtle_master", "神龟药水", "Potion of the Turtle Master"),
+    ("luck", "幸运药水", "Potion of Luck"),
+]
+
+# id, Chinese, English. One arrow entry per tipped effect, so a region does not repeat the same arrow.
+ARROWS = [
+    ("poison", "剧毒之箭", "Arrow of Poison"),
+    ("harming", "伤害之箭", "Arrow of Harming"),
+    ("healing", "治疗之箭", "Arrow of Healing"),
+    ("regeneration", "再生之箭", "Arrow of Regeneration"),
+    ("strength", "力量之箭", "Arrow of Strength"),
+    ("swiftness", "迅捷之箭", "Arrow of Swiftness"),
+    ("fire_resistance", "抗火之箭", "Arrow of Fire Resistance"),
+    ("water_breathing", "水肺之箭", "Arrow of Water Breathing"),
+    ("night_vision", "夜视之箭", "Arrow of Night Vision"),
+    ("invisibility", "隐身之箭", "Arrow of Invisibility"),
+    ("leaping", "跳跃之箭", "Arrow of Leaping"),
+    ("slow_falling", "缓降之箭", "Arrow of Slow Falling"),
+    ("slowness", "迟缓之箭", "Arrow of Slowness"),
+    ("weakness", "虚弱之箭", "Arrow of Weakness"),
+    ("turtle_master", "神龟之箭", "Arrow of the Turtle Master"),
+]
+
 LOOT = [
     ("simple_dungeon", "地牢的箱子", "A dungeon chest"),
     ("abandoned_mineshaft", "废弃矿井的箱子", "A mineshaft chest"),
@@ -988,6 +1059,26 @@ PARTICLE_IDEAS = [
     ("哭泣的黑曜石", "Crying obsidian", "execute at " + PLAYER + " run particle minecraft:falling_obsidian_tear ~ ~2 ~ 1 1 1 0.02 %(8,30)"),
     ("雪片", "Snowflakes", "execute at " + PLAYER + " run particle minecraft:snowflake ~ ~2 ~ 2 2 2 0.01 %(20,80)"),
     ("樱花", "Cherry petals", "execute at " + PLAYER + " run particle minecraft:cherry_leaves ~ ~2 ~ 2 2 2 0.01 %(20,80)"),
+    ("荧光", "Glow", "execute at " + PLAYER + " run particle minecraft:glow ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("灵魂火", "Soul fire", "execute at " + PLAYER + " run particle minecraft:soul_fire_flame ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("气泡", "Bubbles", "execute at " + PLAYER + " run particle minecraft:bubble ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("水花", "Splash", "execute at " + PLAYER + " run particle minecraft:splash ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("图腾之光", "Totem light", "execute at " + PLAYER + " run particle minecraft:totem_of_undying ~ ~1 ~ 1 1 1 0.02 %(6,30)"),
+    ("烟花尾", "Firework trail", "execute at " + PLAYER + " run particle minecraft:firework ~ ~1 ~ 1 1 1 0.02 %(10,60)"),
+    ("暴击", "Crit", "execute at " + PLAYER + " run particle minecraft:crit ~ ~1 ~ 1 1 1 0.02 %(10,40)"),
+    ("附魔命中", "Enchanted hit", "execute at " + PLAYER + " run particle minecraft:enchanted_hit ~ ~1 ~ 1 1 1 0.02 %(10,40)"),
+    ("横扫", "Sweep", "execute at " + PLAYER + " run particle minecraft:sweep_attack ~ ~1 ~ 1 1 1 0.02 %(6,24)"),
+    ("村民喜悦", "Happy villagers", "execute at " + PLAYER + " run particle minecraft:happy_villager ~ ~1 ~ 1 1 1 0.02 %(8,30)"),
+    ("村民愤怒", "Angry villagers", "execute at " + PLAYER + " run particle minecraft:angry_villager ~ ~1 ~ 1 1 1 0.02 %(8,30)"),
+    ("烟团", "Poof", "execute at " + PLAYER + " run particle minecraft:poof ~ ~1 ~ 1 1 1 0.02 %(8,30)"),
+    ("细烟", "Thin smoke", "execute at " + PLAYER + " run particle minecraft:smoke ~ ~1 ~ 1 1 1 0.02 %(10,40)"),
+    ("岩浆滴", "Lava drip", "execute at " + PLAYER + " run particle minecraft:dripping_lava ~ ~2 ~ 1 1 1 0.02 %(6,20)"),
+    ("灰烬", "Ash", "execute at " + PLAYER + " run particle minecraft:ash ~ ~2 ~ 2 2 2 0.01 %(20,60)"),
+    ("白色灰烬", "White ash", "execute at " + PLAYER + " run particle minecraft:white_ash ~ ~2 ~ 2 2 2 0.01 %(20,60)"),
+    ("打蜡", "Wax on", "execute at " + PLAYER + " run particle minecraft:wax_on ~ ~1 ~ 1 1 1 0.02 %(6,20)"),
+    ("刮削", "Scrape", "execute at " + PLAYER + " run particle minecraft:scrape ~ ~1 ~ 1 1 1 0.02 %(6,20)"),
+    ("蛋壳", "Egg crack", "execute at " + PLAYER + " run particle minecraft:egg_crack ~ ~1 ~ 1 1 1 0.02 %(4,16)"),
+    ("音爆", "Sonic boom", "execute at " + PLAYER + " run particle minecraft:sonic_boom ~ ~1 ~ 0 0 0 0.1 %(1,4)"),
 ]
 
 SOUND_IDEAS = [
@@ -1003,6 +1094,14 @@ SOUND_IDEAS = [
     ("附魔台", "An enchanting table", "playsound minecraft:block.enchantment_table.use master " + PLAYER + " ~ ~ ~ #(1) 1"),
     ("洞穴回响", "A cave echo", "playsound minecraft:ambient.cave master " + PLAYER + " ~ ~ ~ #(1) 1"),
     ("末影人", "An enderman", "playsound minecraft:entity.enderman.scream master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("铁砧落地", "An anvil lands", "playsound minecraft:block.anvil.land master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("末影传送", "An enderman warps", "playsound minecraft:entity.enderman.teleport master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("恶魂尖啸", "A ghast screams", "playsound minecraft:entity.ghast.scream master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("铃音", "A chime", "playsound minecraft:block.note_block.chime master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("信标激活", "A beacon activates", "playsound minecraft:block.beacon.activate master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("潮涌核心", "A conduit activates", "playsound minecraft:block.conduit.activate master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("饱嗝", "A burp", "playsound minecraft:entity.player.burp master " + PLAYER + " ~ ~ ~ #(1) 1"),
+    ("监守者尖啸", "A warden boom", "playsound minecraft:entity.warden.sonic_boom master " + PLAYER + " ~ ~ ~ #(1) 1"),
 ]
 
 TELEPORT_IDEAS = [
@@ -1018,6 +1117,10 @@ TELEPORT_IDEAS = [
     ("深潜", "A dive", "execute at " + PLAYER + " run tp @s ~ %(5,25) ~"),
     ("峡谷对岸", "Across the ravine", "execute at " + PLAYER + " run spreadplayers ~ ~ 24 %(24,48) false @s"),
     ("极远落点", "A very far landing", "execute at " + PLAYER + " run spreadplayers ~ ~ 48 %(48,96) false @s"),
+    ("洞穴落点", "A cave landing", "execute at " + PLAYER + " run tp @s ~ ~%(10,30) ~"),
+    ("水下落点", "A landing underwater", "execute at " + PLAYER + " run spreadplayers ~ ~ 12 %(6,12) false @s"),
+    ("高空坠落", "A long drop", "execute at " + PLAYER + " run tp @s ~ ~%(40,80) ~"),
+    ("斜向抛飞", "A diagonal throw", "execute at " + PLAYER + " run tp @s ~%(30,60) ~ ~%(30,60)"),
 ]
 
 STRUCTURE_IDEAS = [
@@ -1029,6 +1132,18 @@ STRUCTURE_IDEAS = [
     ("雪屋", "An igloo", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:igloo"),
     ("女巫小屋", "A swamp hut", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:swamp_hut"),
     ("远古城市", "An ancient city", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ancient_city"),
+    ("海底神殿", "An ocean monument", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:ocean_monument"),
+    ("林地府邸", "A woodland mansion", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:woodland_mansion"),
+    ("丛林神庙", "A jungle temple", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:jungle_pyramid"),
+    ("要塞", "A stronghold", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:stronghold"),
+    ("废弃矿井", "An abandoned mineshaft", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:mineshaft"),
+    ("下界要塞", "A nether fortress", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:fortress"),
+    ("堡垒遗迹", "A bastion remnant", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:bastion_remnant"),
+    ("末地城", "An end city", "execute at " + PLAYER + " positioned ~#(8) ~ ~ run place structure minecraft:end_city"),
+    ("暖海废墟", "A warm ocean ruin", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ocean_ruin_warm"),
+    ("古迹废墟", "Trail ruins", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:trail_ruins"),
+    ("沙漠水井", "A desert well", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:desert_well"),
+    ("针叶林村庄", "A taiga village", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:village_taiga"),
 ]
 
 TRAP_IDEAS = [
@@ -1044,6 +1159,18 @@ TRAP_IDEAS = [
     ("岩浆雨", "A short lava rain", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~#(8) ~ {Fuse:#(40)}"),
     ("深坑", "A pit", "execute at " + PLAYER + " run fill ~-2 ~-1 ~-2 ~2 ~#(-4) ~2 minecraft:air"),
     ("火焰环绕", "A ring of fire", "execute at " + PLAYER + " run fill ~#(-2) ~ ~#(-2) ~#(2) ~ ~#(2) minecraft:fire replace minecraft:air"),
+    ("凋灵玫瑰", "A wither rose", "execute at " + PLAYER + " run setblock ~ ~ ~ wither_rose"),
+    ("脚下岩浆块", "Magma underfoot", "execute at " + PLAYER + " run setblock ~ ~-1 ~ magma_block"),
+    ("仙人掌阵", "A cactus patch", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) cactus"),
+    ("滴水石", "A dripstone spike", "execute at " + PLAYER + " run setblock ~ ~#(2) ~ pointed_dripstone[vertical_direction=down]"),
+    ("蜂蜜粘脚", "Sticky honey", "execute at " + PLAYER + " run setblock ~ ~ ~ honey_block"),
+    ("蓝冰", "A sheet of blue ice", "execute at " + PLAYER + " run setblock ~ ~-1 ~ blue_ice"),
+    ("头顶铁砧", "An anvil overhead", "execute at " + PLAYER + " run setblock ~ ~#(3) ~ anvil"),
+    ("幻翼群", "A flock of phantoms", "execute at " + PLAYER + " run summon minecraft:phantom ~ ~ ~ --R(3)"),
+    ("蠹虫群", "A swarm of silverfish", "execute at " + PLAYER + " run summon minecraft:silverfish ~ ~ ~ --R(3)"),
+    ("岩浆幕墙", "A wall of lava", "execute at " + PLAYER + " run fill ~#(2) ~ ~ ~#(2) ~#(3) ~ minecraft:lava"),
+    ("浮沙柱", "A column of sand", "execute at " + PLAYER + " run fill ~ ~ ~ ~ ~#(4) ~ minecraft:sand"),
+    ("凋灵骷髅", "A wither skeleton", "execute at " + PLAYER + " run summon minecraft:wither_skeleton ~ ~ ~ --R(2)"),
 ]
 
 ITEMRAIN_IDEAS = [
@@ -1068,6 +1195,8 @@ MOUNT_IDEAS = [
     ("矿车", "A minecart", "execute at " + PLAYER + " run summon minecraft:minecart ~ ~ ~"),
     ("炽足兽", "A strider", "execute at " + PLAYER + " run summon minecraft:strider ~ ~ ~ {Saddle:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
     ("骆驼", "A camel", "execute at " + PLAYER + " run summon minecraft:camel ~ ~ ~ {SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("骡", "A mule", "execute at " + PLAYER + " run summon minecraft:mule ~ ~ ~ {Tame:1b,ChestedHorse:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
+    ("骷髅马", "A skeleton horse", "execute at " + PLAYER + " run summon minecraft:skeleton_horse ~ ~ ~ {Tame:1b,Attributes:[{Name:\"generic.max_health\",Base:#(20)}]}"),
 ]
 
 FIREWORK_IDEAS = [
@@ -1077,6 +1206,10 @@ FIREWORK_IDEAS = [
     ("礼炮齐放", "A salvo", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(25),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
     ("高空烟花", "A high firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~8 ~ {LifeTime:#(40),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
     ("近距烟花", "A close firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~1 ~ {LifeTime:#(8),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
+    ("苦力怕脸", "A creeper face", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(20),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b,Explosions:[{Type:3,Colors:[I;11743532,3887386],Trail:1b,Flicker:1b}]}}}}"),
+    ("星形烟花", "A star burst", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(20),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b,Explosions:[{Type:2,Colors:[I;2651799,4312372],Trail:1b}]}}}}"),
+    ("球状烟花", "A round burst", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(20),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b,Explosions:[{Type:1,Colors:[I;15790320,11743532]}]}}}}"),
+    ("拖尾闪烁", "A trailing flicker", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:#(20),FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b,Explosions:[{Type:0,Colors:[I;15435844,8073150],Trail:1b,Flicker:1b}]}}}}"),
 ]
 
 
@@ -1094,6 +1227,59 @@ ENCHANT_IDEAS = [
     ("灵魂疾行附魔书", "A soul speed book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:soul_speed\",lvl:%(1,3)}]}"),
     ("水下呼吸附魔书", "A respiration book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:respiration\",lvl:%(1,3)}]}"),
     ("穿刺附魔书", "An impaling book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:impaling\",lvl:%(1,3)}]}"),
+    ("效率附魔书", "An efficiency book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:efficiency\",lvl:%(1,4)}]}"),
+    ("抢夺附魔书", "A looting book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:looting\",lvl:%(1,3)}]}"),
+    ("摔落保护附魔书", "A feather falling book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:feather_falling\",lvl:%(1,4)}]}"),
+    ("荆棘附魔书", "A thorns book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:thorns\",lvl:%(1,3)}]}"),
+    ("火焰附加附魔书", "A fire aspect book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:fire_aspect\",lvl:%(1,2)}]}"),
+    ("击退附魔书", "A knockback book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:knockback\",lvl:%(1,2)}]}"),
+    ("深海探索者附魔书", "A depth strider book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:depth_strider\",lvl:%(1,3)}]}"),
+    ("多重射击附魔书", "A multishot book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:multishot\",lvl:1}]}"),
+    ("快速装填附魔书", "A quick charge book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:quick_charge\",lvl:%(1,3)}]}"),
+    ("忠诚附魔书", "A loyalty book", "give " + PLAYER + " minecraft:enchanted_book{StoredEnchantments:[{id:\"minecraft:loyalty\",lvl:%(1,3)}]}"),
+]
+
+# id, Chinese, English, highest level. One row per vanilla enchantment, so a region never repeats the same book.
+BOOK_ENCHANTS = [
+    ("sharpness", "锋利", "Sharpness", 5),
+    ("smite", "亡灵杀手", "Smite", 5),
+    ("bane_of_arthropods", "节肢杀手", "Bane of Arthropods", 5),
+    ("knockback", "击退", "Knockback", 2),
+    ("fire_aspect", "火焰附加", "Fire Aspect", 2),
+    ("looting", "抢夺", "Looting", 3),
+    ("sweeping", "横扫之刃", "Sweeping Edge", 3),
+    ("efficiency", "效率", "Efficiency", 5),
+    ("silk_touch", "精准采集", "Silk Touch", 1),
+    ("unbreaking", "耐久", "Unbreaking", 3),
+    ("fortune", "时运", "Fortune", 3),
+    ("power", "力量", "Power", 5),
+    ("punch", "冲击", "Punch", 2),
+    ("flame", "火矢", "Flame", 1),
+    ("infinity", "无限", "Infinity", 1),
+    ("luck_of_the_sea", "海之眷顾", "Luck of the Sea", 3),
+    ("lure", "饵钓", "Lure", 3),
+    ("loyalty", "忠诚", "Loyalty", 3),
+    ("impaling", "穿刺", "Impaling", 5),
+    ("riptide", "激流", "Riptide", 3),
+    ("channeling", "引雷", "Channeling", 1),
+    ("multishot", "多重射击", "Multishot", 1),
+    ("quick_charge", "快速装填", "Quick Charge", 3),
+    ("piercing", "穿透", "Piercing", 4),
+    ("protection", "保护", "Protection", 4),
+    ("fire_protection", "火焰保护", "Fire Protection", 4),
+    ("feather_falling", "摔落保护", "Feather Falling", 4),
+    ("blast_protection", "爆炸保护", "Blast Protection", 4),
+    ("projectile_protection", "弹射物保护", "Projectile Protection", 4),
+    ("respiration", "水下呼吸", "Respiration", 3),
+    ("aqua_affinity", "水下速掘", "Aqua Affinity", 1),
+    ("thorns", "荆棘", "Thorns", 3),
+    ("depth_strider", "深海探索者", "Depth Strider", 3),
+    ("frost_walker", "冰霜行者", "Frost Walker", 2),
+    ("soul_speed", "灵魂疾行", "Soul Speed", 3),
+    ("swift_sneak", "迅捷潜行", "Swift Sneak", 3),
+    ("mending", "经验修补", "Mending", 1),
+    ("vanishing_curse", "消失诅咒", "Curse of Vanishing", 1),
+    ("binding_curse", "绑定诅咒", "Curse of Binding", 1),
 ]
 
 CREATIVE_CATEGORIES = [
@@ -1252,6 +1438,14 @@ SURVIVAL_MISHAPS = [
     ("蜘蛛", "A spider", "execute at " + PLAYER + " run summon minecraft:spider ~ ~ ~"),
     ("岩浆怪", "A magma cube", "execute at " + PLAYER + " run summon minecraft:magma_cube ~ ~ ~"),
     ("细雪", "Powder snow", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) powder_snow"),
+    ("仙人掌阵", "A cactus patch", "execute at " + PLAYER + " run fill ~ ~ ~ ~#(1) ~ ~#(1) cactus"),
+    ("脚下岩浆块", "Magma underfoot", "execute at " + PLAYER + " run setblock ~ ~-1 ~ magma_block"),
+    ("凋灵玫瑰", "A wither rose", "execute at " + PLAYER + " run setblock ~ ~ ~ wither_rose"),
+    ("滴水石", "A dripstone spike", "execute at " + PLAYER + " run setblock ~ ~#(2) ~ pointed_dripstone[vertical_direction=down]"),
+    ("蜂蜜粘脚", "Sticky honey", "execute at " + PLAYER + " run setblock ~ ~ ~ honey_block"),
+    ("蓝冰", "A sheet of blue ice", "execute at " + PLAYER + " run setblock ~ ~-1 ~ blue_ice"),
+    ("头顶铁砧", "An anvil overhead", "execute at " + PLAYER + " run setblock ~ ~#(3) ~ anvil"),
+    ("幻翼群", "A flock of phantoms", "execute at " + PLAYER + " run summon minecraft:phantom ~ ~ ~ --R(3)"),
 ]
 
 MISHAP_SCALES = [
@@ -1264,7 +1458,8 @@ SURVIVAL_BLACK_SHARE = {1: 0.22, 2: 0.28, 3: 0.34, 4: 0.40, 5: 0.44, 6: 0.48}
 SURVIVAL_HOSTILE_MOBS = {1: 8, 2: 10, 3: 12, 4: 14, 5: 16, 6: 18}
 HOSTILE_IDS = {"zombie", "skeleton", "spider", "creeper", "husk", "stray", "drowned", "witch", "pillager",
                "vindicator", "ravager", "phantom", "blaze", "magma_cube", "hoglin", "wither", "ender_dragon",
-               "silverfish"}
+               "silverfish", "endermite", "guardian", "evoker", "vex", "zoglin", "zombified_piglin",
+               "wither_skeleton", "slime", "cave_spider", "zombie_villager"}
 
 
 def mishap_rows(pool, tier, count):

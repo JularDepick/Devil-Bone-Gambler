@@ -4,7 +4,7 @@
 The preset pools are data, and data drifts. This check proves that
 
   1. the readable source exists and parses,
-  2. both pools keep six regions of five hundred entries,
+  2. both pools keep six regions of two hundred and sixty entries,
   3. names are unique inside a pool, and every region carries both colours,
   4. weights stay on the five rarity steps,
   5. commands carry no leftover build marker, no retired token, a bounded length, balanced NBT braces and a real range,
@@ -26,7 +26,7 @@ GRADLE = ROOT / "build.gradle"
 GENERATOR = ROOT / "scripts" / "build_preset_pool.py"
 VANILLA = ROOT / "scripts" / "data" / "vanilla_items.txt"
 WEIGHTS = {120.0, 60.0, 25.0, 10.0, 3.0}
-REGION_ENTRIES = 500
+REGION_ENTRIES = 260
 REGIONS = 6
 POOLS = ("survival", "creative")
 GIVE = re.compile(r"^give \$\{player\} minecraft:([a-z0-9_]+)(?:\{[^\n]*\})?(?: %\((\d+),(\d+)\))?$")

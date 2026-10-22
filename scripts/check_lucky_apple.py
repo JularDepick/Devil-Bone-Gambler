@@ -105,11 +105,25 @@ def main() -> int:
         JAVA / "effect" / "LuckChildEffect.java"), "the lucky child effect is not registered as a beneficial effect")
     check("lock wired", "LuckLockService.isLocked(player)" in service and "LUCK_LOCKED_VALUE" in lock,
           "the periodic update does not honour the luck lock")
-    check("meal behaviour", "recordEating(player)" in apple, "eating the apple does not count as a behaviour")
+    behaviors = read(JAVA / "luck" / "SubjectiveBehaviorService.java")
+    events = read(JAVA / "luck" / "LuckBehaviorEvents.java")
     constants = read(JAVA / "util" / "ModConstants.java")
+    check("apple behaviour", "recordLuckyApple(player)" in apple and "BEHAVIOR_LUCKY_APPLE" in behaviors,
+          "eating the apple does not record its own behaviour")
+    check("apple behaviour delta", "LUCKY_APPLE_BEHAVIOR_DELTA = 5" in constants
+          and "LUCKY_APPLE_BEHAVIOR_DELTA" in behaviors,
+          "the apple behaviour is not worth five points")
+    hook = events.split("onItemFinished", 1)[-1]
+    check("apple not a plain meal", "ModItems.LUCKY_APPLE" in hook
+          and hook.index("ModItems.LUCKY_APPLE") < hook.index("recordEating"),
+          "the food hook still counts the apple as a plain meal")
     check("child duration", "LUCK_CHILD_TICKS = 300" in constants, "the child of fortune no longer lasts fifteen seconds")
-    check("sneak gain", "LUCK_APPLE_SNEAK_GAIN = 5" in constants and "LUCK_APPLE_SNEAK_LIMIT = 80" in constants,
+    check("sneak gain", "LUCK_APPLE_SNEAK_GAIN = 10" in constants and "LUCK_APPLE_SNEAK_LIMIT = 80" in constants,
           "the sneaking bite lost its gain or its limit")
+    zh = read(ASSETS / "lang" / "zh_cn.json")
+    en = read(ASSETS / "lang" / "en_us.json")
+    check("sneak tooltip", "加 10 点幸运值" in zh and "ten luck" in en,
+          "the tooltips still promise the old gain")
     check("sneak branch", "isShiftKeyDown()" in apple and "LUCK_APPLE_SNEAK_GAIN" in apple
           and "LUCK_APPLE_SNEAK_LIMIT" in apple,
           "the apple has no sneaking branch, or it does not honour the gain and the limit")
