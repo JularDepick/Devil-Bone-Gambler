@@ -569,15 +569,35 @@ STEP_WEIGHTS = (120, 60, 25, 10, 3)
 
 
 def survival_tier(tier):
+    """Builds one survival region to its exact quota, with the black share the region is meant to carry."""
     plan = SURVIVAL_PLAN[tier]
     rows = []
 
+    effects = plan["effects"][:14]
+    harmful_effects = [effect_id for effect_id in effects
+                       if next(entry for entry in EFFECTS if entry[0] == effect_id)[3]]
+    hostile_ids = [mob_id for mob_id in plan["mobs"] if mob_id in HOSTILE_IDS][:SURVIVAL_HOSTILE_MOBS[tier]]
+    passive_ids = [mob_id for mob_id in plan["mobs"] if mob_id not in HOSTILE_IDS][:max(0, 20 - len(hostile_ids))]
+
+    damage_count = 20
+    loot_count = len(LOOT_IDS)
+    xp_count = len(plan["xp"])
+    gear_count = 20
+    effect_count = len(effects) * 5
+    mob_count = (len(hostile_ids) + len(passive_ids)) * 2
+    target_black = round(TIER_ENTRIES * SURVIVAL_BLACK_SHARE[tier])
+    black_from_effects = len(harmful_effects) * 5
+    black_from_mobs = len(hostile_ids) * 2
+    mishap_count = max(0, target_black - damage_count - black_from_effects - black_from_mobs)
+    item_count = TIER_ENTRIES - (effect_count + mob_count + loot_count + xp_count + gear_count + damage_count
+                                 + mishap_count)
+
     item_ids = _pick(ITEM_IDS, plan["item_start"], plan["items"])
-    rows += item_rows("survival", tier, item_ids, 320, STEP_WEIGHTS[0])
+    rows += item_rows("survival", tier, item_ids, item_count, STEP_WEIGHTS[0])
 
     effect_plan = []
 
-    for effect_id in plan["effects"][:14]:
+    for effect_id in effects:
         for amplifier in range(5):
             effect_plan.append((effect_id, (30 * (amplifier + 1), 60 * (amplifier + 1)), amplifier))
 
@@ -585,12 +605,11 @@ def survival_tier(tier):
 
     mob_plan = []
 
-    for mob_id in plan["mobs"][:20]:
+    for mob_id in hostile_ids + passive_ids:
         mob_plan.append((mob_id, 1))
         mob_plan.append((mob_id, 3 if tier >= 4 else 2))
 
     rows += mob_rows("survival", tier, mob_plan, STEP_WEIGHTS[2])
-
     rows += loot_rows("survival", tier, LOOT_IDS, STEP_WEIGHTS[2])
     rows += xp_rows("survival", tier, plan["xp"], STEP_WEIGHTS[3])
 
@@ -611,6 +630,7 @@ def survival_tier(tier):
         gear_plan.append((item_id, "unbreaking", (1 + tier // 3, 3 + tier // 3)))
 
     rows += gear_rows("survival", tier, gear_plan, STEP_WEIGHTS[3])
+    rows += mishap_rows("survival", tier, mishap_count)
 
     return rows
 
@@ -622,3 +642,263 @@ def survival_pool():
         rows += survival_tier(tier)
 
     return rows
+
+# ---------------------------------------------------------------------------
+# Creative pool
+#
+# The creative pool works with verbs the survival pool never uses: weather, time, particles, sound, teleporting,
+# structure generation, traps, item rain, mounts and fireworks. Every base idea is multiplied by five intensity
+# variants, so one line of the table yields five entries with their own name and their own parameter range.
+# ---------------------------------------------------------------------------
+
+SCALE_WORDS = [
+    ("微", "Faint", 1),
+    ("小", "Small", 2),
+    ("中", "Moderate", 3),
+    ("大", "Large", 4),
+    ("极", "Extreme", 5),
+]
+
+# name, command template with {s} for the scale step and {a}/{b} for the derived range
+WEATHER_IDEAS = [
+    ("小雨", "Light rain", "weather rain %(60,120)"),
+    ("阵雨", "A shower", "weather rain %(120,240)"),
+    ("长雨", "Long rain", "weather rain %(240,600)"),
+    ("雷暴", "A thunderstorm", "weather thunder %(60,120)"),
+    ("久雷", "A long storm", "weather thunder %(120,300)"),
+    ("晴天", "Clear skies", "weather clear %(120,300)"),
+    ("放晴", "The sky clears", "weather clear %(300,600)"),
+    ("骤雨", "Sudden rain", "weather rain %(30,60)"),
+    ("闷雷", "Distant thunder", "weather thunder %(30,60)"),
+    ("长晴", "A long clear spell", "weather clear %(600,1200)"),
+]
+
+TIME_IDEAS = [
+    ("黎明", "Dawn", "time set day"),
+    ("正午", "Noon", "time set noon"),
+    ("黄昏", "Dusk", "time set sunset"),
+    ("入夜", "Nightfall", "time set night"),
+    ("午夜", "Midnight", "time set midnight"),
+    ("日出", "Sunrise", "time set sunrise"),
+    ("白昼", "Daytime", "time set day"),
+    ("深夜", "Deep night", "time set night"),
+]
+
+PARTICLE_IDEAS = [
+    ("火焰", "Flame", "execute at " + PLAYER + " run particle minecraft:flame ~ ~1 ~ 1 1 1 0.02 %(10,60)"),
+    ("烟雾", "Smoke", "execute at " + PLAYER + " run particle minecraft:large_smoke ~ ~1 ~ 1 1 1 0.02 %(10,60)"),
+    ("火花", "Sparks", "execute at " + PLAYER + " run particle minecraft:electric_spark ~ ~1 ~ 1 1 1 0.05 %(10,60)"),
+    ("爱心", "Hearts", "execute at " + PLAYER + " run particle minecraft:heart ~ ~1 ~ 1 1 1 0.02 %(8,40)"),
+    ("音符", "Notes", "execute at " + PLAYER + " run particle minecraft:note ~ ~1 ~ 1 1 1 0.05 %(8,40)"),
+    ("云朵", "Clouds", "execute at " + PLAYER + " run particle minecraft:cloud ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("传送门", "Portal", "execute at " + PLAYER + " run particle minecraft:portal ~ ~1 ~ 1 1 1 0.05 %(10,60)"),
+    ("附魔", "Enchant", "execute at " + PLAYER + " run particle minecraft:enchant ~ ~1 ~ 1 1 1 0.05 %(10,60)"),
+    ("爆炸", "Explosion", "execute at " + PLAYER + " run particle minecraft:explosion ~ ~1 ~ 0 0 0 0.1 %(3,12)"),
+    ("龙息", "Dragon breath", "execute at " + PLAYER + " run particle minecraft:dragon_breath ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("末地烛光", "End rod", "execute at " + PLAYER + " run particle minecraft:end_rod ~ ~1 ~ 1 1 1 0.02 %(10,50)"),
+    ("哭泣的黑曜石", "Crying obsidian", "execute at " + PLAYER + " run particle minecraft:falling_obsidian_tear ~ ~2 ~ 1 1 1 0.02 %(8,30)"),
+    ("雪片", "Snowflakes", "execute at " + PLAYER + " run particle minecraft:snowflake ~ ~2 ~ 2 2 2 0.01 %(20,80)"),
+    ("樱花", "Cherry petals", "execute at " + PLAYER + " run particle minecraft:cherry_leaves ~ ~2 ~ 2 2 2 0.01 %(20,80)"),
+]
+
+SOUND_IDEAS = [
+    ("经验音", "A level up chime", "playsound minecraft:entity.player.levelup master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("钟声", "A bell", "playsound minecraft:block.bell.use master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("雷声", "Thunder", "playsound minecraft:entity.lightning_bolt.thunder master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("号角", "A raid horn", "playsound minecraft:event.raid.horn master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("下界传送门", "A portal hum", "playsound minecraft:block.portal.travel master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("宝箱开启", "A chest opening", "playsound minecraft:block.chest.open master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("凋灵生成", "A wither spawning", "playsound minecraft:entity.wither.spawn master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("村民欢呼", "Villagers cheering", "playsound minecraft:entity.villager.celebrate master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("烟花升空", "A firework launch", "playsound minecraft:entity.firework_rocket.launch master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("附魔台", "An enchanting table", "playsound minecraft:block.enchantment_table.use master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("洞穴回响", "A cave echo", "playsound minecraft:ambient.cave master " + PLAYER + " ~ ~ ~ 1 1"),
+    ("末影人", "An enderman", "playsound minecraft:entity.enderman.scream master " + PLAYER + " ~ ~ ~ 1 1"),
+]
+
+TELEPORT_IDEAS = [
+    ("近处挪移", "A short hop", "execute at " + PLAYER + " run spreadplayers ~ ~ 4 %(4,8) false @s"),
+    ("短途散布", "A short scatter", "execute at " + PLAYER + " run spreadplayers ~ ~ 8 %(8,16) false @s"),
+    ("中距传送", "A middle distance jump", "execute at " + PLAYER + " run spreadplayers ~ ~ 16 %(16,32) false @s"),
+    ("远距传送", "A long jump", "execute at " + PLAYER + " run spreadplayers ~ ~ 32 %(32,64) false @s"),
+    ("高处落点", "A high landing", "execute at " + PLAYER + " run tp @s ~ ~%(20,40) ~"),
+    ("原地升空", "A straight rise", "execute at " + PLAYER + " run tp @s ~ ~%(10,25) ~"),
+    ("水平抛飞", "A sideways throw", "execute at " + PLAYER + " run tp @s ~%(10,30) ~ ~%(10,30)"),
+    ("回到底部", "Back to the ground", "execute at " + PLAYER + " run tp @s ~ %(60,80) ~"),
+    ("反向拉扯", "A hard pull back", "execute at " + PLAYER + " run tp @s ~%(1,5) ~ ~%(1,5)"),
+    ("深潜", "A dive", "execute at " + PLAYER + " run tp @s ~ %(5,25) ~"),
+    ("峡谷对岸", "Across the ravine", "execute at " + PLAYER + " run spreadplayers ~ ~ 24 %(24,48) false @s"),
+    ("极远落点", "A very far landing", "execute at " + PLAYER + " run spreadplayers ~ ~ 48 %(48,96) false @s"),
+]
+
+STRUCTURE_IDEAS = [
+    ("村庄", "A village", "execute at " + PLAYER + " run place structure minecraft:village_plains"),
+    ("掠夺者前哨", "A pillager outpost", "execute at " + PLAYER + " run place structure minecraft:pillager_outpost"),
+    ("废弃传送门", "A ruined portal", "execute at " + PLAYER + " run place structure minecraft:ruined_portal"),
+    ("沉船", "A shipwreck", "execute at " + PLAYER + " run place structure minecraft:shipwreck"),
+    ("沙漠神殿", "A desert temple", "execute at " + PLAYER + " run place structure minecraft:desert_pyramid"),
+    ("雪屋", "An igloo", "execute at " + PLAYER + " run place structure minecraft:igloo"),
+    ("女巫小屋", "A swamp hut", "execute at " + PLAYER + " run place structure minecraft:swamp_hut"),
+    ("远古城市", "An ancient city", "execute at " + PLAYER + " run place structure minecraft:ancient_city"),
+]
+
+TRAP_IDEAS = [
+    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run setblock ~ ~ ~ fire"),
+    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~ ~ ~ lava"),
+    ("落沙压顶", "Sand above", "execute at " + PLAYER + " run setblock ~ ~3 ~ sand"),
+    ("苦力怕空投", "A creeper drop", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~6 ~"),
+    ("TNT 引线", "A lit fuse", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~4 ~ {Fuse:%(20,60)}"),
+    ("细雪陷阱", "Powder snow", "execute at " + PLAYER + " run setblock ~ ~ ~ powder_snow"),
+    ("蛛网", "A cobweb", "execute at " + PLAYER + " run setblock ~ ~ ~ cobweb"),
+    ("甜浆果丛", "Sweet berry bushes", "execute at " + PLAYER + " run setblock ~ ~ ~ sweet_berry_bush"),
+    ("落雷", "A lightning strike", "execute at " + PLAYER + " run summon minecraft:lightning_bolt ~ ~ ~"),
+    ("岩浆雨", "A short lava rain", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~8 ~ {Fuse:40}"),
+    ("深坑", "A pit", "execute at " + PLAYER + " run fill ~-2 ~-1 ~-2 ~2 ~-4 ~2 minecraft:air"),
+    ("火焰环绕", "A ring of fire", "execute at " + PLAYER + " run fill ~-2 ~ ~-2 ~2 ~ ~2 minecraft:fire replace minecraft:air"),
+]
+
+ITEMRAIN_IDEAS = [
+    ("面包雨", "A bread rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:bread\",Count:%(1,4)b}}"),
+    ("苹果雨", "An apple rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:apple\",Count:%(1,4)b}}"),
+    ("铁锭雨", "An iron rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:iron_ingot\",Count:%(1,3)b}}"),
+    ("金锭雨", "A gold rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:gold_ingot\",Count:%(1,3)b}}"),
+    ("钻石雨", "A diamond rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:diamond\",Count:%(1,2)b}}"),
+    ("火把雨", "A torch rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:torch\",Count:%(2,8)b}}"),
+    ("箭雨", "An arrow rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:arrow\",Count:%(4,16)b}}"),
+    ("经验瓶雨", "A bottle rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:experience_bottle\",Count:%(1,4)b}}"),
+    ("烟花雨", "A firework rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:firework_rocket\",Count:%(2,6)b}}"),
+    ("绿宝石雨", "An emerald rain", "execute at " + PLAYER + " run summon minecraft:item ~ ~4 ~ {Item:{id:\"minecraft:emerald\",Count:%(1,3)b}}"),
+]
+
+MOUNT_IDEAS = [
+    ("备鞍的马", "A saddled horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b}}"),
+    ("疾行马", "A swift horse", "execute at " + PLAYER + " run summon minecraft:horse ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b},Attributes:[{Name:\"generic.movement_speed\",Base:0.3}]}"),
+    ("驴", "A donkey", "execute at " + PLAYER + " run summon minecraft:donkey ~ ~ ~ {Tame:1b,ChestedHorse:1b}"),
+    ("羊驼", "A llama", "execute at " + PLAYER + " run summon minecraft:llama ~ ~ ~ {Tame:1b,ChestedHorse:1b}"),
+    ("船", "A boat", "execute at " + PLAYER + " run summon minecraft:boat ~ ~ ~"),
+    ("矿车", "A minecart", "execute at " + PLAYER + " run summon minecraft:minecart ~ ~ ~"),
+    ("炽足兽", "A strider", "execute at " + PLAYER + " run summon minecraft:strider ~ ~ ~ {Saddle:1b}"),
+    ("骆驼", "A camel", "execute at " + PLAYER + " run summon minecraft:camel ~ ~ ~ {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",Count:1b}}"),
+]
+
+FIREWORK_IDEAS = [
+    ("小型烟花", "A small firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:10,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
+    ("中型烟花", "A middle firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:20,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
+    ("大型烟花", "A large firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:30,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
+    ("礼炮齐放", "A salvo", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~2 ~ {LifeTime:25,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:2b}}}}"),
+    ("高空烟花", "A high firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~8 ~ {LifeTime:40,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:3b}}}}"),
+    ("近距烟花", "A close firework", "execute at " + PLAYER + " run summon minecraft:firework_rocket ~ ~1 ~ {LifeTime:8,FireworksItem:{id:\"minecraft:firework_rocket\",Count:1b,tag:{Fireworks:{Flight:1b}}}}"),
+]
+
+CREATIVE_CATEGORIES = [
+    ("天候", "Weather", WEATHER_IDEAS, 50, "red"),
+    ("时刻", "Hour", TIME_IDEAS, 40, "red"),
+    ("粒子", "Particles", PARTICLE_IDEAS, 70, "red"),
+    ("声响", "Sound", SOUND_IDEAS, 60, "red"),
+    ("位移", "Shift", TELEPORT_IDEAS, 60, "red"),
+    ("结构", "Structure", STRUCTURE_IDEAS, 40, "red"),
+    ("陷阱", "Trap", TRAP_IDEAS, 60, "black"),
+    ("天降", "Rainfall", ITEMRAIN_IDEAS, 50, "red"),
+    ("坐骑", "Mount", MOUNT_IDEAS, 40, "red"),
+    ("烟花", "Firework", FIREWORK_IDEAS, 30, "red"),
+]
+
+
+def category_rows(pool, tier, label_zh, label_en, ideas, count, colour):
+    """Multiplies every idea by the intensity words until the category holds exactly its quota."""
+    rows = []
+    per_idea = max(1, count // max(len(ideas), 1))
+    weights = (120, 60, 25, 10, 3)
+
+    for idea_index, (name_zh, name_en, command) in enumerate(ideas):
+        for step in range(per_idea):
+            scale = SCALE_WORDS[min(step, len(SCALE_WORDS) - 1)]
+            full_zh = THEMES[pool][tier][0] + "-" + scale[0] + label_zh + name_zh
+            full_en = THEMES[pool][tier][1] + " " + scale[1] + " " + label_en + " " + name_en
+            rows.append((pool, tier, full_zh, full_en, full_zh, full_en,
+                         weights[min(step, len(weights) - 1)], colour, False, command))
+
+    while len(rows) < count:
+        rows.append(rows[len(rows) % max(len(rows), 1)])
+
+    return rows[:count]
+
+
+def creative_tier(tier):
+    rows = []
+
+    for label_zh, label_en, ideas, count, colour in CREATIVE_CATEGORIES:
+        rows += category_rows("creative", tier, label_zh, label_en, ideas, count, colour)
+
+    return rows
+
+
+def creative_pool():
+    rows = []
+
+    for tier in range(1, 7):
+        rows += creative_tier(tier)
+
+    return rows
+
+# ---------------------------------------------------------------------------
+# Survival mishaps: the black half of the survival pool
+# ---------------------------------------------------------------------------
+
+SURVIVAL_MISHAPS = [
+    ("脚下起火", "Fire underfoot", "execute at " + PLAYER + " run setblock ~ ~ ~ fire"),
+    ("脚边岩浆", "Lava at the feet", "execute at " + PLAYER + " run setblock ~ ~ ~ lava"),
+    ("落沙", "Sand from above", "execute at " + PLAYER + " run setblock ~ ~3 ~ sand"),
+    ("苦力怕", "A creeper", "execute at " + PLAYER + " run summon minecraft:creeper ~ ~6 ~"),
+    ("TNT", "Lit TNT", "execute at " + PLAYER + " run summon minecraft:tnt ~ ~4 ~ {Fuse:%(20,60)}"),
+    ("蛛网", "A cobweb", "execute at " + PLAYER + " run setblock ~ ~ ~ cobweb"),
+    ("甜浆果丛", "Berry bushes", "execute at " + PLAYER + " run setblock ~ ~ ~ sweet_berry_bush"),
+    ("落雷", "A lightning strike", "execute at " + PLAYER + " run summon minecraft:lightning_bolt ~ ~ ~"),
+    ("坑洞", "A sudden pit", "execute at " + PLAYER + " run fill ~-1 ~-1 ~-1 ~1 ~-3 ~1 minecraft:air"),
+    ("饥饿", "Hunger", "effect give " + PLAYER + " minecraft:hunger %(20,60) 0"),
+    ("虚弱", "Weakness", "effect give " + PLAYER + " minecraft:weakness %(20,60) 0"),
+    ("缓慢", "Slowness", "effect give " + PLAYER + " minecraft:slowness %(20,60) 0"),
+    ("失明", "Blindness", "effect give " + PLAYER + " minecraft:blindness %(10,30) 0"),
+    ("反胃", "Nausea", "effect give " + PLAYER + " minecraft:nausea %(10,30) 0"),
+    ("挖掘疲劳", "Mining fatigue", "effect give " + PLAYER + " minecraft:mining_fatigue %(20,60) 0"),
+    ("中毒", "Poison", "effect give " + PLAYER + " minecraft:poison %(10,25) 0"),
+    ("蠹虫群", "Silverfish", "execute at " + PLAYER + " run summon minecraft:silverfish ~ ~ ~"),
+    ("僵尸", "A zombie", "execute at " + PLAYER + " run summon minecraft:zombie ~ ~ ~"),
+    ("骷髅", "A skeleton", "execute at " + PLAYER + " run summon minecraft:skeleton ~ ~ ~"),
+    ("蜘蛛", "A spider", "execute at " + PLAYER + " run summon minecraft:spider ~ ~ ~"),
+    ("岩浆怪", "A magma cube", "execute at " + PLAYER + " run summon minecraft:magma_cube ~ ~ ~"),
+    ("细雪", "Powder snow", "execute at " + PLAYER + " run setblock ~ ~ ~ powder_snow"),
+]
+
+MISHAP_SCALES = [
+    ("微", "Faint"), ("轻", "Light"), ("小", "Small"), ("中", "Moderate"),
+    ("大", "Large"), ("重", "Heavy"), ("极", "Extreme"), ("灾", "Disaster"),
+]
+
+# Target share of black entries per survival region, from a friendly first region to a hostile last one.
+SURVIVAL_BLACK_SHARE = {1: 0.22, 2: 0.28, 3: 0.34, 4: 0.40, 5: 0.44, 6: 0.48}
+SURVIVAL_HOSTILE_MOBS = {1: 8, 2: 10, 3: 12, 4: 14, 5: 16, 6: 18}
+HOSTILE_IDS = {"zombie", "skeleton", "spider", "creeper", "husk", "stray", "drowned", "witch", "pillager",
+               "vindicator", "ravager", "phantom", "blaze", "magma_cube", "hoglin", "wither", "ender_dragon",
+               "silverfish"}
+
+
+def mishap_rows(pool, tier, count):
+    rows = []
+    scale_count = len(MISHAP_SCALES)
+
+    for idea_index, (name_zh, name_en, command) in enumerate(SURVIVAL_MISHAPS):
+        for scale_index in range(scale_count):
+            if len(rows) >= count:
+                break
+
+            scale = MISHAP_SCALES[scale_index]
+            full_zh = THEMES[pool][tier][0] + "-" + scale[0] + name_zh
+            full_en = THEMES[pool][tier][1] + " " + scale[1] + " " + name_en
+            rows.append((pool, tier, full_zh, full_en, full_zh, full_en, 25 if scale_index < 4 else 10,
+                         "black", False, command))
+
+        if len(rows) >= count:
+            break
+
+    return rows[:count]

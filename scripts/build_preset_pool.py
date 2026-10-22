@@ -774,7 +774,7 @@ def emit():
 
 
 if "--v080" in sys.argv:
-    ROWS[:] = preset_content.survival_pool()
+    ROWS[:] = preset_content.survival_pool() + preset_content.creative_pool()
 
 if "--sample" in sys.argv:
     wanted = int(sys.argv[sys.argv.index("--sample") + 1])
