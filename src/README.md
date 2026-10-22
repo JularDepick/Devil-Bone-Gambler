@@ -73,7 +73,6 @@ src/main/java/com/devilbonegambler/
 ├── config/
 │   ├── AccessConfig.java                       # 管理访问配置, 创建者与管理员名单
 │   ├── DefaultPrizePool.java                   # 首次生成奖池配置时使用的预设
-│   ├── DefaultPrizePoolData.java               # 两套预设奖池数据, 由脚本生成
 │   ├── ItemValueConfig.java                    # 物品价值配置模型
 │   ├── ItemValuePresets.java                   # 内置原版物品价值基准表
 │   ├── NotifyConfig.java                       # 条目结果展示配置模型
