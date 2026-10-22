@@ -12,23 +12,24 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
 /**
- * Client to server: submit one config domain with the revision the client edited.
+ * Client to server: announces one config save, which is then delivered in parts by {@link ConfigPayloadPacket}.
+ *
+ * The announcement carries the revision the client edited and how many parts follow, so the server can reject the
+ * save on permissions or a stale revision before the bulk arrives.
  */
 public class ConfigWriteRequestPacket
 {
-    private static final int MAX_PAYLOAD = 262144;
-
     private final int sequence;
     private final String domain;
     private final int revision;
-    private final String payload;
+    private final int partCount;
 
-    public ConfigWriteRequestPacket(int sequence, String domain, int revision, String payload)
+    public ConfigWriteRequestPacket(int sequence, String domain, int revision, int partCount)
     {
         this.sequence = sequence;
-        this.domain = domain;
+        this.domain = domain == null ? "" : domain;
         this.revision = revision;
-        this.payload = payload == null ? "{}" : payload;
+        this.partCount = partCount;
     }
 
     public int sequence()
@@ -46,9 +47,9 @@ public class ConfigWriteRequestPacket
         return this.revision;
     }
 
-    public String payload()
+    public int partCount()
     {
-        return this.payload;
+        return this.partCount;
     }
 
     public static void encode(ConfigWriteRequestPacket message, FriendlyByteBuf buffer)
@@ -56,7 +57,7 @@ public class ConfigWriteRequestPacket
         buffer.writeVarInt(message.sequence);
         buffer.writeUtf(message.domain, 32);
         buffer.writeVarInt(message.revision);
-        buffer.writeUtf(message.payload, MAX_PAYLOAD);
+        buffer.writeVarInt(message.partCount);
     }
 
     public static ConfigWriteRequestPacket decode(FriendlyByteBuf buffer)
@@ -64,8 +65,8 @@ public class ConfigWriteRequestPacket
         int sequence = buffer.readVarInt();
         String domain = buffer.readUtf(32);
         int revision = buffer.readVarInt();
-        String payload = buffer.readUtf(MAX_PAYLOAD);
-        return new ConfigWriteRequestPacket(sequence, domain, revision, payload);
+        int partCount = buffer.readVarInt();
+        return new ConfigWriteRequestPacket(sequence, domain, revision, partCount);
     }
 
     public static void handle(ConfigWriteRequestPacket message, Supplier<NetworkEvent.Context> contextSupplier)

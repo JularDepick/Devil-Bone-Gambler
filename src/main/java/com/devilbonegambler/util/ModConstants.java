@@ -19,7 +19,7 @@ public final class ModConstants
      */
     public static final String MOD_ID = DevilBoneGambler.MODID;
     public static final String NETWORK_CHANNEL = "main";
-    public static final String PROTOCOL_VERSION = "2";
+    public static final String PROTOCOL_VERSION = "3";
 
     /*
      * Config files and domains
@@ -305,6 +305,11 @@ public final class ModConstants
     public static final long NOTICE_COOLDOWN_MS = 1000L;
     /* The altar presence hint describes the surroundings instead of reacting to one click, so it repeats slower. */
     public static final long ALTAR_HINT_COOLDOWN_MS = 10000L;
+    /*
+     * Config payloads travel in parts of this many characters, because a preset set of thousands of entries is far
+     * larger than the payload field of a single packet.
+     */
+    public static final int CONFIG_CHUNK_CHARS = 200000;
     public static final String REASON_TOO_FREQUENT = "too_frequent";
 
     public static final String[] NOTIFY_MODES = {

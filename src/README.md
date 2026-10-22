@@ -26,6 +26,7 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientActions.java                      # 客户端动作入口, 发包与打开界面
 │   ├── ClientBehaviorState.java                # 行为变量的客户端镜像, 只作信息展示
 │   ├── ClientLuck.java                         # 客户端持有的最新幸运值, 只供角标显示
+│   ├── ClientConfigCache.java                  # 配置分块的拼装与面板打开时机
 │   ├── ClientNotices.java
 │   ├── ClientPacketHandler.java                # 客户端侧网络包分发
 │   ├── ClientSetup.java                        # 客户端注册入口, 注册实体渲染器
@@ -131,8 +132,10 @@ src/main/java/com/devilbonegambler/
 │   └── GamblersDealer.java                     # 荷官实体, 进食与主持消耗
 ├── network/
 │   ├── AltarStatusBroadcaster.java             # 周期向客户端广播祭坛状态
+│   ├── ConfigChunks.java                       # 配置负载的分块切分
 │   ├── ModNetwork.java                         # 通道注册与发送封装
 │   ├── RequestGuard.java                       # 请求序号去重与频率限制
+│   ├── ServerConfigPayloads.java               # 服务端配置分块的拼装与落地
 │   ├── ServerRequestHandler.java               # 服务端请求处理
 │   └── packet/
 │       ├── AdminEditPacket.java
@@ -141,8 +144,8 @@ src/main/java/com/devilbonegambler/
 │       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── BehaviorStatePacket.java            # 行为变量状态的镜像包
-│       ├── ConfigSyncPacket.java
-│       ├── ConfigWriteRequestPacket.java
+│       ├── ConfigPayloadPacket.java            # 配置负载的一片, 双向共用
+│       ├── ConfigWriteRequestPacket.java       # 保存请求的元信息, 负载随后分片到达
 │       ├── ConfigWriteResponsePacket.java
 │       ├── DealerBetOpenRequestPacket.java
 │       ├── DealerInteractPacket.java

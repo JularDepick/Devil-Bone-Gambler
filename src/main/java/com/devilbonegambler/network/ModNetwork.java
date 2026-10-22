@@ -13,7 +13,7 @@ import com.devilbonegambler.network.packet.BehaviorStatePacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
-import com.devilbonegambler.network.packet.ConfigSyncPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
@@ -83,8 +83,10 @@ public final class ModNetwork
         CHANNEL.registerMessage(index++, ConfigWriteResponsePacket.class,
                 ConfigWriteResponsePacket::encode, ConfigWriteResponsePacket::decode,
                 ConfigWriteResponsePacket::handle);
-        CHANNEL.registerMessage(index++, ConfigSyncPacket.class,
-                ConfigSyncPacket::encode, ConfigSyncPacket::decode, ConfigSyncPacket::handle);
+        CHANNEL.registerMessage(index++, ConfigPayloadPacket.class,
+                ConfigPayloadPacket::encode, ConfigPayloadPacket::decode, ConfigPayloadPacket::handleFromServer);
+        CHANNEL.registerMessage(index++, ConfigPayloadPacket.class,
+                ConfigPayloadPacket::encode, ConfigPayloadPacket::decode, ConfigPayloadPacket::handleFromClient);
         CHANNEL.registerMessage(index++, OpenValueTablePacket.class,
                 OpenValueTablePacket::encode, OpenValueTablePacket::decode, OpenValueTablePacket::handle);
         CHANNEL.registerMessage(index++, PointDisplayPacket.class,

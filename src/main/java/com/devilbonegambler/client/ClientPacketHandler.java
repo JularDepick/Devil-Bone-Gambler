@@ -12,7 +12,7 @@ import com.devilbonegambler.client.gui.DealerScreen;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.DealerPanelPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
-import com.devilbonegambler.network.packet.ConfigSyncPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DrawResultPacket;
 import com.devilbonegambler.network.packet.BehaviorStatePacket;
@@ -131,13 +131,12 @@ public final class ClientPacketHandler
 
         if (minecraft.screen instanceof AdminConfigScreen panel)
         {
-            panel.applyServerData(message.prizePoolJson(), message.itemValuesJson(), message.creatorName(),
-                    message.admins(), message.canManageAdmins());
+            panel.applyAccess(message.creatorName(), message.admins(), message.canManageAdmins());
             return;
         }
 
-        ClientActions.openAdminPanel(message.prizePoolJson(), message.itemValuesJson(), message.creatorName(),
-                message.admins(), message.canManageAdmins());
+        ClientConfigCache.onPanelData(message.creatorName(), message.admins(), message.canManageAdmins());
+        ClientConfigCache.tryOpenPanel();
     }
 
     public static void handleConfigWriteResponse(ConfigWriteResponsePacket message)
@@ -150,14 +149,35 @@ public final class ClientPacketHandler
         }
     }
 
-    public static void handleConfigSync(ConfigSyncPacket message)
+    /**
+     * One part of a config domain. The panel is fed once the last part arrives, and a panel that is still waiting to
+     * open does so on the part that completes its second payload.
+     */
+    public static void handleConfigPayload(ConfigPayloadPacket message)
     {
+        if (message.partCount() < 1 || message.partIndex() < 0 || message.partIndex() >= message.partCount())
+        {
+            return;
+        }
+
+        String payload = ClientConfigCache.accept(message.domain(), message.partIndex(), message.partCount(),
+                message.chunk());
+
+        if (payload == null)
+        {
+            return;
+        }
+
+        ClientConfigCache.store(message.domain(), payload);
         Minecraft minecraft = Minecraft.getInstance();
 
         if (minecraft.screen instanceof AdminConfigScreen panel)
         {
-            panel.onConfigSync(message);
+            panel.onConfigSync(message.domain(), payload);
+            return;
         }
+
+        ClientConfigCache.tryOpenPanel();
     }
 
     public static void handleOpenValueTable(OpenValueTablePacket message)

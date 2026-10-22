@@ -15,7 +15,8 @@ import com.devilbonegambler.config.PrizePoolBook;
 import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
 import com.devilbonegambler.network.ModNetwork;
-import com.devilbonegambler.network.packet.ConfigSyncPacket;
+import com.devilbonegambler.network.ConfigChunks;
+import com.devilbonegambler.network.packet.ConfigPayloadPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.util.ModConstants;
@@ -334,16 +335,36 @@ public class AdminConfigScreen extends Screen
                 Component.translatable(key("reason." + message.reasonKey()))).getString();
     }
 
-    public void onConfigSync(ConfigSyncPacket message)
+    /**
+     * Replaces only the access data: the two config domains arrive on their own, so a change of the admin list never
+     * discards an edit that is still in the fields.
+     */
+    public void applyAccess(String creator, List<String> names, boolean canManage)
     {
-        if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(message.domain()))
+        this.creatorName = creator == null ? "" : creator;
+        this.admins = names == null ? new ArrayList<String>() : new ArrayList<String>(names);
+        this.canManageAdmins = canManage;
+        rebuildAdminTable();
+
+        if (this.widgetsReady)
         {
-            this.poolBook = parsePoolBook(message.payload());
+            refreshFields();
+        }
+    }
+
+    /**
+     * Replaces one domain with the copy the server just pushed. The payload arrives whole, assembled from its parts.
+     */
+    public void onConfigSync(String domain, String payload)
+    {
+        if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(domain))
+        {
+            this.poolBook = parsePoolBook(payload);
             rebuildPrizeRows();
         }
-        else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(message.domain()))
+        else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(domain))
         {
-            this.itemValues = parseItemValues(message.payload());
+            this.itemValues = parseItemValues(payload);
             rebuildValueKeys();
         }
 
@@ -1060,9 +1081,23 @@ public class AdminConfigScreen extends Screen
         this.waiting = true;
         this.pendingSequence = ClientActions.nextSequence();
         this.status = Component.translatable(key("admin.status_waiting")).getString();
-        ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
-                ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
-                GSON.toJson(this.poolBook)));
+        sendConfigWrite(ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
+                GSON.toJson(this.poolBook));
+    }
+
+    /**
+     * Announces one save and then ships the payload in parts: a pool of thousands of entries is far larger than a
+     * single packet may carry, so the server only sees the whole payload once the last part arrives.
+     */
+    private void sendConfigWrite(String domain, int revision, String payload)
+    {
+        List<String> parts = ConfigChunks.split(payload);
+        ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence, domain, revision, parts.size()));
+
+        for (int index = 0; index < parts.size(); index++)
+        {
+            ModNetwork.sendToServer(new ConfigPayloadPacket(domain, index, parts.size(), parts.get(index)));
+        }
     }
 
     /**
@@ -2268,15 +2303,13 @@ public class AdminConfigScreen extends Screen
 
         if (this.valueTab)
         {
-            ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
-                    ModConstants.CONFIG_DOMAIN_ITEM_VALUES, this.itemValues.revisionOrZero(),
-                    GSON.toJson(this.itemValues)));
+            sendConfigWrite(ModConstants.CONFIG_DOMAIN_ITEM_VALUES, this.itemValues.revisionOrZero(),
+                    GSON.toJson(this.itemValues));
         }
         else
         {
-            ModNetwork.sendToServer(new ConfigWriteRequestPacket(this.pendingSequence,
-                    ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
-                    GSON.toJson(this.poolBook)));
+            sendConfigWrite(ModConstants.CONFIG_DOMAIN_PRIZE_POOL, this.poolBook.revisionOrZero(),
+                    GSON.toJson(this.poolBook));
         }
     }
 

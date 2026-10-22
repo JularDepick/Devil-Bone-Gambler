@@ -23,7 +23,7 @@ import com.devilbonegambler.network.packet.AdminEditPacket;
 import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
-import com.devilbonegambler.network.packet.ConfigSyncPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadPacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
@@ -327,11 +327,26 @@ public final class ServerRequestHandler
         }
 
         ModNetwork.sendToPlayer(target, new AdminPanelDataPacket(
-                ServerConfigManager.prizePoolJson(), ServerConfigManager.itemValuesJson(),
                 ServerConfigManager.access() == null ? "" : ServerConfigManager.access().creatorOrEmpty(),
                 ServerConfigManager.access() == null ? new ArrayList<String>()
                         : new ArrayList<String>(ServerConfigManager.access().adminsOrEmpty()),
                 ServerConfigManager.canManageAdmins(target.getGameProfile().getName())));
+        sendPayload(target, ModConstants.CONFIG_DOMAIN_PRIZE_POOL, ServerConfigManager.prizePoolJson());
+        sendPayload(target, ModConstants.CONFIG_DOMAIN_ITEM_VALUES, ServerConfigManager.itemValuesJson());
+    }
+
+    /**
+     * Pushes one config domain in parts: the payload is cut to the packet budget and the client glues the parts back
+     * together, so a pool of thousands of entries travels without any size limit of its own.
+     */
+    private static void sendPayload(ServerPlayer player, String domain, String payload)
+    {
+        List<String> parts = ConfigChunks.split(payload);
+
+        for (int index = 0; index < parts.size(); index++)
+        {
+            ModNetwork.sendToPlayer(player, new ConfigPayloadPacket(domain, index, parts.size(), parts.get(index)));
+        }
     }
 
     public static void handleConfigWrite(ServerPlayer player, ConfigWriteRequestPacket message)
@@ -355,36 +370,62 @@ public final class ServerRequestHandler
             return;
         }
 
-        String failure;
-        int revision;
+        /*
+         * The bulk follows in parts, so the announcement only reserves the slot: a refused save is answered before a
+         * single part of it is read.
+         */
+        ServerConfigPayloads.begin(player, message.domain(), message.revision(), message.sequence(),
+                message.partCount());
+    }
 
-        if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(message.domain()))
+    /**
+     * One part of a save request. The last part applies the whole payload through {@link #applyConfigWrite}.
+     */
+    public static void handleConfigPayload(ServerPlayer player, ConfigPayloadPacket message)
+    {
+        if (player == null || !isManager(player))
         {
-            failure = ServerConfigManager.applyPrizePoolWrite(message.revision(), message.payload());
-            revision = ServerConfigManager.prizePoolBook() == null ? 0
+            return;
+        }
+
+        ServerConfigPayloads.accept(player, message);
+    }
+
+    /**
+     * Applies one assembled config domain and answers the requester, then pushes the new revision to every manager.
+     */
+    public static void applyConfigWrite(ServerPlayer player, int sequence, String domain, int revision, String payload)
+    {
+        String failure;
+        int applied;
+
+        if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(domain))
+        {
+            failure = ServerConfigManager.applyPrizePoolWrite(revision, payload);
+            applied = ServerConfigManager.prizePoolBook() == null ? 0
                     : ServerConfigManager.prizePoolBook().revisionOrZero();
         }
-        else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(message.domain()))
+        else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(domain))
         {
-            failure = ServerConfigManager.applyItemValuesWrite(message.revision(), message.payload());
-            revision = ServerConfigManager.itemValues() == null ? 0 : ServerConfigManager.itemValues().revisionOrZero();
+            failure = ServerConfigManager.applyItemValuesWrite(revision, payload);
+            applied = ServerConfigManager.itemValues() == null ? 0 : ServerConfigManager.itemValues().revisionOrZero();
         }
         else
         {
             failure = "invalid_config";
-            revision = 0;
+            applied = 0;
         }
 
-        ModNetwork.sendToPlayer(player, new ConfigWriteResponsePacket(message.sequence(), message.domain(), revision,
+        ModNetwork.sendToPlayer(player, new ConfigWriteResponsePacket(sequence, domain, applied,
                 failure == null, failure == null ? "" : failure));
 
         if (failure == null)
         {
-            broadcast(player, message.domain());
+            broadcast(player, domain);
         }
         else if ("revision_conflict".equals(failure))
         {
-            sendLatest(player, message.domain());
+            sendLatest(player, domain);
         }
     }
 
@@ -523,13 +564,11 @@ public final class ServerRequestHandler
 
         if (ModConstants.CONFIG_DOMAIN_PRIZE_POOL.equals(domain))
         {
-            ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
-                    ServerConfigManager.prizePoolBook().revisionOrZero(), ServerConfigManager.prizePoolJson()));
+            sendPayload(player, domain, ServerConfigManager.prizePoolJson());
         }
         else if (ModConstants.CONFIG_DOMAIN_ITEM_VALUES.equals(domain))
         {
-            ModNetwork.sendToPlayer(player, new ConfigSyncPacket(domain,
-                    ServerConfigManager.itemValues().revisionOrZero(), ServerConfigManager.itemValuesJson()));
+            sendPayload(player, domain, ServerConfigManager.itemValuesJson());
         }
     }
 }

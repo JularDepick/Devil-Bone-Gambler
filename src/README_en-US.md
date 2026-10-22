@@ -26,6 +26,7 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientActions.java                      # Client action entry, packet sending and screen opening
 │   ├── ClientBehaviorState.java                # Client mirror of the behaviour state, informational only
 │   ├── ClientLuck.java                         # Latest luck value pushed by the server, used by the corner line only
+│   ├── ClientConfigCache.java                  # Assembles config parts, opens the panel at the right moment
 │   ├── ClientNotices.java
 │   ├── ClientPacketHandler.java                # Client side packet dispatch
 │   ├── ClientSetup.java                        # Client registration entry, registers the entity renderer
@@ -131,8 +132,10 @@ src/main/java/com/devilbonegambler/
 │   └── GamblersDealer.java                     # Dealer entity, feeding and hosting cost
 ├── network/
 │   ├── AltarStatusBroadcaster.java             # Periodically broadcasts the altar status to clients
+│   ├── ConfigChunks.java                       # Splits one config payload into parts
 │   ├── ModNetwork.java                         # Channel registration and send helpers
 │   ├── RequestGuard.java                       # Request sequence dedup and rate limit
+│   ├── ServerConfigPayloads.java               # Assembles config parts and applies the save
 │   ├── ServerRequestHandler.java               # Server side request handling
 │   └── packet/
 │       ├── AdminEditPacket.java
@@ -141,8 +144,8 @@ src/main/java/com/devilbonegambler/
 │       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── BehaviorStatePacket.java            # Behaviour state mirror
-│       ├── ConfigSyncPacket.java
-│       ├── ConfigWriteRequestPacket.java
+│       ├── ConfigPayloadPacket.java            # One part of a config payload, shared by both directions
+│       ├── ConfigWriteRequestPacket.java       # Save request metadata, the payload follows in parts
 │       ├── ConfigWriteResponsePacket.java
 │       ├── DealerBetOpenRequestPacket.java
 │       ├── DealerInteractPacket.java

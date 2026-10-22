@@ -253,7 +253,7 @@ def main() -> int:
           and "setLuck" in commands, "the admin luck command is missing or not bounded to 0..100")
     check("set command effect", "setLuck(targetId, value)" in commands and "new LuckSyncPacket(value)" in commands,
           "the admin luck command does not store and push the value")
-    check("protocol version", 'PROTOCOL_VERSION = "2"' in constants,
+    check("protocol version", 'PROTOCOL_VERSION = "3"' in constants,
           "the protocol version is not raised for this build")
 
     if problems:
