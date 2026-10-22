@@ -44,7 +44,7 @@
 
 - Drop at least 8 gameplay manuals inside an altar range and the altar takes them, turning them into the same number of dice
 - How many dice of each kind you get is random, and the split differs on every conversion
-- Role bound manuals cannot be converted this way
+- Only gameplay manuals are taken and turned into dice, any other item left in the range stays where it is
 
 ## Offering Value Table
 
@@ -56,7 +56,9 @@
 ## Lucky Apple
 
 - Crafted from eight gamblers dice around one apple
-- Eating it fills the hunger bar and the health bar, and grants Child of Fortune for ten seconds
+- Eating it fills the hunger bar and the health bar, and clears every harmful effect at once
+- Eaten while standing it grants Child of Fortune for fifteen seconds, and a bite taken while it runs extends the remaining time instead of resetting it
+- Eaten while sneaking it adds five luck at once; from eighty on, a sneaking bite pays no luck and grants fifteen seconds of Child of Fortune instead
 - The luck value is held at 100 for that time and every update during it is thrown away, so the pre meal value comes back unchanged
 - The apple fills the hunger bar itself, it does not depend on how much the food would restore
 
@@ -96,7 +98,7 @@
 - While recruiting the dealer shows one line overhead: the wager is being called, with the member count and the seconds left inside the same line
 - In the last five seconds the joined players see a one second countdown in chat
 - Clicking your own cell opens your own bet box to put in and take out freely, and clicking another cell only shows that box
-- The manuals that follow a role cannot be put into a bet box, every other item can
+- An item a bet box refuses is handed back when you put it in, every other item can go in
 - When the recruit ends the countdown starts: members outside the range are pulled back to the dealer at once, and a member without a stake is removed
 - The point picks one member and the colour decides the payout: red takes every stake plus one more copy of the own stake, black takes every stake only
 - Leaving closes the bet box and returns the stake; a wager with too few members or without the one who started it is cancelled with every stake returned
@@ -105,7 +107,7 @@
 
 ## Crafting
 
-- The only craftable items are the two dice, the Devil's Altar, the Offering Value Table and the Lucky Apple; the three manuals have no recipe and come with a role
+- The only craftable items are the two dice, the Devil's Altar, the Offering Value Table and the Lucky Apple; the gameplay manual has no recipe
 - Devil's Dice: four per craft, with netherrack in the four corners, obsidian on the four edge middles and redstone in the centre
 - Gambler's Dice: eight per craft, with leather in the four corners, any planks on the four edge middles and redstone in the centre
 - Devil's Altar: one per craft, with glowstone dust, redstone and glowstone dust on the first row, netherrack, obsidian and netherrack on the second, and three obsidian on the third

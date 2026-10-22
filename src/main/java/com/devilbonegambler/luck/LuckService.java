@@ -35,6 +35,8 @@ import net.minecraftforge.fml.common.Mod;
 public final class LuckService
 {
     private static int countdown;
+    /* The quick pull runs on its own counter, so the two cadences never share a phase. */
+    private static int driftCountdown;
 
     private LuckService()
     {
@@ -68,7 +70,22 @@ public final class LuckService
 
         MinecraftServer server = event.getServer();
 
-        if (server == null || (++countdown < ModConstants.LUCK_UPDATE_INTERVAL_TICKS))
+        if (server == null)
+        {
+            return;
+        }
+
+        if (++driftCountdown >= ModConstants.LUCK_DRIFT_INTERVAL_TICKS)
+        {
+            driftCountdown = 0;
+
+            for (ServerPlayer player : server.getPlayerList().getPlayers())
+            {
+                drift(player);
+            }
+        }
+
+        if (++countdown < ModConstants.LUCK_UPDATE_INTERVAL_TICKS)
         {
             return;
         }
@@ -138,6 +155,43 @@ public final class LuckService
         }
 
         SubjectiveBehaviorService.finishRound(player);
+        ModNetwork.sendToPlayer(player, new LuckSyncPacket(next));
+    }
+
+    /**
+     * The quick pull: outside the comfortable band the value steps one point towards it every drift interval, so a
+     * value the hidden curve keeps pushing the wrong way still walks back instead of staying pinned. A locked value is
+     * left alone, because the effect owns it for the duration.
+     */
+    private static void drift(ServerPlayer player)
+    {
+        MinecraftServer server = player.getServer();
+
+        if (server == null || LuckLockService.isLocked(player))
+        {
+            return;
+        }
+
+        LuckData data = LuckData.get(server);
+        int current = data.ensure(player.getUUID(), nowTick(server)).value();
+        int step = 0;
+
+        if (current < ModConstants.LUCK_LOW_BAND)
+        {
+            step = ModConstants.LUCK_DRIFT_STEP;
+        }
+        else if (current > ModConstants.LUCK_HIGH_BAND)
+        {
+            step = -ModConstants.LUCK_DRIFT_STEP;
+        }
+
+        if (step == 0)
+        {
+            return;
+        }
+
+        int next = Mth.clamp(current + step, ModConstants.MIN_LUCK, ModConstants.MAX_LUCK);
+        data.setLuck(player.getUUID(), next);
         ModNetwork.sendToPlayer(player, new LuckSyncPacket(next));
     }
 

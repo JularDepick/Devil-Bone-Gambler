@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.event.entity.player.PlayerXpEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -48,6 +49,21 @@ public final class LuckBehaviorEvents
         {
             SubjectiveBehaviorService.recordEating(player);
         }
+    }
+
+    /**
+     * Gaining an experience level pays the behaviour variable once. Only a rise counts: the levels lost to a death are
+     * not a behaviour, and the round trigger keeps two level ups inside one round from stacking.
+     */
+    @SubscribeEvent
+    public static void onLevelChange(PlayerXpEvent.LevelChange event)
+    {
+        if (event.getLevels() <= 0 || !(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        SubjectiveBehaviorService.recordLevelUp(player);
     }
 
     @SubscribeEvent

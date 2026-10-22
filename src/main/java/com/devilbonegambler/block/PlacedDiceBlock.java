@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
@@ -35,6 +36,16 @@ public class PlacedDiceBlock extends Block
     public boolean devils()
     {
         return this.devils;
+    }
+
+    /**
+     * Nothing but a player may take a placed die back: a piston cannot shove it, and the block tags keep the dragon
+     * and the wither from breaking it. Blast resistance is set at registration to a value no explosion can beat.
+     */
+    @Override
+    public PushReaction getPistonPushReaction(BlockState state)
+    {
+        return PushReaction.BLOCK;
     }
 
     @Override

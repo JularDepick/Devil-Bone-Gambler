@@ -106,8 +106,25 @@ def main() -> int:
     check("lock wired", "LuckLockService.isLocked(player)" in service and "LUCK_LOCKED_VALUE" in lock,
           "the periodic update does not honour the luck lock")
     check("meal behaviour", "recordEating(player)" in apple, "eating the apple does not count as a behaviour")
+    constants = read(JAVA / "util" / "ModConstants.java")
+    check("child duration", "LUCK_CHILD_TICKS = 300" in constants, "the child of fortune no longer lasts fifteen seconds")
+    check("sneak gain", "LUCK_APPLE_SNEAK_GAIN = 5" in constants and "LUCK_APPLE_SNEAK_LIMIT = 80" in constants,
+          "the sneaking bite lost its gain or its limit")
+    check("sneak branch", "isShiftKeyDown()" in apple and "LUCK_APPLE_SNEAK_GAIN" in apple
+          and "LUCK_APPLE_SNEAK_LIMIT" in apple,
+          "the apple has no sneaking branch, or it does not honour the gain and the limit")
+    check("sneak pays then falls through", "return false" in apple and "LuckSyncPacket(raised)" in apple
+          and "if (!sneakingBite(player))" in apple,
+          "a sneaking bite above the limit does not fall through to the effect")
+    check("duration accumulates", "running.getDuration()" in apple and "ticks += " in apple,
+          "a second bite replaces the effect duration instead of extending it")
+    check("lock keeps the first value", "putIfAbsent" in lock,
+          "an extension would overwrite the value remembered by the first bite")
     check("refill", "setFoodLevel" in apple and "setHealth(player.getMaxHealth())" in apple,
           "the apple does not refill hunger and health")
+    check("harmful effects cleared", "MobEffectCategory.HARMFUL" in apple and "removeEffect" in apple
+          and "clearHarmfulEffects(player)" in apple,
+          "the apple no longer wipes the harmful effects")
 
     return report(problems)
 

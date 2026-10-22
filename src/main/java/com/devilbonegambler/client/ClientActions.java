@@ -163,10 +163,9 @@ public final class ClientActions
             return;
         }
 
+        /* The altar presence hint comes from the server, so both kinds of die use report it the same way. */
         ModNetwork.sendToServer(new DevilsDiceRequestPacket(nextSequence(),
                 minecraft.player.getGameProfile().getName(), devilsDiceId(), OfferingBundle.empty()));
-        /* The hint is an invalid action, so it shares the notice cooldown instead of printing on every click. */
-        ClientNotices.sendThrottled("gui." + ModConstants.MOD_ID + ".altar.place_hint");
     }
 
     /**

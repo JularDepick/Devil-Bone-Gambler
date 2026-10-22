@@ -264,9 +264,11 @@ src/main/resources/
 │   └── minecraft/
 │       ├── tags/
 │       │   ├── blocks/
+│       │   │   ├── dragon_immune.json             # Tag for blocks the ender dragon can not destroy
 │       │   │   ├── mineable/
 │       │   │   │   ├── pickaxe.json               # Tag for blocks mineable with a pickaxe
 │       │   │   ├── needs_iron_tool.json           # Tag for blocks that need an iron tool
+│       │   │   ├── wither_immune.json             # Tag for blocks the wither can not destroy
 ├── mixins.devil_bone_gambler.json                 # Mixin configuration, declares the mixin package and mixin class list
 └── pack.mcmeta                                    # Resource pack metadata
 ```

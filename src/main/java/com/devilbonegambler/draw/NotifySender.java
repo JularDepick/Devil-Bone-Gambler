@@ -121,10 +121,29 @@ public final class NotifySender
     }
 
     /**
+     * Same throttled chat line with its own cooldown, for hints that describe the surroundings rather than a rejected
+     * action: an altar presence hint is worth repeating only after the player had time to walk somewhere else.
+     */
+    public static void sendChatThrottledFor(ServerPlayer player, String key, long cooldownMs)
+    {
+        if (suppressNotice(player, key, cooldownMs))
+        {
+            return;
+        }
+
+        player.sendSystemMessage(Component.translatable(key));
+    }
+
+    /**
      * True while the same notice was already shown inside the cooldown. The stored time only moves when a notice is
      * actually sent, so repeated attempts still produce one line per second instead of silence.
      */
     private static boolean suppressNotice(ServerPlayer player, String notice)
+    {
+        return suppressNotice(player, notice, ModConstants.NOTICE_COOLDOWN_MS);
+    }
+
+    private static boolean suppressNotice(ServerPlayer player, String notice, long cooldownMs)
     {
         long now = System.currentTimeMillis();
 
@@ -133,7 +152,7 @@ public final class NotifySender
             Map<String, Long> seen = LAST_NOTICE.computeIfAbsent(player, key -> new HashMap<String, Long>());
             Long last = seen.get(notice);
 
-            if (last != null && now - last < ModConstants.NOTICE_COOLDOWN_MS)
+            if (last != null && now - last < cooldownMs)
             {
                 return true;
             }

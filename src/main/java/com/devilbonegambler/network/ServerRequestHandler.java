@@ -82,6 +82,7 @@ public final class ServerRequestHandler
 
     public static void handleDevilsDice(ServerPlayer player, DevilsDiceRequestPacket message)
     {
+        hintAltarPresence(player);
         OfferingBundle bundle = message.bundle();
 
         /*
@@ -118,6 +119,8 @@ public final class ServerRequestHandler
             return;
         }
 
+        hintAltarPresence(player);
+
         if (AltarService.governingValue(player) < 0L)
         {
             NotifySender.sendFailure(player, "no_altar");
@@ -129,6 +132,22 @@ public final class ServerRequestHandler
                         new SimpleContainer(ModConstants.ALTAR_SLOTS)),
                 Component.translatable("gui." + ModConstants.MOD_ID + ".altar.title")));
         AltarMobScan.send(player);
+    }
+
+    /**
+     * The devil's die tells the player whether an altar answers here. It is information about the surroundings rather
+     * than a reaction to one click, so the same line repeats at most once per hint cooldown.
+     */
+    private static void hintAltarPresence(ServerPlayer player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        String key = "gui." + ModConstants.MOD_ID
+                + (AltarService.governingValue(player) >= 0L ? ".altar.nearby" : ".altar.place_hint");
+        NotifySender.sendChatThrottledFor(player, key, ModConstants.ALTAR_HINT_COOLDOWN_MS);
     }
 
     /**

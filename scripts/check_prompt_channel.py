@@ -98,8 +98,14 @@ def cooldown_problems():
     if not client_notices.is_file() or "NOTICE_COOLDOWN_MS" not in client_notices.read_text(encoding="utf-8"):
         problems.append("the client side has no notice cooldown")
 
-    if "ClientNotices.sendThrottled" not in actions:
-        problems.append("the client invalid-action hint bypasses the notice cooldown")
+    requests = (SOURCE_ROOT / "com" / "devilbonegambler" / "network" / "ServerRequestHandler.java").read_text(
+        encoding="utf-8")
+
+    if "sendChatThrottledFor(player, key, ModConstants.ALTAR_HINT_COOLDOWN_MS)" not in requests:
+        problems.append("the altar presence hint bypasses the notice cooldown")
+
+    if not re.search(r"ALTAR_HINT_COOLDOWN_MS\s*=\s*10000L", constants):
+        problems.append("the altar presence hint does not wait ten seconds")
 
     if 'addMessage(Component.translatable("gui." + ModConstants.MOD_ID + ".altar.place_hint")' in actions:
         problems.append("the client place hint is printed without the notice cooldown")

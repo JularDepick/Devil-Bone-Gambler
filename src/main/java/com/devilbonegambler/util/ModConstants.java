@@ -85,9 +85,18 @@ public final class ModConstants
     public static final int LUCK_HIGH_BAND = 80;
     public static final int LUCK_LOW_DRIFT = 6;
     public static final int LUCK_HIGH_DRIFT = -6;
-    /* The lucky apple: ten seconds of a value held at the ceiling, then the pre meal value comes back. */
-    public static final int LUCK_CHILD_TICKS = 200;
+    /*
+     * The quick pull towards the band, on its own faster cadence: every interval the value outside the band steps by
+     * this much, so a low or high value recovers even when the main update keeps rolling against it.
+     */
+    public static final int LUCK_DRIFT_INTERVAL_TICKS = 60;
+    public static final int LUCK_DRIFT_STEP = 1;
+    /* The lucky apple: fifteen seconds of a value held at the ceiling, then the pre meal value comes back. */
+    public static final int LUCK_CHILD_TICKS = 300;
     public static final int LUCK_LOCKED_VALUE = 100;
+    /* A sneaking bite pays this much luck at once, until the value reaches the limit and the bite pays the effect. */
+    public static final int LUCK_APPLE_SNEAK_GAIN = 5;
+    public static final int LUCK_APPLE_SNEAK_LIMIT = 80;
     public static final int MAX_FOOD_LEVEL = 20;
     public static final int SUBJECTIVE_BEHAVIOR_LIMIT = 10;
     public static final int ATTACK_DEALER_BEHAVIOR_DELTA = -2;
@@ -99,6 +108,17 @@ public final class ModConstants
     public static final int KILL_INNOCENT_BEHAVIOR_DELTA = -2;
     public static final int EATING_BEHAVIOR_DELTA = 1;
     public static final int DICE_USE_BEHAVIOR_DELTA = 2;
+    public static final int LEVEL_UP_BEHAVIOR_DELTA = 5;
+    /*
+     * The result of a roll moves the next increment as well: one point per this many points rolled, red paying and
+     * black paying back, with at most this many rolls counted in one round.
+     */
+    public static final int DICE_RESULT_POINT_DIVISOR = 2;
+    public static final int DICE_RESULT_RED_SIGN = -1;
+    public static final int DICE_RESULT_BLACK_SIGN = 1;
+    public static final int DICE_RESULT_MAX_COUNT = 6;
+    /* A manual pile that the altar turned into dice pays the player who stood closest to it. */
+    public static final int MANUAL_CONVERSION_BEHAVIOR_DELTA = 4;
     /* Death does not touch the behaviour variable: it moves the value this many points towards the band. */
     public static final int LUCK_DEATH_STEP = 2;
 
@@ -182,6 +202,8 @@ public final class ModConstants
      */
     public static final int ALTAR_LIGHT_LEVEL = 14;
     public static final float ALTAR_EXPLOSION_RESISTANCE = 3600000.0F;
+    /* A placed die survives every blast for the same reason the altar does: only a player may take it back. */
+    public static final float PLACED_DICE_EXPLOSION_RESISTANCE = 3600000.0F;
 
     /*
      * The glow a dealer carries: half of a torch. A torch sits at fourteen, so the dealer sits at seven, and like the
@@ -281,6 +303,8 @@ public final class ModConstants
      * when a notice is really sent, so a player who keeps trying still gets one reminder per second.
      */
     public static final long NOTICE_COOLDOWN_MS = 1000L;
+    /* The altar presence hint describes the surroundings instead of reacting to one click, so it repeats slower. */
+    public static final long ALTAR_HINT_COOLDOWN_MS = 10000L;
     public static final String REASON_TOO_FREQUENT = "too_frequent";
 
     public static final String[] NOTIFY_MODES = {

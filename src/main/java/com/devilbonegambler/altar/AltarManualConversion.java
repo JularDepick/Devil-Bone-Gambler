@@ -7,6 +7,7 @@
 package com.devilbonegambler.altar;
 
 import com.devilbonegambler.draw.NotifySender;
+import com.devilbonegambler.luck.SubjectiveBehaviorService;
 import com.devilbonegambler.registry.ModItems;
 import com.devilbonegambler.util.ModConstants;
 import java.util.ArrayList;
@@ -117,6 +118,29 @@ public final class AltarManualConversion
         if (devils > 0)
         {
             Block.popResource(level, pos, new ItemStack(ModItems.DEVILS_DICE.get(), devils));
+        }
+
+        /*
+         * One player carries the credit of the pile: the closest one, so a whole group standing around the altar
+         * cannot multiply the behaviour, and the round trigger keeps two piles inside one round at a single hit.
+         */
+        ServerPlayer credited = null;
+        double closest = Double.MAX_VALUE;
+
+        for (ServerPlayer player : level.players())
+        {
+            double distance = player.distanceToSqr(centre);
+
+            if (distance <= 64.0D && distance < closest)
+            {
+                closest = distance;
+                credited = player;
+            }
+        }
+
+        if (credited != null)
+        {
+            SubjectiveBehaviorService.recordManualConversion(credited);
         }
 
         for (ServerPlayer player : level.players())

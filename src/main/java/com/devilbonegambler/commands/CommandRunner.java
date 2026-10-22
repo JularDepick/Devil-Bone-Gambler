@@ -88,6 +88,17 @@ public final class CommandRunner
     public static int run(MinecraftServer server, ServerPlayer trigger, String raw, SampleContext context,
             List<String> sampledNames)
     {
+        return run(server, trigger, raw, context, sampledNames, false);
+    }
+
+    /**
+     * Same run, with the vanilla feedback of every executed line either suppressed or kept. A draw suppresses it so
+     * the chat box carries exactly one line per draw, while the admin trial run keeps it, because seeing what the
+     * vanilla command actually reported is the whole point of a trial.
+     */
+    public static int run(MinecraftServer server, ServerPlayer trigger, String raw, SampleContext context,
+            List<String> sampledNames, boolean echo)
+    {
         int executed = 0;
 
         for (String line : lines(raw))
@@ -153,12 +164,17 @@ public final class CommandRunner
                 try
                 {
                     /*
-                     * Output is suppressed so that a prize command never echoes its own vanilla feedback into the chat
-                     * box: the chat box carries exactly one line per draw, the mod result notice, and nothing else.
+                     * A draw suppresses the vanilla feedback so that a prize command never echoes into the chat box:
+                     * the chat box carries exactly one line per draw, the mod result notice, and nothing else.
                      */
                     CommandSourceStack source = trigger.createCommandSourceStack()
-                            .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL)
-                            .withSuppressedOutput();
+                            .withPermission(ModConstants.DRAW_COMMAND_PERMISSION_LEVEL);
+
+                    if (!echo)
+                    {
+                        source = source.withSuppressedOutput();
+                    }
+
                     server.getCommands().performPrefixedCommand(source, command);
                     executed++;
                 }

@@ -48,6 +48,7 @@ public final class ItemTooltips
         LINES.put("lucky_apple", new String[] {
                 "tooltip.devil_bone_gambler.lucky_apple",
                 "tooltip.devil_bone_gambler.lucky_apple_child",
+                "tooltip.devil_bone_gambler.lucky_apple_sneak",
                 "tooltip.devil_bone_gambler.lucky_apple_lock" });
         LINES.put("offering_value_table", new String[] {
                 "tooltip.devil_bone_gambler.offering_value_table",

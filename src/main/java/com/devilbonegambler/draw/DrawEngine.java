@@ -147,6 +147,7 @@ public final class DrawEngine
         }
 
         SubjectiveBehaviorService.recordDiceUse(player);
+        SubjectiveBehaviorService.recordDiceResult(player, roll.isRed(), roll.point());
         ModNetwork.sendToPlayer(player, new PointDisplayPacket(sequence, roll.point(), roll.isRed(),
                 dice == ModItems.DEVILS_DICE.get(), overflow));
         RequestGuard.markBusy(player, ModConstants.POINT_DISPLAY_TICKS);

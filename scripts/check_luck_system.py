@@ -77,6 +77,18 @@ def main() -> int:
           "the update interval is not 200 ticks")
     check("random span", re.search(r"LUCK_INCREMENT_RANDOM_SPAN\s*=\s*10", constants) is not None,
           "the random span is not 10")
+    check("drift interval", re.search(r"LUCK_DRIFT_INTERVAL_TICKS\s*=\s*60", constants) is not None
+          and "LUCK_DRIFT_INTERVAL_TICKS" in service,
+          "the quick pull does not run every 60 ticks")
+    check("drift step", re.search(r"LUCK_DRIFT_STEP\s*=\s*1", constants) is not None
+          and "LUCK_DRIFT_STEP" in service,
+          "the quick pull does not step by one point")
+    drift_body = service.split("private static void drift(", 1)[-1][:1400]
+    check("drift direction", "step = ModConstants.LUCK_DRIFT_STEP" in drift_body
+          and "-ModConstants.LUCK_DRIFT_STEP" in drift_body,
+          "the quick pull does not raise a low value and lower a high one")
+    check("drift skips locked", "LuckLockService.isLocked(player)" in drift_body,
+          "the quick pull overwrites a value locked by the child of fortune")
     check("increment limit", re.search(r"LUCK_INCREMENT_LIMIT\s*=\s*50", constants) is not None
           and "LUCK_INCREMENT_LIMIT" in service,
           "a single increment is not capped at 50")
@@ -88,6 +100,33 @@ def main() -> int:
           "the dealer pickup delta is not 2")
     check("owner tag", re.search(r"DICE_OWNER_TAG\s*=\s*\"", constants) is not None,
           "the dice owner tag is missing")
+    check("level up delta", re.search(r"LEVEL_UP_BEHAVIOR_DELTA\s*=\s*5", constants) is not None
+          and "BEHAVIOR_LEVEL_UP" in behavior,
+          "levelling up no longer pays the behaviour variable five points")
+    check("manual conversion delta",
+          re.search(r"MANUAL_CONVERSION_BEHAVIOR_DELTA\s*=\s*4", constants) is not None
+          and "BEHAVIOR_MANUAL_CONVERSION" in behavior,
+          "turning a manual pile into dice no longer pays the behaviour variable four points")
+    conversion = read(JAVA / "altar" / "AltarManualConversion.java")
+    check("manual conversion credit", "recordManualConversion(credited)" in conversion
+          and "closest" in conversion,
+          "the manual conversion pays nobody, or it pays every nearby player instead of the closest one")
+    check("dice result delta", re.search(r"DICE_RESULT_MAX_COUNT\s*=\s*6", constants) is not None
+          and re.search(r"DICE_RESULT_POINT_DIVISOR\s*=\s*2", constants) is not None
+          and re.search(r"DICE_RESULT_RED_SIGN\s*=\s*-1", constants) is not None,
+          "the dice result no longer pays one point per two points rolled")
+    check("dice result wired", "recordDiceResult(player, roll.isRed(), roll.point())" in draw,
+          "a draw does not feed its result into the behaviour variable")
+    result_body = behavior.split("public static void recordDiceResult(", 1)[-1][:1600]
+    check("dice result counts six", "DICE_RESULT_MAX_COUNT" in result_body
+          and "resultCount" in result_body
+          and "state.triggered" not in result_body,
+          "the dice result is limited to one per round instead of the configured count")
+    events_source = read(JAVA / "luck" / "LuckBehaviorEvents.java")
+    check("level up hook", "PlayerXpEvent.LevelChange" in events_source
+          and "getLevels() <= 0" in events_source
+          and "recordLevelUp(player)" in events_source,
+          "the level up hook is missing or it also pays for lost levels")
 
     check("birth stored", "TAG_BIRTH" in data and "birth" in data,
           "the first join instant is not stored")

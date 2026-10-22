@@ -23,6 +23,7 @@ HANDLER = JAVA / "client" / "ClientPacketHandler.java"
 PACKET = JAVA / "network" / "packet" / "PlacedDiceUsePacket.java"
 BREAK_PACKET = JAVA / "network" / "packet" / "PlacedDiceBreakPacket.java"
 REQUESTS = JAVA / "network" / "ServerRequestHandler.java"
+GUARD = JAVA / "network" / "RequestGuard.java"
 ASSETS = ROOT / "src" / "main" / "resources" / "assets" / "devil_bone_gambler"
 
 problems = []
@@ -47,6 +48,7 @@ def main() -> int:
     block = read(BLOCK)
     break_packet = read(BREAK_PACKET)
     requests = read(REQUESTS)
+    guard = read(GUARD)
 
     check("modifier key", "GLFW.GLFW_KEY_TAB" in key and "KeyMapping" in key,
           "the default Tab key mapping is missing")
@@ -87,8 +89,30 @@ def main() -> int:
           "the three break use modes are not wired")
     check("altar inventory", "AltarService.governingValue" in service and "getInventory().add" in service,
           "the devil's die in altar range is not returned to the inventory")
+    peek = guard.split("public static String peekDraw(", 1)[-1].split("public static void clear(", 1)[0]
+    check("throttle gate read only", "isSettling(player)" in peek and "MIN_REQUEST_INTERVAL_MS" in peek
+          and "state.sequence =" not in peek and "state.timestamp =" not in peek,
+          "the read only gate missing, incomplete, or advancing the sequence and interval stamp")
+    check("throttle gate on break", "if (!modifierHeld)" in service and "RequestGuard.peekDraw(player)" in service,
+          "breaking a placed die is not gated by the draw guard before it removes the block")
+    check("throttle gate ordering", service.find("RequestGuard.peekDraw(player)")
+          < service.find("removeBlock(pos, false)")
+          and service.count("RequestGuard.peekDraw(player)") >= 2,
+          "the guard is not consulted before the block disappears in both break paths")
     check("drops", "getDrops" in block and "DEVILS_DICE" in block and "GAMBLERS_DICE" in block,
           "the placed block does not drop the matching die")
+    constants = read(JAVA / "util" / "ModConstants.java")
+    registry = read(JAVA / "registry" / "ModBlocks.java")
+    check("blast proof", "PLACED_DICE_EXPLOSION_RESISTANCE" in constants
+          and registry.count("PLACED_DICE_EXPLOSION_RESISTANCE") >= 2,
+          "a placed die can still be blown up by an explosion")
+    check("piston proof", "getPistonPushReaction" in block and "PushReaction.BLOCK" in block,
+          "a piston can still shove a placed die")
+    for immune in ("dragon_immune", "wither_immune"):
+        tag = read(ROOT / "src" / "main" / "resources" / "data" / "minecraft" / "tags" / "blocks"
+                   / (immune + ".json"))
+        check(immune, "placed_gamblers_dice" in tag and "placed_devils_dice" in tag,
+              "the placed dice are missing from the " + immune + " block tag")
     check("client use modes", "handlePlacedDiceUse" in handler and "sendDevilsDiceDraw" in handler,
           "the client does not start the normal action after the break")
     check("packet registered", "PlacedDiceUsePacket.class" in network,

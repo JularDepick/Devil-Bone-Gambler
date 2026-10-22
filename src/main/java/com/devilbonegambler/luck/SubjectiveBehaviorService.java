@@ -37,6 +37,8 @@ public final class SubjectiveBehaviorService
     public static final int BEHAVIOR_KILL_INNOCENT = 7;
     public static final int BEHAVIOR_EATING = 8;
     public static final int BEHAVIOR_DICE_USE = 9;
+    public static final int BEHAVIOR_LEVEL_UP = 10;
+    public static final int BEHAVIOR_MANUAL_CONVERSION = 11;
 
     private static final Map<UUID, State> STATES = new ConcurrentHashMap<UUID, State>();
 
@@ -91,6 +93,56 @@ public final class SubjectiveBehaviorService
     public static void recordDiceUse(ServerPlayer player)
     {
         record(player, BEHAVIOR_DICE_USE);
+    }
+
+    /**
+     * Gaining an experience level counts as a behaviour of its own, once per round like every other action.
+     */
+    public static void recordLevelUp(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_LEVEL_UP);
+    }
+
+    /**
+     * A pile of gameplay manuals that the altar turned into dice counts once for the player standing next to it.
+     */
+    public static void recordManualConversion(ServerPlayer player)
+    {
+        record(player, BEHAVIOR_MANUAL_CONVERSION);
+    }
+
+    /**
+     * The result of one roll moves the next increment: a red roll costs one point for every two points rolled and a
+     * black roll pays the same, so a bad result drags the next update down and a good one lifts it. Unlike the
+     * behaviours, results do not share the one-per-round trigger: up to the configured number of rolls per round is
+     * summed, so several rolls inside one round add up instead of only the first one counting.
+     */
+    public static void recordDiceResult(ServerPlayer player, boolean red, int point)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        int steps = point / ModConstants.DICE_RESULT_POINT_DIVISOR;
+
+        if (steps <= 0)
+        {
+            return;
+        }
+
+        State state = STATES.computeIfAbsent(player.getUUID(), key -> new State());
+
+        if (state.resultCount >= ModConstants.DICE_RESULT_MAX_COUNT)
+        {
+            return;
+        }
+
+        state.resultCount++;
+        int signed = (red ? ModConstants.DICE_RESULT_RED_SIGN : ModConstants.DICE_RESULT_BLACK_SIGN) * steps;
+        state.value = Mth.clamp(state.value + signed, -ModConstants.SUBJECTIVE_BEHAVIOR_LIMIT,
+                ModConstants.SUBJECTIVE_BEHAVIOR_LIMIT);
+        ModNetwork.sendToPlayer(player, new BehaviorStatePacket(true, state.value));
     }
 
     public static void recordKill(ServerPlayer player, boolean hostile)
@@ -214,6 +266,16 @@ public final class SubjectiveBehaviorService
             return ModConstants.DICE_USE_BEHAVIOR_DELTA;
         }
 
+        if (behavior == BEHAVIOR_LEVEL_UP)
+        {
+            return ModConstants.LEVEL_UP_BEHAVIOR_DELTA;
+        }
+
+        if (behavior == BEHAVIOR_MANUAL_CONVERSION)
+        {
+            return ModConstants.MANUAL_CONVERSION_BEHAVIOR_DELTA;
+        }
+
         return 0;
     }
 
@@ -221,5 +283,7 @@ public final class SubjectiveBehaviorService
     {
         private int value;
         private boolean triggered;
+        /* Rolls whose result already moved this round, so the result channel stops after the configured count. */
+        private int resultCount;
     }
 }

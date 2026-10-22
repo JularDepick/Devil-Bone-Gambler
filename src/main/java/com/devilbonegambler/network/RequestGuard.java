@@ -90,6 +90,39 @@ public final class RequestGuard
                 < ModConstants.DRAW_SETTLEMENT_TIMEOUT_MS;
     }
 
+    /**
+     * The gates of a draw, read without advancing the sequence or the interval stamp, for paths that must refuse
+     * before they touch the world. Breaking a placed die is such a path: the die leaves the block first and the draw
+     * is decided afterwards, so a throttled click would hand the player a free die in the inventory.
+     */
+    public static String peekDraw(ServerPlayer player)
+    {
+        if (player == null)
+        {
+            return null;
+        }
+
+        if (isSettling(player))
+        {
+            return "settling";
+        }
+
+        long now = System.currentTimeMillis();
+        State state = STATES.get(player.getUUID());
+
+        if (state == null)
+        {
+            return null;
+        }
+
+        if (now < state.busyUntil || now - state.timestamp < ModConstants.MIN_REQUEST_INTERVAL_MS)
+        {
+            return ModConstants.REASON_TOO_FREQUENT;
+        }
+
+        return null;
+    }
+
     public static void clear()
     {
         STATES.clear();

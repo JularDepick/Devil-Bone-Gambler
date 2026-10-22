@@ -38,6 +38,16 @@ HIDDEN_MANUALS = {
     "creator_manual": (),
 }
 
+# Wording that discloses the bound manuals without naming them: the gameplay manual is read by every player, so it may
+# neither name the role manuals nor hint that they exist, not even as "the manuals handed out by role" or "three
+# manuals". A player holding only the gameplay manual must not be able to infer the other two.
+HIDDEN_ROLE_WORDING = {
+    "gameplay_manual": ("身份", "绑定", "三本", "其他手册", "另一本手册",
+                        "role", "bound", "three manuals", "other manual", "another manual"),
+    "admin_manual": (),
+    "creator_manual": (),
+}
+
 # The markdown constructs the book screen renders: three heading levels, a dash bullet, a numbered item, a rule and a
 # plain paragraph. Anything else would fall back to a paragraph, so it is rejected here instead of looking broken.
 LEADING_MARKERS = ("* ", "+ ", "> ", "|", "![", "```", "#", ">")
@@ -177,6 +187,10 @@ def main() -> int:
                 for word in words:
                     if any(word in line for line in lines):
                         problems.append("%s mentions %r, which it must not reveal" % (manual, word))
+
+            for word in HIDDEN_ROLE_WORDING[manual]:
+                if any(word in line for line in lines):
+                    problems.append("%s hints at the manuals of other roles with %r" % (manual, word))
 
             for line in lines:
                 reason = unsupported(line)

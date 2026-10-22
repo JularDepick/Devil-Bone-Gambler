@@ -264,9 +264,11 @@ src/main/resources/
 │   └── minecraft/
 │       ├── tags/
 │       │   ├── blocks/
+│       │   │   ├── dragon_immune.json             # 末影龙无法破坏的方块标签
 │       │   │   ├── mineable/
 │       │   │   │   ├── pickaxe.json               # 可被镐挖掘的方块标签
 │       │   │   ├── needs_iron_tool.json           # 需要铁质工具的方块标签
+│       │   │   ├── wither_immune.json             # 凋灵无法破坏的方块标签
 ├── mixins.devil_bone_gambler.json                 # 混入配置, 声明混入包与混入类清单
 └── pack.mcmeta                                    # 资源包元数据
 ```

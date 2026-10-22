@@ -124,7 +124,8 @@ public final class ModCommands
         }
 
         String raw = StringArgumentType.getString(context, RUN_ARGUMENT);
-        int executed = CommandRunner.run(server, player, raw, SampleContext.DEFAULT);
+        /* The trial keeps the vanilla feedback of every line, so the admin sees what the command really did. */
+        int executed = CommandRunner.run(server, player, raw, SampleContext.DEFAULT, null, true);
 
         if (executed <= 0)
         {

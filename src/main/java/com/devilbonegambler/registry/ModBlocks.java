@@ -55,11 +55,11 @@ public final class ModBlocks
      */
     public static final RegistryObject<Block> PLACED_GAMBLERS_DICE = BLOCKS.register("placed_gamblers_dice",
             () -> new PlacedDiceBlock(false, BlockBehaviour.Properties.of()
-                    .strength(0.5F)
+                    .strength(0.5F, ModConstants.PLACED_DICE_EXPLOSION_RESISTANCE)
                     .sound(SoundType.WOOD)));
     public static final RegistryObject<Block> PLACED_DEVILS_DICE = BLOCKS.register("placed_devils_dice",
             () -> new PlacedDiceBlock(true, BlockBehaviour.Properties.of()
-                    .strength(0.5F)
+                    .strength(0.5F, ModConstants.PLACED_DICE_EXPLOSION_RESISTANCE)
                     .sound(SoundType.WOOD)));
 
     public static final RegistryObject<Item> DEVILS_ALTAR_ITEM = BLOCK_ITEMS.register("devils_altar",

@@ -7,7 +7,9 @@
 package com.devilbonegambler.block;
 
 import com.devilbonegambler.altar.AltarService;
+import com.devilbonegambler.draw.NotifySender;
 import com.devilbonegambler.network.ModNetwork;
+import com.devilbonegambler.network.RequestGuard;
 import com.devilbonegambler.network.packet.PlacedDiceUsePacket;
 import com.devilbonegambler.registry.ModBlocks;
 import com.devilbonegambler.registry.ModItems;
@@ -43,6 +45,9 @@ import net.minecraftforge.fml.common.Mod;
  *
  * The key state travels with the break request itself, so a click is decided by the key as it was at that moment. The
  * mirrored key state and the break event hook stay only as a fallback for breaks that do not come from this client.
+ *
+ * A break that would use the die is refused before the block is removed while a previous settlement still runs or the
+ * minimum interval between draws has not elapsed, so a throttled click never turns a placed die into a free one.
  */
 @Mod.EventBusSubscriber(modid = ModConstants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class PlacedDiceService
@@ -99,6 +104,21 @@ public final class PlacedDiceService
         if (!level.mayInteract(player, pos) || player.distanceToSqr(Vec3.atCenterOf(pos)) > PLACE_RANGE_SQR)
         {
             return;
+        }
+
+        /*
+         * The draw this click would start is gated before the block disappears, so a refused draw leaves the block
+         * where it is instead of taking the die out of the world first.
+         */
+        if (!modifierHeld)
+        {
+            String refusal = RequestGuard.peekDraw(player);
+
+            if (refusal != null)
+            {
+                NotifySender.sendFailure(player, refusal);
+                return;
+            }
         }
 
         if (!level.removeBlock(pos, false))
@@ -206,6 +226,14 @@ public final class PlacedDiceService
 
         if (!(event.getLevel() instanceof ServerLevel level))
         {
+            return;
+        }
+
+        String refusal = RequestGuard.peekDraw(player);
+
+        if (refusal != null)
+        {
+            NotifySender.sendFailure(player, refusal);
             return;
         }
 
