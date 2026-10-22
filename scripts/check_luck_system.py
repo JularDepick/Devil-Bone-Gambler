@@ -255,6 +255,11 @@ def main() -> int:
           "the admin luck command does not store and push the value")
     check("protocol version", 'PROTOCOL_VERSION = "3"' in constants,
           "the protocol version is not raised for this build")
+    check("dealer apple drop chance", "DEALER_APPLE_DROP_CHANCE = 0.2D" in constants,
+          "the dealer roll that pays lucky apples is missing")
+    check("dealer apple drop on pickup", "finishPickup(pickedByOwner, totalTaken)" in dealer
+          and "dropLuckyApples(totalTaken)" in dealer and "ModItems.LUCKY_APPLE" in dealer,
+          "a dealer pickup does not roll the lucky apple share")
 
     if problems:
         for problem in problems:

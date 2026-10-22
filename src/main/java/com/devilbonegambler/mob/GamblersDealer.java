@@ -708,6 +708,7 @@ public class GamblersDealer extends PathfinderMob
         List<ItemEntity> drops = this.level().getEntitiesOfClass(ItemEntity.class,
                 this.getBoundingBox().inflate(ModConstants.DEALER_FEED_RADIUS));
         Map<UUID, Integer> pickedByOwner = new HashMap<UUID, Integer>();
+        int totalTaken = 0;
 
         for (ItemEntity drop : drops)
         {
@@ -739,14 +740,48 @@ public class GamblersDealer extends PathfinderMob
                 drop.discard();
             }
 
+            totalTaken += taken;
+
             if (wanted <= 0)
             {
-                awardPickups(pickedByOwner);
+                finishPickup(pickedByOwner, totalTaken);
                 return;
             }
         }
 
+        finishPickup(pickedByOwner, totalTaken);
+    }
+
+    /**
+     * Both exit paths of a pickup end here: the behaviour credit first, then the finder's share of lucky apples.
+     */
+    private void finishPickup(Map<UUID, Integer> pickedByOwner, int totalTaken)
+    {
         awardPickups(pickedByOwner);
+        dropLuckyApples(totalTaken);
+    }
+
+    /**
+     * One roll per pickup decides whether the altar returns the same number of lucky apples. The apples are created on
+     * the spot, so they are paid out of the world rather than out of the dealer's pocket or a player's inventory.
+     */
+    private void dropLuckyApples(int dice)
+    {
+        if (dice <= 0 || this.level().isClientSide || this.random.nextDouble() >= ModConstants.DEALER_APPLE_DROP_CHANCE)
+        {
+            return;
+        }
+
+        for (int index = 0; index < dice; index++)
+        {
+            ItemEntity apple = new ItemEntity(this.level(), this.getX(), this.getY() + 0.5D, this.getZ(),
+                    new ItemStack(ModItems.LUCKY_APPLE.get()));
+            apple.setDeltaMovement((this.random.nextDouble() - 0.5D) * 0.2D, 0.2D,
+                    (this.random.nextDouble() - 0.5D) * 0.2D);
+            this.level().addFreshEntity(apple);
+        }
+
+        this.playSound(SoundEvents.ITEM_PICKUP, 0.6F, 1.2F);
     }
 
     /**

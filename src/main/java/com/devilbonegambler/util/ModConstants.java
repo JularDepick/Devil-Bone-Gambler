@@ -366,6 +366,11 @@ public final class ModConstants
     public static final int DEALER_PICKUP_INTERVAL_TICKS = 40;
     public static final int DEALER_PICKUP_PER_ACTION = 2;
     /*
+     * One roll per pickup decides whether the altar pays a finder's share: that many lucky apples drop out of nowhere,
+     * so the apples never come out of the dealer's pocket or out of any player's inventory.
+     */
+    public static final double DEALER_APPLE_DROP_CHANCE = 0.2D;
+    /*
      * Fight: every swing costs half a percent of the satiety ceiling, and a dealer with an empty bar cannot swing at
      * all, so a long fight slows down and finally stops instead of running forever.
      */
