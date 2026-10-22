@@ -143,7 +143,8 @@ src/main/java/com/devilbonegambler/
 │       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── BehaviorStatePacket.java            # 行为变量状态的镜像包
-│       ├── ConfigPayloadPacket.java            # 配置负载的一片, 双向共用
+│       ├── ConfigPayloadPacket.java            # 配置负载的一片, 服务端推给客户端
+│       ├── ConfigPayloadWritePacket.java       # 配置负载的一片, 客户端保存时上行
 │       ├── ConfigWriteRequestPacket.java       # 保存请求的元信息, 负载随后分片到达
 │       ├── ConfigWriteResponsePacket.java
 │       ├── DealerBetOpenRequestPacket.java

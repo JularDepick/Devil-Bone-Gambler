@@ -17,7 +17,8 @@ import net.minecraftforge.network.NetworkEvent;
 
 /**
  * Server to client: who the requester is and what they may edit. The two config domains themselves follow as
- * {@link ConfigPayloadPacket} parts, because a pool of thousands of entries never fits into one packet.
+ * {@link ConfigPayloadPacket} parts, because a pool of thousands of entries never fits into one packet. A save
+ * travels back as {@link ConfigPayloadWritePacket} parts of its own.
  */
 public class AdminPanelDataPacket
 {

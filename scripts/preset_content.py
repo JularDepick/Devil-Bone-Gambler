@@ -124,22 +124,23 @@ ITEMS = [
 ]
 
 
-# A second block of vanilla things, so every survival region can own its own forty items instead of borrowing from the
-# neighbours. Same shape as above: id, Chinese, English.
+# A second block of vanilla things, so every survival region starts from its own forty items instead of borrowing from
+# the neighbours; a region whose items do not stack may add a few more stackable ones when it builds its rows.
+# Same shape as above: id, Chinese, English.
 ITEMS = ITEMS + [
-    ("wool_white", "白色羊毛", "White Wool"),
-    ("wool_red", "红色羊毛", "Red Wool"),
-    ("wool_blue", "蓝色羊毛", "Blue Wool"),
-    ("wool_green", "绿色羊毛", "Green Wool"),
-    ("wool_black", "黑色羊毛", "Black Wool"),
-    ("wool_yellow", "黄色羊毛", "Yellow Wool"),
-    ("wool_orange", "橙色羊毛", "Orange Wool"),
-    ("wool_purple", "紫色羊毛", "Purple Wool"),
-    ("concrete_white", "白色混凝土", "White Concrete"),
-    ("concrete_gray", "灰色混凝土", "Gray Concrete"),
-    ("concrete_black", "黑色混凝土", "Black Concrete"),
-    ("concrete_red", "红色混凝土", "Red Concrete"),
-    ("concrete_blue", "蓝色混凝土", "Blue Concrete"),
+    ("white_wool", "白色羊毛", "White Wool"),
+    ("red_wool", "红色羊毛", "Red Wool"),
+    ("blue_wool", "蓝色羊毛", "Blue Wool"),
+    ("green_wool", "绿色羊毛", "Green Wool"),
+    ("black_wool", "黑色羊毛", "Black Wool"),
+    ("yellow_wool", "黄色羊毛", "Yellow Wool"),
+    ("orange_wool", "橙色羊毛", "Orange Wool"),
+    ("purple_wool", "紫色羊毛", "Purple Wool"),
+    ("white_concrete", "白色混凝土", "White Concrete"),
+    ("gray_concrete", "灰色混凝土", "Gray Concrete"),
+    ("black_concrete", "黑色混凝土", "Black Concrete"),
+    ("red_concrete", "红色混凝土", "Red Concrete"),
+    ("blue_concrete", "蓝色混凝土", "Blue Concrete"),
     ("terracotta", "陶瓦", "Terracotta"),
     ("white_terracotta", "白色陶瓦", "White Terracotta"),
     ("bricks", "红砖块", "Bricks"),
@@ -183,7 +184,7 @@ ITEMS = ITEMS + [
     ("oak_door", "橡木门", "Oak Door"),
     ("iron_door", "铁门", "Iron Door"),
     ("oak_fence", "橡木栅栏", "Oak Fence"),
-    ("cobweb_block", "蜘蛛网", "Cobweb"),
+    ("cobweb", "蜘蛛网", "Cobweb"),
     ("potato", "马铃薯", "Potato"),
     ("beetroot", "甜菜根", "Beetroot"),
     ("pumpkin_pie", "南瓜派", "Pumpkin Pie"),
@@ -225,13 +226,13 @@ ITEMS = ITEMS + [
     ("powered_rail", "充能铁轨", "Powered Rail"),
     ("redstone_lamp", "红石灯", "Redstone Lamp"),
     ("note_block", "音符盒", "Note Block"),
-    ("gold_sword", "金剑", "Golden Sword"),
-    ("gold_pickaxe", "金镐", "Golden Pickaxe"),
-    ("gold_axe", "金斧", "Golden Axe"),
-    ("gold_helmet", "金头盔", "Golden Helmet"),
-    ("gold_chestplate", "金胸甲", "Golden Chestplate"),
-    ("gold_leggings", "金护腿", "Golden Leggings"),
-    ("gold_boots", "金靴子", "Golden Boots"),
+    ("golden_sword", "金剑", "Golden Sword"),
+    ("golden_pickaxe", "金镐", "Golden Pickaxe"),
+    ("golden_axe", "金斧", "Golden Axe"),
+    ("golden_helmet", "金头盔", "Golden Helmet"),
+    ("golden_chestplate", "金胸甲", "Golden Chestplate"),
+    ("golden_leggings", "金护腿", "Golden Leggings"),
+    ("golden_boots", "金靴子", "Golden Boots"),
     ("diamond_helmet", "钻石头盔", "Diamond Helmet"),
     ("diamond_leggings", "钻石护腿", "Diamond Leggings"),
     ("diamond_boots", "钻石靴子", "Diamond Boots"),
@@ -267,9 +268,8 @@ ITEMS = ITEMS + [
     ("soul_lantern", "灵魂灯笼", "Soul Lantern"),
     ("campfire", "营火", "Campfire"),
     ("soul_campfire", "灵魂营火", "Soul Campfire"),
-    ("bed", "床", "Bed"),
+    ("red_bed", "床", "Bed"),
     ("cyan_bed", "青色床", "Cyan Bed"),
-    ("respawn_anchor_charge", "重生锚", "Respawn Anchor"),
 ]
 
 # id, Chinese, English
@@ -356,6 +356,71 @@ LOOT = [
     ("end_city_treasure", "末地城的宝藏", "End city treasure"),
     ("ancient_city", "远古城市的箱子", "An ancient city chest"),
 ]
+
+# Vanilla stack sizes of the preset items that do not carry a full stack, taken from the 1.20.2 item registry.
+# A portion of such an item has to fit one slot, so the bulk axes stop at sixteen or do not apply at all.
+STACK_SIZES = {
+    # sixteen per slot
+    "bucket": 16,
+    "egg": 16,
+    "ender_pearl": 16,
+    "honey_bottle": 16,
+    "snowball": 16,
+    # one per slot
+    "axolotl_bucket": 1,
+    "bow": 1,
+    "carrot_on_a_stick": 1,
+    "crossbow": 1,
+    "cyan_bed": 1,
+    "diamond_boots": 1,
+    "diamond_chestplate": 1,
+    "diamond_helmet": 1,
+    "diamond_leggings": 1,
+    "diamond_pickaxe": 1,
+    "diamond_sword": 1,
+    "elytra": 1,
+    "fishing_rod": 1,
+    "flint_and_steel": 1,
+    "golden_axe": 1,
+    "golden_boots": 1,
+    "golden_chestplate": 1,
+    "golden_helmet": 1,
+    "golden_leggings": 1,
+    "golden_pickaxe": 1,
+    "golden_sword": 1,
+    "iron_axe": 1,
+    "iron_boots": 1,
+    "iron_chestplate": 1,
+    "iron_helmet": 1,
+    "iron_leggings": 1,
+    "iron_pickaxe": 1,
+    "iron_shovel": 1,
+    "iron_sword": 1,
+    "lava_bucket": 1,
+    "milk_bucket": 1,
+    "minecart": 1,
+    "mushroom_stew": 1,
+    "netherite_chestplate": 1,
+    "netherite_sword": 1,
+    "powder_snow_bucket": 1,
+    "rabbit_stew": 1,
+    "red_bed": 1,
+    "saddle": 1,
+    "shears": 1,
+    "shield": 1,
+    "shulker_box": 1,
+    "totem_of_undying": 1,
+    "trident": 1,
+    "turtle_helmet": 1,
+    "warped_fungus_on_a_stick": 1,
+    "water_bucket": 1,
+}
+
+
+def stack_size(item_id):
+    """The vanilla stack size of one preset item: sixty four unless the table lists a smaller slot."""
+    return STACK_SIZES.get(item_id, 64)
+
 
 # amount word, Chinese prefix, English prefix, (low, high) count range
 AMOUNTS = [
@@ -507,21 +572,90 @@ def _named(pool, tier, body_zh, body_en):
 BUCKET_WEIGHTS = (120, 120, 60, 60, 25, 25, 10, 3)
 
 
+# A portion of an item that cannot stack is exactly one piece, so it carries no quantity word and no count.
+SINGLE_AMOUNT = ("single", "", "", (1, 1))
+
+
+def amount_axes(item_id):
+    """The portion steps an item may use: one piece, up to one slot, or every bulk step."""
+    size = stack_size(item_id)
+
+    if size <= 1:
+        return [SINGLE_AMOUNT]
+
+    if size <= 16:
+        return AMOUNTS[:3]
+
+    return AMOUNTS
+
+
+def _item_capacity(item_ids):
+    return sum(len(amount_axes(item_id)) for item_id in item_ids)
+
+
+def _item_ids_with_capacity(item_ids, count):
+    """Adds stackable table items until the region can hold its item quota without repeating an item."""
+    result = list(item_ids)
+    used = set(result)
+    cursor = 0
+
+    while _item_capacity(result) < count:
+        candidate = None
+
+        while cursor < len(ITEMS):
+            item = ITEMS[cursor]
+            cursor += 1
+
+            if item[0] not in used and stack_size(item[0]) >= 64:
+                candidate = item
+                break
+
+        if candidate is None:
+            break
+
+        used.add(candidate[0])
+        result.append(candidate[0])
+
+    return result
+
+
 def item_rows(pool, tier, item_ids, count, weight):
-    theme_zh, theme_en = THEMES[pool][tier]
+    """Builds the item entries of one region one portion step at a time, so every item offers its small portion first
+    and a non stacking item never turns into a pile."""
     items = [item for item in ITEMS if item[0] in item_ids]
     rows = []
-
-    for item, buckets in zip(items, _spread(count, items)):
-        for bucket_index, amount in enumerate(AMOUNTS[:buckets]):
-            name_zh, name_en = _named(pool, tier, amount[1] + item[1], amount[2] + " " + item[2])
-            command = ("give " + PLAYER + " minecraft:" + item[0] + " %(" + str(amount[3][0]) + ","
-                       + str(amount[3][1]) + ")")
-            rows.append((pool, tier, name_zh, name_en, name_zh, name_en,
-                         BUCKET_WEIGHTS[min(bucket_index, len(BUCKET_WEIGHTS) - 1)], "red", False, command))
+    step = 0
 
     while len(rows) < count:
-        rows.append(rows[len(rows) % max(len(rows), 1)])
+        progressed = False
+
+        for item in items:
+            axes = amount_axes(item[0])
+
+            if step >= len(axes):
+                continue
+
+            amount = axes[step]
+            name_zh, name_en = _named(pool, tier, amount[1] + item[1],
+                                      (amount[2] + " " + item[2]).strip())
+
+            if amount is SINGLE_AMOUNT:
+                command = "give " + PLAYER + " minecraft:" + item[0]
+            else:
+                command = ("give " + PLAYER + " minecraft:" + item[0] + " %(" + str(amount[3][0]) + ","
+                           + str(amount[3][1]) + ")")
+
+            rows.append((pool, tier, name_zh, name_en, name_zh, name_en,
+                         BUCKET_WEIGHTS[min(step, len(BUCKET_WEIGHTS) - 1)], "red", False, command))
+            progressed = True
+
+            if len(rows) >= count:
+                break
+
+        if not progressed:
+            break
+
+        step += 1
 
     return rows[:count]
 
@@ -743,7 +877,7 @@ def survival_tier(tier):
     item_count = TIER_ENTRIES - (effect_count + mob_count + loot_count + xp_count + gear_count + damage_count
                                  + mishap_count)
 
-    item_ids = _pick(ITEM_IDS, plan["item_start"], plan["items"])
+    item_ids = _item_ids_with_capacity(_pick(ITEM_IDS, plan["item_start"], plan["items"]), item_count)
     rows += item_rows("survival", tier, item_ids, item_count, STEP_WEIGHTS[0])
 
     effect_plan = []
@@ -991,6 +1125,37 @@ CREATIVE_CATEGORIES = [
 CREATIVE_SCALE = {1: 1.0, 2: 1.4, 3: 1.9, 4: 2.5, 5: 3.2, 6: 4.0}
 
 
+GIVE_COMMAND = re.compile(r"^(give \$\{player\} minecraft:([a-z0-9_]+)(?:\{[^\n]*\})?)(?: %\((\d+),(\d+)\))?$")
+# A stackable prize never exceeds two slots, so a scaled region factor can not turn one portion into a wagon.
+GIVE_SLOT_LIMIT = 128
+
+
+def clamp_give(command):
+    """Keeps the count of a scaled give command inside what the item can really carry."""
+    match = GIVE_COMMAND.match(command)
+
+    if match is None:
+        return command
+
+    size = stack_size(match.group(2))
+    base = match.group(1)
+
+    if match.group(3) is None:
+        return command
+
+    if size <= 1:
+        return base
+
+    limit = size if size < 64 else GIVE_SLOT_LIMIT
+    low = max(1, min(limit, int(match.group(3))))
+    high = max(1, min(limit, int(match.group(4))))
+
+    if low >= high:
+        return base + " " + str(high)
+
+    return base + " %(" + str(low) + "," + str(high) + ")"
+
+
 def scale_command(command, factor):
     def number(match):
         value = int(round(int(match.group(1)) * factor))
@@ -1014,7 +1179,7 @@ def scale_command(command, factor):
 
     command = re.sub(r"#\((-?\d+)\)", number, command)
     command = re.sub(r"%\((-?\d+),(-?\d+)\)", pair, command)
-    return command
+    return clamp_give(command)
 
 def category_rows(pool, tier, label_zh, label_en, ideas, count, colour):
     """Multiplies every idea by the intensity words until the category holds exactly its quota."""

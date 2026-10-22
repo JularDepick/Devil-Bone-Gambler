@@ -6,7 +6,7 @@
 
 package com.devilbonegambler.network;
 
-import com.devilbonegambler.network.packet.ConfigPayloadPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadWritePacket;
 import com.devilbonegambler.util.ModConstants;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +31,7 @@ public final class ServerConfigPayloads
 
     public static void begin(ServerPlayer player, String domain, int revision, int sequence, int partCount)
     {
-        if (player == null || domain == null || !ConfigPayloadPacket.isPlausible(0, partCount))
+        if (player == null || domain == null || !ConfigPayloadWritePacket.isPlausible(0, partCount))
         {
             return;
         }
@@ -40,7 +40,7 @@ public final class ServerConfigPayloads
                 .put(domain, new Pending(revision, sequence, partCount));
     }
 
-    public static void accept(ServerPlayer player, ConfigPayloadPacket message)
+    public static void accept(ServerPlayer player, ConfigPayloadWritePacket message)
     {
         if (player == null)
         {
@@ -51,7 +51,7 @@ public final class ServerConfigPayloads
         Pending pending = byDomain == null ? null : byDomain.get(message.domain());
 
         if (pending == null || pending.partCount != message.partCount()
-                || !ConfigPayloadPacket.isPlausible(message.partIndex(), message.partCount()))
+                || !ConfigPayloadWritePacket.isPlausible(message.partIndex(), message.partCount()))
         {
             return;
         }

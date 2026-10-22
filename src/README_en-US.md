@@ -143,7 +143,8 @@ src/main/java/com/devilbonegambler/
 │       ├── AltarOpenRequestPacket.java
 │       ├── AltarStatusPacket.java
 │       ├── BehaviorStatePacket.java            # Behaviour state mirror
-│       ├── ConfigPayloadPacket.java            # One part of a config payload, shared by both directions
+│       ├── ConfigPayloadPacket.java            # One part of a config payload pushed to the client
+│       ├── ConfigPayloadWritePacket.java       # One part of a config payload sent by a save
 │       ├── ConfigWriteRequestPacket.java       # Save request metadata, the payload follows in parts
 │       ├── ConfigWriteResponsePacket.java
 │       ├── DealerBetOpenRequestPacket.java

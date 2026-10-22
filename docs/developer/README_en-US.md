@@ -72,7 +72,9 @@ The Python scripts in `scripts/` are static guards: they read sources and resour
 | Language and translation boundary | `check_lang_keys.py`, `check_lang_coverage.py`, `check_translation_boundary.py`, `check_item_tooltips.py` |
 | Placeholders and commands | `check_number_placeholders.py`, `check_repeat_placeholders.py`, `check_sample_placeholders.py`, `check_prompt_channel.py` |
 | Gameplay mechanics | `check_luck_system.py`, `check_lucky_apple.py`, `check_placed_dice.py`, `check_altar_protection.py`, `check_recipes.py` |
+| Preset pools | `check_preset_source.py` |
 | Screens and documents | `check_admin_layout.py`, `check_tooltip_delay.py`, `check_manuals.py`, `check_doc_structure.py` |
+| Network | `check_packet_directions.py` |
 
 ## Version and placeholders
 

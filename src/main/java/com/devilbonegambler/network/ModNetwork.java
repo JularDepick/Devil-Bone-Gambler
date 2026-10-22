@@ -14,6 +14,7 @@ import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarStatusPacket;
 import com.devilbonegambler.network.packet.ConfigPayloadPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadWritePacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
@@ -34,8 +35,10 @@ import com.devilbonegambler.network.packet.PointDisplayPacket;
 import com.devilbonegambler.network.packet.ValueTableRefreshRequestPacket;
 import com.devilbonegambler.network.packet.ValueTableSyncPacket;
 import com.devilbonegambler.util.ModConstants;
+import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -83,10 +86,17 @@ public final class ModNetwork
         CHANNEL.registerMessage(index++, ConfigWriteResponsePacket.class,
                 ConfigWriteResponsePacket::encode, ConfigWriteResponsePacket::decode,
                 ConfigWriteResponsePacket::handle);
+        /*
+         * The two directions carry the same fields but must be two message classes: Forge keeps one handler per
+         * class, so registering one class twice would leave only the last handler and the push would be delivered
+         * to the save handler, where the payload is dropped.
+         */
         CHANNEL.registerMessage(index++, ConfigPayloadPacket.class,
-                ConfigPayloadPacket::encode, ConfigPayloadPacket::decode, ConfigPayloadPacket::handleFromServer);
-        CHANNEL.registerMessage(index++, ConfigPayloadPacket.class,
-                ConfigPayloadPacket::encode, ConfigPayloadPacket::decode, ConfigPayloadPacket::handleFromClient);
+                ConfigPayloadPacket::encode, ConfigPayloadPacket::decode, ConfigPayloadPacket::handleFromServer,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(index++, ConfigPayloadWritePacket.class,
+                ConfigPayloadWritePacket::encode, ConfigPayloadWritePacket::decode,
+                ConfigPayloadWritePacket::handleFromClient, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(index++, OpenValueTablePacket.class,
                 OpenValueTablePacket::encode, OpenValueTablePacket::decode, OpenValueTablePacket::handle);
         CHANNEL.registerMessage(index++, PointDisplayPacket.class,

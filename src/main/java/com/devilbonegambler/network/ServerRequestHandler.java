@@ -24,6 +24,7 @@ import com.devilbonegambler.network.packet.AdminPanelDataPacket;
 import com.devilbonegambler.network.packet.AdminPanelRequestPacket;
 import com.devilbonegambler.network.packet.AltarOpenRequestPacket;
 import com.devilbonegambler.network.packet.ConfigPayloadPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadWritePacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.network.packet.DealerBetOpenRequestPacket;
@@ -381,7 +382,7 @@ public final class ServerRequestHandler
     /**
      * One part of a save request. The last part applies the whole payload through {@link #applyConfigWrite}.
      */
-    public static void handleConfigPayload(ServerPlayer player, ConfigPayloadPacket message)
+    public static void handleConfigPayload(ServerPlayer player, ConfigPayloadWritePacket message)
     {
         if (player == null || !isManager(player))
         {

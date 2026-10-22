@@ -12,7 +12,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
 /**
- * Client to server: announces one config save, which is then delivered in parts by {@link ConfigPayloadPacket}.
+ * Client to server: announces one config save, which is then delivered in parts by {@link ConfigPayloadWritePacket}.
  *
  * The announcement carries the revision the client edited and how many parts follow, so the server can reject the
  * save on permissions or a stale revision before the bulk arrives.

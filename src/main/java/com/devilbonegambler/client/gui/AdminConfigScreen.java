@@ -16,7 +16,7 @@ import com.devilbonegambler.config.PrizePoolConfig;
 import com.devilbonegambler.config.PrizeRegion;
 import com.devilbonegambler.network.ModNetwork;
 import com.devilbonegambler.network.ConfigChunks;
-import com.devilbonegambler.network.packet.ConfigPayloadPacket;
+import com.devilbonegambler.network.packet.ConfigPayloadWritePacket;
 import com.devilbonegambler.network.packet.ConfigWriteRequestPacket;
 import com.devilbonegambler.network.packet.ConfigWriteResponsePacket;
 import com.devilbonegambler.util.ModConstants;
@@ -1096,7 +1096,7 @@ public class AdminConfigScreen extends Screen
 
         for (int index = 0; index < parts.size(); index++)
         {
-            ModNetwork.sendToServer(new ConfigPayloadPacket(domain, index, parts.size(), parts.get(index)));
+            ModNetwork.sendToServer(new ConfigPayloadWritePacket(domain, index, parts.size(), parts.get(index)));
         }
     }
 
