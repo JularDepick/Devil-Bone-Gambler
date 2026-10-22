@@ -15,6 +15,8 @@ A Minecraft mod: roll a die to trigger a random reward or punishment. Every payo
 
 ---
 
+![A sunset with a Gambler's Dealer and a Devil's Altar](./curseforge/00.png)
+
 ## Requirements
 
 | Item | Requirement |
@@ -34,7 +36,7 @@ A Minecraft mod: roll a die to trigger a random reward or punishment. Every payo
 | Devil's Dice | Right click to draw; inside an altar range the right click opens the offering screen |
 | Devil's Altar | A placed altar gives strength to the players in its range, and it can also be worn on the head as if it stood where you stand |
 | Offering Value Table | Right click to open a searchable value table with an item and a creature chapter |
-| Lucky Apple | Eight gambler dice around one apple; eating it fills both bars and grants Child of Fortune |
+| Lucky Apple | Eight gambler dice around one apple; eating it while standing fills both bars and grants 15 seconds of Child of Fortune, while eating it while sneaking adds 10 luck points instead |
 | Gameplay, admin and creator manuals | Three shipped books handed out by role, never craftable |
 | Placed die | Hold the placement key to set a die down, break it with the key held to take it back, and break it without the key to use it |
 | Dealer spawn egg | Spawns a Gambler's Dealer, offered by the dice usage count and the creative tab |
@@ -43,7 +45,7 @@ A Minecraft mod: roll a die to trigger a random reward or punishment. Every payo
 
 | Name | Notes |
 |:---:|:---|
-| Child of Fortune | Ten seconds after eating a Lucky Apple; the luck value is held at 100 and returns to the pre meal value afterwards |
+| Child of Fortune | Fifteen seconds after eating a Lucky Apple; the luck value is held at 100 and returns to the pre meal value afterwards; eating another apple while standing extends it by 15 seconds |
 
 ## How it plays
 
@@ -69,12 +71,12 @@ Shift plus D also opens the config panel in game, and the key is rebindable
 
 ## Configuration
 
-Prize pools and offering values are controlled by server side config files: pools may exist side by side and be switched on demand; entry commands support multiple lines, position placeholders, the `%(n,m)` random integer, the `--R(n)` repeat and the sample space placeholders. Runtime file locations and the config field list are in the [developer documentation](./docs/developer/README_en-US.md)
+Prize pools and offering values are controlled by server side config files: pools may exist side by side and be switched on demand; two presets ship with the mod, Pure Survival and Creative Survival, six regions each; entry commands support multiple lines, position placeholders, the `%(n,m)` random integer, the `--R(n)` repeat and the sample space placeholders. Runtime file locations and the config field list are in the [developer documentation](./docs/developer/README_en-US.md)
 
 ## Compatibility
 
-- Both the client and the server have to be 0.7.0; a client with another protocol is refused by the server
-- Prize pool config moved to the multi pool layout in 0.7.0, an old file is backed up and replaced by the two built in presets
+- Both the client and the server have to be 0.8.0; a client with another protocol is refused by the server
+- 0.8.0 replaced the built in presets with two sets of 1560 entries each; an existing pool file is kept as it is and the presets are written only when no config exists
 - The luck value is new in 0.7.0, so a player joining an old save starts at 80
 
 ## More documents
