@@ -29,6 +29,7 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientConfigCache.java                  # 配置分块的拼装与面板打开时机
 │   ├── ClientNotices.java
 │   ├── ClientPacketHandler.java                # 客户端侧网络包分发
+│   ├── ClientSessionEvents.java                # 登录与断线时清空配置缓冲与上一段连接的残留
 │   ├── ClientSetup.java                        # 客户端注册入口, 注册实体渲染器
 │   ├── DicePlacementKey.java                   # 放置键(默认 Tab)与对放置骰子的左键拦截
 │   ├── ItemTooltips.java                       # 物品提示行的集中表

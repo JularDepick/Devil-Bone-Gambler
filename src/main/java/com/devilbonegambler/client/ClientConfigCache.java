@@ -6,6 +6,7 @@
 
 package com.devilbonegambler.client;
 
+import com.devilbonegambler.network.ConfigChunks;
 import com.devilbonegambler.util.ModConstants;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,6 +20,10 @@ import java.util.Map;
  * The panel payload arrives in parts, so this class glues them back together per domain and remembers the last full
  * copy of each. Opening the panel needs both copies plus the access data, which arrives first, so the panel opens on
  * the part that completes the second payload instead of on a partially filled screen.
+ *
+ * A transfer belongs to one connection: every login and every logout drops the half built parts and the stored copies,
+ * so a save cut off by a disconnect can never be completed by the parts of the next one, and a panel never opens on
+ * the data of a server the player has already left.
  */
 public final class ClientConfigCache
 {
@@ -38,9 +43,18 @@ public final class ClientConfigCache
      */
     public static String accept(String domain, int partIndex, int partCount, String chunk)
     {
+        if (domain == null || !ConfigChunks.isPlausible(partIndex, partCount))
+        {
+            return null;
+        }
+
         List<String> parts = PARTS.get(domain);
 
-        if (parts == null || parts.size() != partCount)
+        /*
+         * The first part always starts a new transfer. A retry that happens to use the same part count must not have
+         * its head merged with the tail of the attempt it replaces, because the two belong to different revisions.
+         */
+        if (partIndex == 0 || parts == null || parts.size() != partCount)
         {
             parts = new ArrayList<String>(Collections.nCopies(partCount, (String) null));
             PARTS.put(domain, parts);
@@ -102,6 +116,10 @@ public final class ClientConfigCache
         ClientActions.openAdminPanel(pool, values, creatorName, admins, canManageAdmins);
     }
 
+    /**
+     * Drops everything a connection left behind: the half built transfer, the last complete pair of payloads, the
+     * waiting open and the access data. Called on login and on logout, never in the middle of a session.
+     */
     public static void clear()
     {
         PARTS.clear();

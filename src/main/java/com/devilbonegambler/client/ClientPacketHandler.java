@@ -45,6 +45,15 @@ public final class ClientPacketHandler
         return valueTable;
     }
 
+    /**
+     * Forgets the snapshot of the connection that just ended, so a value table is never shown for a server the player
+     * has already left. Called on login and on logout, together with the config cache.
+     */
+    public static void resetServerState()
+    {
+        valueTable = null;
+    }
+
     public static void handleBehaviorState(BehaviorStatePacket message)
     {
         ClientBehaviorState.set(message.triggered(), message.value());

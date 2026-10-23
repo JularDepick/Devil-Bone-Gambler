@@ -2346,6 +2346,13 @@ public class AdminConfigScreen extends Screen
         List<String> weights = new ArrayList<String>();
         List<String> colors = new ArrayList<String>();
 
+        /*
+         * The colour labels are translated once per rebuild instead of once per row: a pool of thousands of entries
+         * would otherwise ask the language table for the same two words thousands of times on every edit.
+         */
+        String redLabel = Component.translatable(key("admin.toggle_red")).getString();
+        String blackLabel = Component.translatable(key("admin.toggle_black")).getString();
+
         for (Row row : this.prizeRows)
         {
             if (row instanceof RegionRow)
@@ -2363,8 +2370,7 @@ public class AdminConfigScreen extends Screen
                 tiers.add(Integer.toString(entryRow.region.tierOrZero()));
                 names.add(entryRow.entry.displayName());
                 weights.add(formatWeight(entryRow.entry.weightOrZero()));
-                colors.add(Component.translatable(key(entryRow.entry.isRed()
-                        ? "admin.toggle_red" : "admin.toggle_black")).getString());
+                colors.add(entryRow.entry.isRed() ? redLabel : blackLabel);
             }
         }
 

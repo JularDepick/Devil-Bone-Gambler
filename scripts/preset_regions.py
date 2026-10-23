@@ -224,8 +224,9 @@ def _chest_rain_rows(tier, tables):
 
     for table_id, zh, en in tables:
         name_zh, name_en = _named("creative", tier, zh, en)
-        command = ("execute at " + PLAYER + " run summon minecraft:chest ~ ~4 ~ {LootTable:\"minecraft:chests/"
-                   + table_id + "\"}")
+        # A chest is not an entity, so the contents are spawned straight out of the table they belong to. That is the
+        # same pile of loot a player would find inside the chest, and it falls to the ground instead of hanging in air.
+        command = ("execute at " + PLAYER + " run loot spawn ~ ~4 ~ loot minecraft:chests/" + table_id)
         rows.append(_row("creative", tier, name_zh, name_en, WEIGHT_RARE, "red", command))
 
     return rows

@@ -78,6 +78,16 @@ public final class ServerConfigPayloads
                 builder.toString());
     }
 
+    /**
+     * A player who leaves loses the parts that never arrived. A player who joins starts from an empty buffer, so a save
+     * cut off by a disconnect can not be completed by the parts of the next session.
+     */
+    @SubscribeEvent
+    public static void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event)
+    {
+        PENDING.remove(event.getEntity().getUUID());
+    }
+
     @SubscribeEvent
     public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event)
     {

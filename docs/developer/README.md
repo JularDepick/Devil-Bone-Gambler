@@ -72,9 +72,9 @@
 | 语言与翻译边界 | `check_lang_keys.py`, `check_lang_coverage.py`, `check_translation_boundary.py`, `check_item_tooltips.py` |
 | 占位符与指令 | `check_number_placeholders.py`, `check_repeat_placeholders.py`, `check_sample_placeholders.py`, `check_prompt_channel.py` |
 | 玩法机制 | `check_luck_system.py`, `check_lucky_apple.py`, `check_placed_dice.py`, `check_altar_protection.py`, `check_recipes.py` |
-| 预设奖池 | `check_preset_source.py` |
-| 界面与文档 | `check_admin_layout.py`, `check_tooltip_delay.py`, `check_manuals.py`, `check_doc_structure.py` |
-| 网络 | `check_packet_directions.py` |
+| 预设奖池 | `check_preset_source.py`, `check_preset_commands.py` |
+| 界面与文档 | `check_admin_layout.py`, `check_admin_perf.py`, `check_tooltip_delay.py`, `check_manuals.py`, `check_doc_structure.py` |
+| 网络 | `check_packet_directions.py`, `check_config_transfer.py` |
 
 ## 版本号与占位符
 

@@ -415,8 +415,8 @@ ARROWS = [
 LOOT = [
     ("simple_dungeon", "地牢的箱子", "A dungeon chest"),
     ("abandoned_mineshaft", "废弃矿井的箱子", "A mineshaft chest"),
-    ("village_weaponsmith", "村庄武器匠的箱子", "A village weaponsmith chest"),
-    ("village_armorer", "村庄盔甲匠的箱子", "A village armorer chest"),
+    ("village/village_weaponsmith", "村庄武器匠的箱子", "A village weaponsmith chest"),
+    ("village/village_armorer", "村庄盔甲匠的箱子", "A village armorer chest"),
     ("desert_pyramid", "沙漠神殿的箱子", "A desert temple chest"),
     ("jungle_temple", "丛林神庙的箱子", "A jungle temple chest"),
     ("shipwreck_treasure", "沉船的宝藏", "Shipwreck treasure"),
@@ -1123,27 +1123,48 @@ TELEPORT_IDEAS = [
     ("斜向抛飞", "A diagonal throw", "execute at " + PLAYER + " run tp @s ~%(30,60) ~ ~%(30,60)"),
 ]
 
+# A structure is anchored to a heightmap rather than to the player's feet: a player standing in a cave or under
+# water would otherwise grow the structure inside stone or inside the sea, and a structure that grows downward from
+# the surface stays inside the world instead of being clipped against bedrock. The ocean floor keeps a wreck or a
+# monument on the sea bed instead of floating it on the surface of the sea.
+#
+# Every row is a structure the current dimension can hold. A preset entry is one plain command with no way to read
+# the dimension of the player, so a nether fortress or an end city can not be held back for its own dimension: those
+# rows are left out instead of being grown in the wrong place.
+STRUCTURE_ANCHORS = {
+    "surface": "world_surface",
+    "ocean": "ocean_floor",
+}
+
+
+def structure_command(structure_id, anchor, spread):
+    """One structure verb, anchored to a heightmap and set a little to the side so it does not grow on the player."""
+    heightmap = STRUCTURE_ANCHORS[anchor]
+    return ("execute at " + PLAYER + " positioned over " + heightmap + " ~#(" + str(spread) + ") ~ ~#("
+            + str(spread) + ") run place structure minecraft:" + structure_id)
+
+
 STRUCTURE_IDEAS = [
-    ("村庄", "A village", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:village_plains"),
-    ("掠夺者前哨", "A pillager outpost", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:pillager_outpost"),
-    ("废弃传送门", "A ruined portal", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ruined_portal"),
-    ("沉船", "A shipwreck", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:shipwreck"),
-    ("沙漠神殿", "A desert temple", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:desert_pyramid"),
-    ("雪屋", "An igloo", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:igloo"),
-    ("女巫小屋", "A swamp hut", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:swamp_hut"),
-    ("远古城市", "An ancient city", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ancient_city"),
-    ("海底神殿", "An ocean monument", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:ocean_monument"),
-    ("林地府邸", "A woodland mansion", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:woodland_mansion"),
-    ("丛林神庙", "A jungle temple", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:jungle_pyramid"),
-    ("要塞", "A stronghold", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:stronghold"),
-    ("废弃矿井", "An abandoned mineshaft", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:mineshaft"),
-    ("下界要塞", "A nether fortress", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:fortress"),
-    ("堡垒遗迹", "A bastion remnant", "execute at " + PLAYER + " positioned ~#(6) ~ ~ run place structure minecraft:bastion_remnant"),
-    ("末地城", "An end city", "execute at " + PLAYER + " positioned ~#(8) ~ ~ run place structure minecraft:end_city"),
-    ("暖海废墟", "A warm ocean ruin", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:ocean_ruin_warm"),
-    ("古迹废墟", "Trail ruins", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:trail_ruins"),
-    ("沙漠水井", "A desert well", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:desert_well"),
-    ("针叶林村庄", "A taiga village", "execute at " + PLAYER + " positioned ~#(4) ~ ~ run place structure minecraft:village_taiga"),
+    ("村庄", "A village", structure_command("village_plains", "surface", 4)),
+    ("针叶林村庄", "A taiga village", structure_command("village_taiga", "surface", 4)),
+    ("雪原村庄", "A snowy village", structure_command("village_snowy", "surface", 4)),
+    ("热带草原村庄", "A savanna village", structure_command("village_savanna", "surface", 4)),
+    ("掠夺者前哨", "A pillager outpost", structure_command("pillager_outpost", "surface", 4)),
+    ("废弃传送门", "A ruined portal", structure_command("ruined_portal", "surface", 4)),
+    ("沉船", "A shipwreck", structure_command("shipwreck", "ocean", 4)),
+    ("搁浅的沉船", "A beached shipwreck", structure_command("shipwreck_beached", "surface", 4)),
+    ("沙漠神殿", "A desert temple", structure_command("desert_pyramid", "surface", 4)),
+    ("雪屋", "An igloo", structure_command("igloo", "surface", 4)),
+    ("女巫小屋", "A swamp hut", structure_command("swamp_hut", "surface", 4)),
+    ("远古城市", "An ancient city", structure_command("ancient_city", "surface", 4)),
+    ("海底神殿", "An ocean monument", structure_command("monument", "ocean", 6)),
+    ("林地府邸", "A woodland mansion", structure_command("mansion", "surface", 6)),
+    ("丛林神庙", "A jungle temple", structure_command("jungle_pyramid", "surface", 4)),
+    ("要塞", "A stronghold", structure_command("stronghold", "surface", 6)),
+    ("废弃矿井", "An abandoned mineshaft", structure_command("mineshaft", "surface", 4)),
+    ("暖海废墟", "A warm ocean ruin", structure_command("ocean_ruin_warm", "ocean", 4)),
+    ("寒海废墟", "A cold ocean ruin", structure_command("ocean_ruin_cold", "ocean", 4)),
+    ("古迹废墟", "Trail ruins", structure_command("trail_ruins", "surface", 4)),
 ]
 
 TRAP_IDEAS = [

@@ -100,3 +100,8 @@ Copyright &copy; 2026 JularDepick
 ## 许可证
 
 本仓库采用 [Apache-2.0 许可证](./LICENSE).
+
+## 相关链接
+
+- CurseForge模组链接: https://www.curseforge.com/minecraft/mc-mods/devil-bone-gambler
+- Modrinth模组链接:  https://modrinth.com/mod/devil-bone-gambler

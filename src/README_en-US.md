@@ -29,6 +29,7 @@ src/main/java/com/devilbonegambler/
 │   ├── ClientConfigCache.java                  # Assembles config parts, opens the panel at the right moment
 │   ├── ClientNotices.java
 │   ├── ClientPacketHandler.java                # Client side packet dispatch
+│   ├── ClientSessionEvents.java                # Drops the config buffer and the last connection's leftovers on login and logout
 │   ├── ClientSetup.java                        # Client registration entry, registers the entity renderer
 │   ├── DicePlacementKey.java                   # The placement key, Tab by default, and the left click hook on placed dice
 │   ├── ItemTooltips.java                       # Tooltip lines of the items of this mod
